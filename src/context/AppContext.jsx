@@ -1040,9 +1040,9 @@ export const AppProvider = ({ children }) => {
     const allowed = Number(programData.defaultAllowedPerTeam) || 1;
 
     // Build team allocations
-    // If Thamheediyya, automatically assigned to ALL teams
-    let teamAllocations = programData.teamAllocations || {};
-    if (isThamheediyya || !programData.teamAllocations) {
+    // If teamAllocations explicitly provided, use it; otherwise assign to ALL teams
+    let teamAllocations = programData.teamAllocations;
+    if (!teamAllocations || Object.keys(teamAllocations).length === 0) {
       teamAllocations = {};
       teams.forEach(t => {
         teamAllocations[t.id] = {

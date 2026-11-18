@@ -25,6 +25,7 @@ import {
   BookOpen,
   AlertTriangle,
   ArrowRight,
+  ArrowLeft,
   Sliders,
   Check,
   UserCheck,
@@ -146,23 +147,20 @@ export const ProgramManagement = () => {
 
   // Handle Add Program Submit
   const handleAddProgramSubmit = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
 
-    // Prepare team allocations for Aliya if activeSection is aliya
-    let teamAllocations = undefined;
-    if (activeSection === 'aliya') {
-      teamAllocations = {};
-      teams.forEach(t => {
-        const isAssigned = selectedAliyaTeamIds.includes(t.id);
-        teamAllocations[t.id] = {
-          assigned: isAssigned,
-          allowedCount: isAssigned ? (Number(aliyaSlotCount) || 1) : 1
-        };
-      });
-    }
+    // Prepare team allocations for selected teams (both Aliya & Thamheediyya)
+    const teamAllocations = {};
+    teams.forEach(t => {
+      const isAssigned = selectedAliyaTeamIds.includes(t.id);
+      teamAllocations[t.id] = {
+        assigned: isAssigned,
+        allowedCount: isAssigned ? (Number(aliyaSlotCount) || 1) : 1
+      };
+    });
 
     if (addMode === 'library') {
-      const libProg = programLibrary.find(lp => lp.id === selectedLibraryProgId);
+      const libProg = programLibrary.find(lp => lp.id === selectedLibraryProgId) || filteredLibraryPrograms[0];
       if (!libProg) return;
 
       assignProgramToSummit(selectedSummitId, {
@@ -172,7 +170,7 @@ export const ProgramManagement = () => {
         sectionId: libProg.sectionId || activeSection,
         type: libProg.type,
         maxMarks: libProg.maxMarks || 10,
-        defaultAllowedPerTeam: activeSection === 'aliya' ? (Number(aliyaSlotCount) || 1) : (libProg.defaultAllowedPerTeam || 1),
+        defaultAllowedPerTeam: Number(aliyaSlotCount) || libProg.defaultAllowedPerTeam || 1,
         stage: addVenue || 'Auditorium Stage',
         date: activeSummit?.date,
         time: addTime || '10:00 AM',
@@ -187,8 +185,9 @@ export const ProgramManagement = () => {
         stage: newCustomProg.stage || addVenue || 'Auditorium Stage',
         time: newCustomProg.time || addTime || '10:00 AM',
         assignedJudges: addAssignedJudges,
-        sectionId: activeSection,
+        sectionId: newCustomProg.sectionId || activeSection,
         date: activeSummit?.date,
+        defaultAllowedPerTeam: Number(aliyaSlotCount) || 1,
         teamAllocations
       }, currentUser?.username);
     }
@@ -302,6 +301,463 @@ export const ProgramManagement = () => {
       setGroupNameInput('');
     }
   };
+
+  // NORMAL WINDOW VIEW FOR ASSIGNING PROGRAM (No modal/popup window)
+  if (isAddProgramOpen) {
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        {/* Normal Screen Header Card */}
+        <div className="bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddProgramOpen(false);
+                setProgSearchText('');
+              }}
+              className="p-2 sm:p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition flex items-center gap-2 font-bold text-xs"
+              title="Back to Programs List"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Programs</span>
+            </button>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg sm:text-xl font-bold text-[#0F2A4A] dark:text-white">
+                  Assign Program to {activeSummit.name}
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 dark:bg-teal-950/60 text-[#0E7C86] border border-teal-200 dark:border-teal-900 uppercase">
+                  {activeSection === 'aliya' ? 'Aliya' : 'Thamheediyya'} Section
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Pick an event from the master library or create a custom event, choose participating house teams, and assign judges.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddProgramOpen(false);
+                setProgSearchText('');
+              }}
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleAddProgramSubmit}
+              className="px-6 py-2.5 bg-[#0E7C86] hover:bg-[#14919D] text-white rounded-xl font-bold text-xs shadow-md transition flex items-center gap-2"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Assign Program</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Normal Window Content Card */}
+        <div className="bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-8 shadow-xs">
+          <form onSubmit={handleAddProgramSubmit} className="space-y-6 text-xs">
+            {/* 1. Mode Switcher & Section Switcher */}
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex gap-2 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setAddMode('library')}
+                  className={`py-2 px-4 rounded-lg font-bold text-xs text-center transition flex items-center justify-center gap-2 ${
+                    addMode === 'library'
+                      ? 'bg-white dark:bg-slate-900 text-[#0F2A4A] dark:text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4 text-[#0E7C86]" />
+                  <span>Pick from Master Library ({availableLibraryPrograms.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAddMode('custom')}
+                  className={`py-2 px-4 rounded-lg font-bold text-xs text-center transition flex items-center justify-center gap-2 ${
+                    addMode === 'custom'
+                      ? 'bg-white dark:bg-slate-900 text-[#0F2A4A] dark:text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Plus className="w-4 h-4 text-[#C9A227]" />
+                  <span>Create Custom Event</span>
+                </button>
+              </div>
+
+              {/* Section Filter Switch */}
+              <div className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs">
+                <span className="font-semibold text-slate-500 pl-2">Division:</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveSection('thamheediyya')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition ${
+                    activeSection === 'thamheediyya'
+                      ? 'bg-[#0F2A4A] text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  Thamheediyya
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSection('aliya')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition ${
+                    activeSection === 'aliya'
+                      ? 'bg-[#0F2A4A] text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  Aliya
+                </button>
+              </div>
+            </div>
+
+            {/* 2. Library or Custom Form */}
+            {addMode === 'library' ? (
+              <div className="space-y-4 p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block font-bold text-slate-800 dark:text-slate-200 text-sm">
+                      Type Program Name to Search &amp; Auto-Select:
+                    </label>
+                    <span className="text-xs text-slate-500">
+                      Showing <strong>{filteredLibraryPrograms.length}</strong> of {availableLibraryPrograms.length} programs
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type="text"
+                      value={progSearchText}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setProgSearchText(val);
+                        const q = val.toLowerCase().trim();
+                        const firstMatch = availableLibraryPrograms.find(lp =>
+                          lp.name.toLowerCase().includes(q)
+                        );
+                        if (firstMatch) {
+                          setSelectedLibraryProgId(firstMatch.id);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (filteredLibraryPrograms.length > 0) {
+                            setSelectedLibraryProgId(filteredLibraryPrograms[0].id);
+                          }
+                        }
+                      }}
+                      placeholder="Start typing program name (press Enter or click to choose)..."
+                      className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-semibold focus:ring-2 focus:ring-[#0E7C86] focus:border-[#0E7C86]"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                {selectedLibraryProgId && (
+                  <div className="p-3.5 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900/50 flex flex-wrap items-center justify-between gap-2 text-xs text-teal-900 dark:text-teal-200">
+                    <div className="flex items-center gap-2.5 font-bold text-sm">
+                      <CheckCircle2 className="w-5 h-5 text-[#0E7C86]" />
+                      <span>Selected: {programLibrary.find(p => p.id === selectedLibraryProgId)?.name}</span>
+                    </div>
+                    <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded bg-teal-200/50 dark:bg-teal-900 text-teal-900 dark:text-teal-200">
+                      {programLibrary.find(p => p.id === selectedLibraryProgId)?.type} • {fields.find(f => f.id === programLibrary.find(p => p.id === selectedLibraryProgId)?.fieldId)?.name || 'General'}
+                    </span>
+                  </div>
+                )}
+
+                <div className="max-h-72 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl divide-y bg-white dark:bg-slate-900">
+                  {filteredLibraryPrograms.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 italic space-y-1">
+                      <p className="font-semibold text-sm">No programs match &quot;{progSearchText}&quot;</p>
+                      <p className="text-xs">Switch to &quot;Create Custom Event&quot; above to add a new event directly.</p>
+                    </div>
+                  ) : (
+                    filteredLibraryPrograms.map(lp => {
+                      const f = fields.find(x => x.id === lp.fieldId);
+                      const isSelected = selectedLibraryProgId === lp.id;
+                      return (
+                        <label
+                          key={lp.id}
+                          className={`flex items-center justify-between p-3.5 cursor-pointer transition ${
+                            isSelected ? 'bg-teal-50/90 dark:bg-teal-950/60 border-l-4 border-l-[#0E7C86]' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              name="libraryProg"
+                              checked={isSelected}
+                              onChange={() => setSelectedLibraryProgId(lp.id)}
+                              className="text-[#0E7C86] focus:ring-[#0E7C86] w-4 h-4"
+                            />
+                            <div>
+                              <div className="font-bold text-slate-900 dark:text-white text-sm">{lp.name}</div>
+                              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
+                                <span className="font-medium text-[#0E7C86]">{f?.name || 'General'}</span>
+                                <span>•</span>
+                                <span className="capitalize">{lp.type}</span>
+                                <span>•</span>
+                                <span>{lp.defaultAllowedPerTeam} slot(s) default</span>
+                              </div>
+                            </div>
+                          </div>
+                          <span className="text-xs font-mono font-bold px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            Max: {lp.maxMarks || 10} pts
+                          </span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
+                <div>
+                  <label className="block font-bold mb-1.5 text-sm text-slate-800 dark:text-slate-200">Event / Program Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={newCustomProg.name}
+                    onChange={(e) => setNewCustomProg(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-sm"
+                    placeholder="e.g. Contemporary Research Symposium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Field</label>
+                    <select
+                      value={newCustomProg.fieldId}
+                      onChange={(e) => setNewCustomProg(prev => ({ ...prev, fieldId: e.target.value }))}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-xs"
+                    >
+                      {fields.map(f => (
+                        <option key={f.id} value={f.id}>{f.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Type</label>
+                    <select
+                      value={newCustomProg.type}
+                      onChange={(e) => setNewCustomProg(prev => ({ ...prev, type: e.target.value }))}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-xs"
+                    >
+                      <option value="individual">Individual</option>
+                      <option value="group">Group</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 3. TARGET TEAMS SELECTION (ഏതൊക്കെ ടീമിനാണ് വേണ്ടത് എന്ന ഓപ്ഷൻ) */}
+            <div className="p-4 sm:p-5 rounded-2xl border-2 border-teal-500/30 bg-teal-50/40 dark:bg-teal-950/20 dark:border-teal-800/50 space-y-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <label className="font-bold text-sm text-[#0F2A4A] dark:text-white flex items-center gap-2">
+                    <Users className="w-4 h-4 text-[#0E7C86]" />
+                    <span>Assign to House Teams (ഏതെല്ലാം ടീമുകൾക്കാണ് ഈ പ്രോഗ്രാം വേണ്ടത്?):</span>
+                  </label>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Choose which house teams will participate in this program event.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAliyaTeamIds(teams.map(t => t.id))}
+                    className="px-3 py-1 rounded-lg bg-teal-600 text-white font-bold hover:bg-teal-700 transition"
+                  >
+                    Select All Teams
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAliyaTeamIds([])}
+                    className="px-3 py-1 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-300 transition"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+
+              {/* Grid of Teams */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                {teams.map(t => {
+                  const isChecked = selectedAliyaTeamIds.includes(t.id);
+                  return (
+                    <label
+                      key={t.id}
+                      className={`p-3 rounded-xl border-2 flex items-center gap-2.5 cursor-pointer transition select-none ${
+                        isChecked
+                          ? 'bg-white dark:bg-slate-900 border-[#0E7C86] shadow-xs'
+                          : 'bg-slate-100/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60 hover:opacity-80'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedAliyaTeamIds(prev => [...prev, t.id]);
+                          } else {
+                            setSelectedAliyaTeamIds(prev => prev.filter(id => id !== t.id));
+                          }
+                        }}
+                        className="rounded text-[#0E7C86] focus:ring-[#0E7C86] w-4 h-4"
+                      />
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-3 h-3 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: t.color }} />
+                        <div className="truncate">
+                          <span className="font-bold text-xs truncate text-slate-800 dark:text-slate-200 block">{t.name}</span>
+                          <span className="text-[10px] text-slate-400 block font-mono">
+                            {isChecked ? 'Participating' : 'Excluded'}
+                          </span>
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+
+              {/* Slot count per team */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-teal-200/60 dark:border-teal-900/50 text-xs">
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  Allowed Participant Slots per Selected Team:
+                </span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={aliyaSlotCount}
+                    onChange={(e) => setAliyaSlotCount(Math.max(1, Number(e.target.value) || 1))}
+                    className="w-16 p-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono font-bold text-center text-sm text-[#0E7C86]"
+                  />
+                  <span className="text-slate-500 font-medium">participant(s) / team</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Common Venue and Time */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div>
+                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Venue / Stage Assignment</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={addMode === 'custom' ? newCustomProg.stage : addVenue}
+                    onChange={(e) => {
+                      if (addMode === 'custom') {
+                        setNewCustomProg(prev => ({ ...prev, stage: e.target.value }));
+                      } else {
+                        setAddVenue(e.target.value);
+                      }
+                    }}
+                    placeholder="e.g. Auditorium Stage A, Seminar Room 1"
+                    className="w-full p-2.5 pl-8 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-xs"
+                  />
+                  <MapPin className="w-4 h-4 text-slate-400 absolute left-2.5 top-3" />
+                </div>
+              </div>
+              <div>
+                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Scheduled Time</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={addMode === 'custom' ? newCustomProg.time : addTime}
+                    onChange={(e) => {
+                      if (addMode === 'custom') {
+                        setNewCustomProg(prev => ({ ...prev, time: e.target.value }));
+                      } else {
+                        setAddTime(e.target.value);
+                      }
+                    }}
+                    placeholder="10:00 AM"
+                    className="w-full p-2.5 pl-8 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs"
+                  />
+                  <Clock className="w-4 h-4 text-slate-400 absolute left-2.5 top-3" />
+                </div>
+              </div>
+            </div>
+
+            {/* 5. Evaluator Judges Selection */}
+            <div className="space-y-2.5 p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-sm">
+                  <Gavel className="w-4 h-4 text-[#0E7C86]" />
+                  <span>Assign Evaluator Judges:</span>
+                </label>
+                <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                  {addAssignedJudges.length} Selected
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                Select one or more collegiate judges who will evaluate student performances in this event:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 max-h-48 overflow-y-auto">
+                {judges.map(j => {
+                  const isChecked = addAssignedJudges.includes(j.id);
+                  return (
+                    <label
+                      key={j.id}
+                      className={`p-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition ${
+                        isChecked
+                          ? 'bg-teal-50 dark:bg-teal-950/40 border-teal-400 dark:border-teal-700 text-[#0F2A4A] dark:text-white shadow-xs'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleJudgeSelection(j.id, false)}
+                        className="rounded text-[#0E7C86] focus:ring-[#0E7C86] w-4 h-4"
+                      />
+                      <div className="truncate">
+                        <div className="font-bold truncate text-xs">{j.name}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">@{j.username}</div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 6. Bottom Action Bar */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddProgramOpen(false);
+                  setProgSearchText('');
+                }}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-semibold text-xs transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2.5 bg-[#0E7C86] hover:bg-[#14919D] text-white rounded-xl font-bold text-sm shadow-md transition flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Assign Program to Summit</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -930,387 +1386,6 @@ export const ProgramManagement = () => {
             </div>
           )}
         </div>
-      )}
-
-      {/* MODAL 1: ADD PROGRAM (FROM LIBRARY OR CUSTOM) */}
-      {isAddProgramOpen && (
-        <Modal
-          isOpen={true}
-          onClose={() => setIsAddProgramOpen(false)}
-          title={`Assign Program to ${activeSummit.name}`}
-          maxWidth="max-w-4xl"
-        >
-          <form onSubmit={handleAddProgramSubmit} className="space-y-5 text-xs">
-            {/* Mode Switcher */}
-            <div className="flex gap-2 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800">
-              <button
-                type="button"
-                onClick={() => setAddMode('library')}
-                className={`flex-1 py-2.5 rounded-lg font-bold text-sm text-center transition flex items-center justify-center gap-2 ${
-                  addMode === 'library'
-                    ? 'bg-white dark:bg-slate-900 text-[#0F2A4A] dark:text-white shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                <BookOpen className="w-4 h-4 text-[#0E7C86]" />
-                <span>Pick from Master Library ({availableLibraryPrograms.length})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setAddMode('custom')}
-                className={`flex-1 py-2.5 rounded-lg font-bold text-sm text-center transition flex items-center justify-center gap-2 ${
-                  addMode === 'custom'
-                    ? 'bg-white dark:bg-slate-900 text-[#0F2A4A] dark:text-white shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                <Plus className="w-4 h-4 text-[#C9A227]" />
-                <span>Create Custom Event</span>
-              </button>
-            </div>
-
-            {addMode === 'library' ? (
-              <div className="space-y-3 p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="block font-bold text-slate-800 dark:text-slate-200 text-xs">
-                      Type Program Name to Search &amp; Auto-Select:
-                    </label>
-                    <span className="text-[11px] text-slate-500">
-                      Showing <strong>{filteredLibraryPrograms.length}</strong> of {availableLibraryPrograms.length} programs
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                    <input
-                      type="text"
-                      value={progSearchText}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setProgSearchText(val);
-                        const q = val.toLowerCase().trim();
-                        const firstMatch = availableLibraryPrograms.find(lp =>
-                          lp.name.toLowerCase().includes(q)
-                        );
-                        if (firstMatch) {
-                          setSelectedLibraryProgId(firstMatch.id);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          if (filteredLibraryPrograms.length > 0) {
-                            setSelectedLibraryProgId(filteredLibraryPrograms[0].id);
-                          }
-                        }
-                      }}
-                      placeholder="Start typing program name (press Enter or click to choose)..."
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-semibold focus:ring-2 focus:ring-[#0E7C86] focus:border-[#0E7C86]"
-                      autoFocus
-                    />
-                  </div>
-                </div>
-
-                {selectedLibraryProgId && (
-                  <div className="p-2.5 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900/50 flex items-center justify-between text-xs text-teal-900 dark:text-teal-200">
-                    <div className="flex items-center gap-2 font-bold text-sm">
-                      <Check className="w-4 h-4 text-[#0E7C86]" />
-                      <span>Selected: {programLibrary.find(p => p.id === selectedLibraryProgId)?.name}</span>
-                    </div>
-                    <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-teal-200/50 dark:bg-teal-900 text-teal-900 dark:text-teal-200">
-                      {programLibrary.find(p => p.id === selectedLibraryProgId)?.type} • {fields.find(f => f.id === programLibrary.find(p => p.id === selectedLibraryProgId)?.fieldId)?.name || 'General'}
-                    </span>
-                  </div>
-                )}
-
-                <div className="max-h-64 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl divide-y bg-white dark:bg-slate-900">
-                  {filteredLibraryPrograms.length === 0 ? (
-                    <div className="p-8 text-center text-slate-400 italic space-y-1">
-                      <p className="font-semibold text-sm">No programs match &quot;{progSearchText}&quot;</p>
-                      <p className="text-xs">Switch to &quot;Create Custom Event&quot; above to add a new event directly.</p>
-                    </div>
-                  ) : (
-                    filteredLibraryPrograms.map(lp => {
-                      const f = fields.find(x => x.id === lp.fieldId);
-                      const isSelected = selectedLibraryProgId === lp.id;
-                      return (
-                        <label
-                          key={lp.id}
-                          className={`flex items-center justify-between p-3.5 cursor-pointer transition ${
-                            isSelected ? 'bg-teal-50/90 dark:bg-teal-950/60 border-l-4 border-l-[#0E7C86]' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="radio"
-                              name="libraryProg"
-                              checked={isSelected}
-                              onChange={() => setSelectedLibraryProgId(lp.id)}
-                              className="text-[#0E7C86] focus:ring-[#0E7C86] w-4 h-4"
-                            />
-                            <div>
-                              <div className="font-bold text-slate-900 dark:text-white text-sm">{lp.name}</div>
-                              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
-                                <span className="font-medium text-[#0E7C86]">{f?.name || 'General'}</span>
-                                <span>•</span>
-                                <span className="capitalize">{lp.type}</span>
-                                <span>•</span>
-                                <span>{lp.defaultAllowedPerTeam} slot(s) per team</span>
-                              </div>
-                            </div>
-                          </div>
-                          <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                            Max: {lp.maxMarks || 10} pts
-                          </span>
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div>
-                  <label className="block font-semibold mb-1">Event Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={newCustomProg.name}
-                    onChange={(e) => setNewCustomProg(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold"
-                    placeholder="e.g. Contemporary Research Symposium"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-semibold mb-1">Field</label>
-                    <select
-                      value={newCustomProg.fieldId}
-                      onChange={(e) => setNewCustomProg(prev => ({ ...prev, fieldId: e.target.value }))}
-                      className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold"
-                    >
-                      {fields.map(f => (
-                        <option key={f.id} value={f.id}>{f.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block font-semibold mb-1">Type</label>
-                    <select
-                      value={newCustomProg.type}
-                      onChange={(e) => setNewCustomProg(prev => ({ ...prev, type: e.target.value }))}
-                      className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold"
-                    >
-                      <option value="individual">Individual</option>
-                      <option value="group">Group</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-semibold mb-1">Venue / Stage</label>
-                    <input
-                      type="text"
-                      value={newCustomProg.stage}
-                      onChange={(e) => setNewCustomProg(prev => ({ ...prev, stage: e.target.value }))}
-                      className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold mb-1">Scheduled Time</label>
-                    <input
-                      type="text"
-                      value={newCustomProg.time}
-                      onChange={(e) => setNewCustomProg(prev => ({ ...prev, time: e.target.value }))}
-                      className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ALIYA HOUSE TEAM SELECTION */}
-            {activeSection === 'aliya' && (
-              <div className="p-3.5 rounded-xl border border-amber-200/80 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900/40 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <label className="font-bold text-xs text-[#0F2A4A] dark:text-white flex items-center gap-1.5">
-                    <Users className="w-4 h-4 text-[#0E7C86]" />
-                    <span>Assign to House Teams (Aliya Section):</span>
-                  </label>
-                  <div className="flex items-center gap-2 text-[11px]">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedAliyaTeamIds(teams.map(t => t.id))}
-                      className="text-[#0E7C86] font-bold hover:underline"
-                    >
-                      Select All
-                    </button>
-                    <span>•</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedAliyaTeamIds([])}
-                      className="text-slate-500 hover:underline"
-                    >
-                      Clear All
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                  {teams.map(t => {
-                    const isChecked = selectedAliyaTeamIds.includes(t.id);
-                    return (
-                      <label
-                        key={t.id}
-                        className={`p-2 rounded-lg border flex items-center gap-2 cursor-pointer transition ${
-                          isChecked
-                            ? 'bg-white dark:bg-slate-900 border-[#0E7C86] shadow-xs'
-                            : 'bg-slate-100/60 dark:bg-slate-800/40 border-transparent opacity-60'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedAliyaTeamIds(prev => [...prev, t.id]);
-                            } else {
-                              setSelectedAliyaTeamIds(prev => prev.filter(id => id !== t.id));
-                            }
-                          }}
-                          className="rounded text-[#0E7C86] focus:ring-[#0E7C86]"
-                        />
-                        <div className="flex items-center gap-1.5 truncate">
-                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
-                          <span className="font-bold text-xs truncate text-slate-800 dark:text-slate-200">{t.name}</span>
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-
-                <div className="flex items-center justify-between pt-1 text-[11px] text-slate-600 dark:text-slate-400">
-                  <span>Allowed Participant Slots per Selected Team:</span>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={aliyaSlotCount}
-                      onChange={(e) => setAliyaSlotCount(Math.max(1, Number(e.target.value) || 1))}
-                      className="w-14 p-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono font-bold text-center"
-                    />
-                    <span>participant(s)</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Common Venue, Time, and Judges Assignment for Added Program */}
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <div>
-                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Venue / Stage Assignment</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    value={addMode === 'custom' ? newCustomProg.stage : addVenue}
-                    onChange={(e) => {
-                      if (addMode === 'custom') {
-                        setNewCustomProg(prev => ({ ...prev, stage: e.target.value }));
-                      } else {
-                        setAddVenue(e.target.value);
-                      }
-                    }}
-                    placeholder="e.g. Auditorium Stage A, Seminar Room 1"
-                    className="w-full p-2.5 pl-8 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold"
-                  />
-                  <MapPin className="w-4 h-4 text-slate-400 absolute left-2.5 top-3" />
-                </div>
-              </div>
-              <div>
-                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Scheduled Time</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={addMode === 'custom' ? newCustomProg.time : addTime}
-                    onChange={(e) => {
-                      if (addMode === 'custom') {
-                        setNewCustomProg(prev => ({ ...prev, time: e.target.value }));
-                      } else {
-                        setAddTime(e.target.value);
-                      }
-                    }}
-                    placeholder="10:00 AM"
-                    className="w-full p-2.5 pl-8 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono"
-                  />
-                  <Clock className="w-4 h-4 text-slate-400 absolute left-2.5 top-3" />
-                </div>
-              </div>
-            </div>
-
-            {/* Judges Selection */}
-            <div className="space-y-2 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center justify-between">
-                <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 text-xs">
-                  <Gavel className="w-4 h-4 text-[#0E7C86]" />
-                  <span>Assign Evaluator Judges:</span>
-                </label>
-                <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                  {addAssignedJudges.length} Selected
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500">
-                Select one or more collegiate judges who will evaluate student performances in this event:
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 max-h-48 overflow-y-auto">
-                {judges.map(j => {
-                  const isChecked = addAssignedJudges.includes(j.id);
-                  return (
-                    <label
-                      key={j.id}
-                      className={`p-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition ${
-                        isChecked
-                          ? 'bg-teal-50 dark:bg-teal-950/40 border-teal-400 dark:border-teal-700 text-[#0F2A4A] dark:text-white shadow-xs'
-                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleJudgeSelection(j.id, false)}
-                        className="rounded text-[#0E7C86] focus:ring-[#0E7C86] w-4 h-4"
-                      />
-                      <div className="truncate">
-                        <div className="font-bold truncate text-xs">{j.name}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">@{j.username}</div>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setIsAddProgramOpen(false)}
-                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-semibold transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-2.5 bg-[#0E7C86] hover:bg-[#14919D] text-white rounded-xl font-bold text-sm shadow-md transition flex items-center gap-2"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Assign Program to Summit</span>
-              </button>
-            </div>
-          </form>
-        </Modal>
       )}
 
       {/* MODAL: EDIT PROGRAM, VENUE & ASSIGN JUDGES */}
