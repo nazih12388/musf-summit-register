@@ -176,38 +176,113 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { localStorage.setItem('musf_report_history', JSON.stringify(reportHistory)); syncToCloud('reportHistory', reportHistory); }, [reportHistory]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.CERTIFICATES, JSON.stringify(certificates)); syncToCloud('certificates', certificates); }, [certificates]);
 
-  // Real-time Cloud Firestore Subscriptions across devices
+
+  // Helper: Smart entity merger to prevent multi-device race conditions & accidental overwrites
+  const mergeEntityLists = (prevList, cloudList, getKey, getTimestamp) => {
+    if (!Array.isArray(cloudList)) return prevList || [];
+    if (!Array.isArray(prevList) || prevList.length === 0) return cloudList;
+
+    const map = new Map();
+    // 1. Seed with local state
+    prevList.forEach(item => {
+      const k = getKey(item);
+      if (k) map.set(k, item);
+    });
+
+    // 2. Merge cloud incoming items
+    cloudList.forEach(cloudItem => {
+      const k = getKey(cloudItem);
+      if (!k) return;
+      const local = map.get(k);
+      if (!local) {
+        map.set(k, cloudItem);
+      } else {
+        const localTime = getTimestamp ? new Date(getTimestamp(local) || 0).getTime() : 0;
+        const cloudTime = getTimestamp ? new Date(getTimestamp(cloudItem) || 0).getTime() : 0;
+        if (cloudTime >= localTime) {
+          map.set(k, cloudItem);
+        }
+      }
+    });
+
+    return Array.from(map.values());
+  };
+
+  // Real-time Cloud Firestore Subscriptions across devices with Smart Merging
   useEffect(() => {
+    // 1. Marks Smart Merging (multiple judges scoring simultaneously on different phones)
     const unsubMarks = subscribeToCloud('marks', (cloudMarks) => {
       if (Array.isArray(cloudMarks)) {
-        setMarks(cloudMarks);
+        setMarks(prev => mergeEntityLists(
+          prev,
+          cloudMarks,
+          m => m.id || `${m.programId}_${m.entryId || m.studentId}_${m.enteredBy}`,
+          m => m.timestamp
+        ));
       }
     });
+
+    // 2. Attendance Smart Merging (admins & leaders marking attendance on different devices)
     const unsubAttendance = subscribeToCloud('attendance', (cloudAtt) => {
       if (Array.isArray(cloudAtt)) {
-        setAttendance(cloudAtt);
+        setAttendance(prev => mergeEntityLists(
+          prev,
+          cloudAtt,
+          a => a.id || `${a.summitId}_${a.session}_${a.studentId}`,
+          a => a.timestamp
+        ));
       }
     });
+
+    // 3. Programs Smart Merging (admins assigning programs across different sessions)
     const unsubPrograms = subscribeToCloud('programs', (cloudProgs) => {
-      if (Array.isArray(cloudProgs) && cloudProgs.length > 0) {
-        setPrograms(cloudProgs);
+      if (Array.isArray(cloudProgs)) {
+        const cleanProgs = cloudProgs.filter(p => !p.id?.startsWith('p_oct') && !p.id?.startsWith('p_demo_'));
+        setPrograms(prev => mergeEntityLists(
+          prev,
+          cleanProgs,
+          p => p.id,
+          p => p.updatedAt || p.createdAt
+        ));
       }
     });
+
+    // 4. Entries / Nominations Smart Merging (team leaders submitting nominations concurrently)
     const unsubEntries = subscribeToCloud('entries', (cloudEntries) => {
       if (Array.isArray(cloudEntries)) {
-        setEntries(cloudEntries);
+        setEntries(prev => mergeEntityLists(
+          prev,
+          cloudEntries,
+          e => e.id || `${e.programId}_${e.studentId}`,
+          e => e.nominatedAt || e.timestamp
+        ));
       }
     });
+
+    // 5. Students Smart Merging
     const unsubStudents = subscribeToCloud('students', (cloudStudents) => {
       if (Array.isArray(cloudStudents)) {
-        setStudents(cloudStudents);
+        setStudents(prev => mergeEntityLists(
+          prev,
+          cloudStudents,
+          s => s.id,
+          s => s.updatedAt
+        ));
       }
     });
+
+    // 6. Program Library Smart Merging
     const unsubProgramLibrary = subscribeToCloud('programLibrary', (cloudLib) => {
-      if (Array.isArray(cloudLib) && cloudLib.length > 0) {
-        setProgramLibrary(cloudLib);
+      if (Array.isArray(cloudLib)) {
+        setProgramLibrary(prev => mergeEntityLists(
+          prev,
+          cloudLib,
+          pl => pl.id
+        ));
       }
     });
+
+    // 7. Summits Smart Merging
     const unsubSummits = subscribeToCloud('summits', (cloudSummits) => {
       if (Array.isArray(cloudSummits)) {
         const cleaned = cloudSummits.filter(s => {
@@ -225,39 +300,49 @@ export const AppProvider = ({ children }) => {
             s.id?.startsWith('summit_may_');
           return !isDemo;
         });
-        if (cleaned.length > 0) {
-          setSummits(cleaned);
-        }
+        setSummits(prev => mergeEntityLists(prev, cleaned, s => s.id));
       }
     });
+
+    // 8. Judges Smart Merging
     const unsubJudges = subscribeToCloud('judges', (cloudJudges) => {
-      if (Array.isArray(cloudJudges) && cloudJudges.length > 0) {
-        setJudges(cloudJudges);
+      if (Array.isArray(cloudJudges)) {
+        setJudges(prev => mergeEntityLists(prev, cloudJudges, j => j.id));
       }
     });
+
+    // 9. Teams Smart Merging
     const unsubTeams = subscribeToCloud('teams', (cloudTeams) => {
-      if (Array.isArray(cloudTeams) && cloudTeams.length > 0) {
-        setTeams(cloudTeams);
+      if (Array.isArray(cloudTeams)) {
+        setTeams(prev => mergeEntityLists(prev, cloudTeams, t => t.id));
       }
     });
+
+    // 10. Classes Smart Merging
     const unsubClasses = subscribeToCloud('classes', (cloudClasses) => {
-      if (Array.isArray(cloudClasses) && cloudClasses.length > 0) {
-        setClasses(cloudClasses);
+      if (Array.isArray(cloudClasses)) {
+        setClasses(prev => mergeEntityLists(prev, cloudClasses, c => c.id));
       }
     });
+
+    // 11. Settings Real-Time Sync
     const unsubSettings = subscribeToCloud('settings', (cloudSettings) => {
       if (cloudSettings && typeof cloudSettings === 'object') {
         setSettings(prev => ({ ...prev, ...cloudSettings }));
       }
     });
+
+    // 12. Notices Smart Merging
     const unsubNotices = subscribeToCloud('notices', (cloudNotices) => {
       if (Array.isArray(cloudNotices)) {
-        setNotices(cloudNotices);
+        setNotices(prev => mergeEntityLists(prev, cloudNotices, n => n.id, n => n.date || n.createdAt));
       }
     });
+
+    // 13. Certificates Smart Merging
     const unsubCertificates = subscribeToCloud('certificates', (cloudCerts) => {
-      if (Array.isArray(cloudCerts) && cloudCerts.length > 0) {
-        setCertificates(cloudCerts);
+      if (Array.isArray(cloudCerts)) {
+        setCertificates(prev => mergeEntityLists(prev, cloudCerts, c => c.id));
       }
     });
 

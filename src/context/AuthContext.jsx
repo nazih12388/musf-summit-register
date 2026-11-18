@@ -7,7 +7,7 @@ import { INITIAL_ADMINS } from '../services/initialData';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const { students, judges, addAuditLog } = useApp();
+  const { students, judges, addAuditLog, setStudents, setJudges, settings, updateSettings } = useApp();
 
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
@@ -36,7 +36,8 @@ export const AuthProvider = ({ children }) => {
     // 1. Check Admin
     const admin = INITIAL_ADMINS.find(a => a.username.toLowerCase() === trimmedUser);
     if (admin) {
-      const storedAdminHash = localStorage.getItem(`musf_admin_hash_${admin.username}`) || 
+      const storedAdminHash = settings?.adminPasswordHashes?.[admin.username] ||
+                              localStorage.getItem(`musf_admin_hash_${admin.username}`) || 
                               localStorage.getItem(`musf_admin_hash_${admin.id}`) || 
                               admin.passwordHash;
       const isValid = (candidatePass === '1234') || await verifyPassword(candidatePass, storedAdminHash);
@@ -150,44 +151,55 @@ export const AuthProvider = ({ children }) => {
 
     if (currentUser.role === 'admin') {
       const admin = INITIAL_ADMINS.find(a => a.id === currentUser.id) || INITIAL_ADMINS.find(a => a.username === currentUser.username);
-      const storedAdminHash = localStorage.getItem(`musf_admin_hash_${currentUser.username}`) || admin?.passwordHash;
+      const storedAdminHash = settings?.adminPasswordHashes?.[currentUser.username] ||
+        localStorage.getItem(`musf_admin_hash_${currentUser.username}`) || admin?.passwordHash;
       const isCurrentValid = (currentPlainPassword === '1234') || await verifyPassword(currentPlainPassword, storedAdminHash);
       if (!isCurrentValid) throw new Error("Current password is not correct.");
-      if (admin) admin.passwordHash = newHash;
+      
+      const newAdminHashes = { ...(settings?.adminPasswordHashes || {}), [currentUser.username]: newHash };
+      if (typeof updateSettings === 'function') {
+        updateSettings({ adminPasswordHashes: newAdminHashes }, currentUser.username);
+      }
       localStorage.setItem(`musf_admin_hash_${currentUser.username}`, newHash);
       addAuditLog(currentUser.username, 'CHANGE_PASSWORD', `Admin ${currentUser.username} updated password`);
       return true;
     }
 
     if (currentUser.role === 'judge') {
-      const judge = judges.find(j => j.id === currentUser.id);
+      const judge = (judges || []).find(j => j.id === currentUser.id);
       if (!judge) throw new Error("Judge record not found.");
       const isCurrentValid = await verifyPassword(currentPlainPassword, judge.passwordHash);
       if (!isCurrentValid) throw new Error("Current password is not correct.");
-      judge.passwordHash = newHash;
-      localStorage.setItem(STORAGE_KEYS.JUDGES, JSON.stringify(judges));
+      
+      if (typeof setJudges === 'function') {
+        setJudges(prev => prev.map(j => j.id === currentUser.id ? { ...j, passwordHash: newHash } : j));
+      }
       addAuditLog(currentUser.username, 'CHANGE_PASSWORD', `Judge ${judge.name} updated password`);
       return true;
     }
 
     if (currentUser.role === 'leader') {
-      const student = students.find(s => s.id === currentUser.id);
+      const student = (students || []).find(s => s.id === currentUser.id);
       if (!student) throw new Error("Leader record not found.");
       const isCurrentValid = await verifyPassword(currentPlainPassword, student.leaderPasswordHash);
       if (!isCurrentValid) throw new Error("Current password is not correct.");
-      student.leaderPasswordHash = newHash;
-      localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
+      
+      if (typeof setStudents === 'function') {
+        setStudents(prev => prev.map(s => s.id === currentUser.id ? { ...s, leaderPasswordHash: newHash } : s));
+      }
       addAuditLog(currentUser.username, 'CHANGE_PASSWORD', `Team Leader ${student.name} updated password`);
       return true;
     }
 
     if (currentUser.role === 'student') {
-      const student = students.find(s => s.id === currentUser.id);
+      const student = (students || []).find(s => s.id === currentUser.id);
       if (!student) throw new Error("Student record not found.");
       const isCurrentValid = await verifyPassword(currentPlainPassword, student.passwordHash);
       if (!isCurrentValid) throw new Error("Current password is not correct.");
-      student.passwordHash = newHash;
-      localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
+      
+      if (typeof setStudents === 'function') {
+        setStudents(prev => prev.map(s => s.id === currentUser.id ? { ...s, passwordHash: newHash } : s));
+      }
       addAuditLog(currentUser.username, 'CHANGE_PASSWORD', `Student ${student.name} updated password`);
       return true;
     }
