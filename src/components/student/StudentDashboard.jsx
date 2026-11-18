@@ -1,0 +1,457 @@
+import React, { useMemo } from 'react';
+import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { generateCertificatePDF } from '../../utils/certificate';
+import { generateIndividualStudentReportCardPDF } from '../../utils/comprehensivePdfReport';
+import { computeComprehensiveReport } from '../../utils/reportCalculations';
+import {
+  User,
+  Award,
+  Calendar,
+  Clock,
+  Shield,
+  Trophy,
+  Download,
+  CheckCircle2,
+  Bell,
+  MapPin,
+  TrendingUp,
+  AlertTriangle,
+  Building,
+  Layers,
+  BookOpen
+} from 'lucide-react';
+
+export const StudentDashboard = ({ activeTab, setActiveTab }) => {
+  const {
+    students,
+    teams,
+    classes,
+    sections,
+    fields,
+    programs,
+    entries,
+    summits,
+    attendance,
+    notices,
+    programResultsMap,
+    studentStandings,
+    teamStandings,
+    studentAttendanceMap,
+    settings
+  } = useApp();
+  const { currentUser } = useAuth();
+
+  const student = useMemo(() => {
+    return students.find(s => s.id === currentUser?.id) || students[0];
+  }, [students, currentUser]);
+
+  const team = useMemo(() => teams.find(t => t.id === student?.teamId), [teams, student]);
+  const leader = useMemo(() => students.find(s => s.id === team?.leaderId), [students, team]);
+  const cl = useMemo(() => classes.find(c => c.id === student?.classId), [classes, student]);
+  const sec = useMemo(() => sections.find(s => s.id === (cl?.sectionId || student?.sectionId)), [sections, cl, student]);
+  const fieldsMap = useMemo(() => Object.fromEntries(fields.map(f => [f.id, f])), [fields]);
+  const summitsMap = useMemo(() => Object.fromEntries(summits.map(s => [s.id, s])), [summits]);
+
+  const myStanding = useMemo(() => {
+    return studentStandings.find(s => s.id === student?.id) || {
+      overallRank: 1, sectionRank: 1, classRank: 1, teamRank: 1, totalMarks: 0, totalMaxMarks: 0, marksPercentage: 0, overallPerformanceScore: 0
+    };
+  }, [studentStandings, student]);
+
+  const myTeamStanding = useMemo(() => {
+    return teamStandings.find(t => t.id === team?.id) || { rank: 1, totalPoints: 0 };
+  }, [teamStandings, team]);
+
+  const attData = studentAttendanceMap[student?.id] || { percentage: 0, isLowAttendance: false, summitStats: {} };
+
+  // My registered programs & published results
+  const myProgramsList = useMemo(() => {
+    const list = [];
+    programs.forEach(prog => {
+      const progEntries = entries.filter(e => e.programId === prog.id);
+      const isEnrolled = progEntries.some(e => e.studentId === student?.id || (e.memberIds && e.memberIds.includes(student?.id)));
+
+      if (isEnrolled) {
+        const results = programResultsMap[prog.id] || [];
+        const res = results.find(r => r.studentId === student?.id || (r.memberIds && r.memberIds.includes(student?.id)));
+        const isPublished = prog.status === 'published';
+        const fld = fieldsMap[prog.fieldId];
+        const sm = summitsMap[prog.summitId];
+
+        list.push({
+          program: prog,
+          fieldName: fld?.name || prog.category || 'General',
+          summitName: sm?.name || 'Summit',
+          isPublished,
+          obtainedMark: isPublished ? res?.finalMark : null,
+          maxMarks: prog.maxMarks || 10,
+          marksPercentage: isPublished && res ? res.percentage : null,
+          grade: isPublished ? res?.grade : '-',
+          position: isPublished ? res?.position : '-',
+          rank: isPublished ? res?.rank : null
+        });
+      }
+    });
+    return list;
+  }, [programs, entries, programResultsMap, student, fieldsMap, summitsMap]);
+
+  // Next upcoming program
+  const nextProgram = useMemo(() => {
+    return myProgramsList.find(p => !p.isPublished) || null;
+  }, [myProgramsList]);
+
+  // Eligible Certificates (Top 3 in published events)
+  const myCertificates = useMemo(() => {
+    return myProgramsList.filter(p => p.isPublished && p.rank <= 3);
+  }, [myProgramsList]);
+
+  const handleDownloadCert = (item) => {
+    generateCertificatePDF({
+      studentName: student.name,
+      chestNo: student.chestNo,
+      cicNo: student.cicNo,
+      teamName: team?.name || '-',
+      programName: item.program.name,
+      position: item.position,
+      grade: item.grade,
+      date: item.program.date,
+      collegeName: settings.collegeName,
+      summitName: settings.appTitle
+    });
+  };
+
+  const handleDownloadMyReportCard = () => {
+    const repData = computeComprehensiveReport({
+      summits,
+      programs,
+      entries,
+      marks,
+      attendance,
+      students,
+      classes,
+      teams,
+      fields,
+      settings,
+      periodMonths: ['2026-10', '2026-11'],
+      sectionFilter: 'all'
+    });
+
+    const myRep = repData.studentReports.find(s => s.id === student?.id);
+    if (myRep) {
+      generateIndividualStudentReportCardPDF({
+        studentReport: myRep,
+        periodTitle: "Academic Year 2026-2027",
+        settings
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Profile Card Banner */}
+      <div 
+        className="p-6 rounded-xl text-white shadow-md relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6"
+        style={{
+          background: `linear-gradient(135deg, ${team?.color || '#0E7C86'} 0%, #0F2A4A 100%)`
+        }}
+      >
+        <div className="space-y-1 relative z-10">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[11px] font-bold uppercase tracking-wider font-mono">
+              CHEST: {student?.chestNo}
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full bg-teal-400/20 text-teal-200 border border-teal-300/30 text-[11px] font-bold uppercase tracking-wider">
+              {sec?.name?.split(' ')[0] || (student?.sectionId === 'aliya' ? 'Aliya' : 'Thamheediyya')} Division
+            </span>
+          </div>
+
+          <h2 className="text-2xl font-bold tracking-tight">{student?.name}</h2>
+
+          <div className="text-xs text-white/80 flex flex-wrap items-center gap-3 pt-1">
+            <span>CIC: <strong className="text-white font-mono">{student?.cicNo}</strong></span>
+            <span>•</span>
+            <span>Class: <strong className="text-white">{cl?.name}</strong></span>
+            <span>•</span>
+            <span>House: <strong className="text-white">{team?.name}</strong></span>
+            <span>•</span>
+            <span>House Leader: <strong className="text-white">{leader?.name || 'Assigned'}</strong></span>
+          </div>
+        </div>
+
+        {/* Badges / Quick Stats */}
+        <div className="flex flex-wrap items-center gap-2 relative z-10">
+          <button
+            onClick={handleDownloadMyReportCard}
+            className="p-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
+            title="Download My Official Monthly / Multi-Month Progress Report Card (PDF)"
+          >
+            <Download className="w-4 h-4" />
+            <span>Progress Report PDF</span>
+          </button>
+
+          <div className="p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[90px]">
+            <span className="text-[10px] uppercase font-bold text-white/70 block">Section Rank</span>
+            <div className="text-lg font-bold text-white font-mono">#{myStanding.sectionRank || 1}</div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[90px]">
+            <span className="text-[10px] uppercase font-bold text-white/70 block">Class Rank</span>
+            <div className="text-lg font-bold text-white font-mono">#{myStanding.classRank || 1}</div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[90px]">
+            <span className="text-[10px] uppercase font-bold text-white/70 block">Overall Rank</span>
+            <div className="text-lg font-bold text-amber-300 font-mono">#{myStanding.overallRank || myStanding.rank || 1}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* VIEW 1: Overview */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          {/* Key Stat Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Marks</span>
+              <div className="text-xl font-bold text-[#0F2A4A] dark:text-white font-mono">
+                {myStanding.totalMarks.toFixed(1)} <span className="text-xs font-normal text-slate-400">/ {myStanding.totalMaxMarks}</span>
+              </div>
+              <span className="text-[10px] text-slate-400">{myStanding.programsAssignedCount} Enrolled Events</span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Marks Percentage</span>
+              <div className="text-xl font-bold text-[#0E7C86] font-mono">
+                {myStanding.marksPercentage.toFixed(0)}%
+              </div>
+              <span className="text-[10px] text-slate-400">Cumulative Standard</span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Attendance</span>
+              <div className="text-xl font-bold text-emerald-600 font-mono">
+                {attData.percentage.toFixed(0)}%
+              </div>
+              <span className="text-[10px] text-slate-400">{attData.presentSessions} / {attData.totalSessions} Sessions</span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Next Scheduled</span>
+              {nextProgram ? (
+                <div>
+                  <div className="font-bold text-slate-900 dark:text-white text-xs truncate max-w-[140px]">
+                    {nextProgram.program.name}
+                  </div>
+                  <span className="text-[10px] text-[#0E7C86] font-mono block">{nextProgram.program.date}</span>
+                </div>
+              ) : (
+                <span className="text-xs text-slate-400 italic">No upcoming events</span>
+              )}
+            </div>
+          </div>
+
+          {/* Published Results Table */}
+          <div className="bg-white dark:bg-[#0F1B2B] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 font-bold text-xs uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center justify-between">
+              <span>My Official Published Evaluations</span>
+              <span className="text-[11px] text-[#0E7C86] font-mono">
+                Division: {sec?.name?.split(' ')[0] || student?.sectionId}
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 dark:bg-slate-900 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b">
+                  <tr>
+                    <th className="py-2.5 px-4">Program Event</th>
+                    <th className="py-2.5 px-4">Field Group</th>
+                    <th className="py-2.5 px-4">Summit &amp; Venue</th>
+                    <th className="py-2.5 px-4 text-center">Score (Obt / Max)</th>
+                    <th className="py-2.5 px-4 text-center">Percentage</th>
+                    <th className="py-2.5 px-4 text-center">Grade</th>
+                    <th className="py-2.5 px-4 text-center">Position</th>
+                    <th className="py-2.5 px-4 text-right">Certificate</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {myProgramsList.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td className="py-2.5 px-4 font-bold text-[#0F2A4A] dark:text-white">
+                        {item.program.name}
+                      </td>
+                      <td className="py-2.5 px-4 font-semibold text-[#0E7C86]">{item.fieldName}</td>
+                      <td className="py-2.5 px-4 text-slate-400 text-[11px]">
+                        <div>{item.summitName}</div>
+                        <div>{item.program.date} • {item.program.stage}</div>
+                      </td>
+                      <td className="py-2.5 px-4 text-center font-mono font-bold text-[#0E7C86]">
+                        {item.isPublished && item.obtainedMark != null ? `${item.obtainedMark.toFixed(1)} / ${item.maxMarks}` : '-'}
+                      </td>
+                      <td className="py-2.5 px-4 text-center font-mono font-bold">
+                        {item.isPublished && item.marksPercentage != null ? `${item.marksPercentage.toFixed(0)}%` : '-'}
+                      </td>
+                      <td className="py-2.5 px-4 text-center font-bold">
+                        {item.isPublished ? item.grade : '-'}
+                      </td>
+                      <td className="py-2.5 px-4 text-center font-bold text-amber-600">
+                        {item.isPublished ? item.position : '-'}
+                      </td>
+                      <td className="py-2.5 px-4 text-right">
+                        {item.isPublished && item.rank <= 3 ? (
+                          <button
+                            onClick={() => handleDownloadCert(item)}
+                            className="px-2.5 py-1 rounded bg-[#0F2A4A] dark:bg-[#0E7C86] text-white text-[11px] font-semibold inline-flex items-center gap-1 shadow-xs"
+                          >
+                            <Download className="w-3 h-3" />
+                            <span>PDF</span>
+                          </button>
+                        ) : (
+                          <span className="text-slate-400 text-[10px]">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 2: My Programs Schedule */}
+      {activeTab === 'programs' && (
+        <div className="space-y-4">
+          <h3 className="text-base font-bold text-[#0F2A4A] dark:text-white">
+            My Registered Programs &amp; Timetable
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {myProgramsList.map((item, idx) => (
+              <div key={idx} className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-300 font-mono">
+                      {item.fieldName}
+                    </span>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                      {item.program.type}
+                    </span>
+                  </div>
+
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                    item.isPublished ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {item.isPublished ? 'Results Declared' : 'Upcoming Event'}
+                  </span>
+                </div>
+
+                <h4 className="font-bold text-slate-900 dark:text-white text-base">
+                  {item.program.name}
+                </h4>
+
+                <div className="text-xs text-slate-500 space-y-0.5 pt-1">
+                  <div>Summit: <strong>{item.summitName}</strong></div>
+                  <div>Scheduled: <strong>{item.program.date} at {item.program.time}</strong></div>
+                  <div>Venue: <strong>{item.program.stage}</strong></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 3: Attendance */}
+      {activeTab === 'attendance' && (
+        <div className="space-y-4">
+          <h3 className="text-base font-bold text-[#0F2A4A] dark:text-white">
+            My Summit Attendance Records
+          </h3>
+
+          <div className="bg-white dark:bg-[#0F1B2B] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-900 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b">
+                <tr>
+                  <th className="p-3">Summit</th>
+                  <th className="p-3 text-center">START Session</th>
+                  <th className="p-3 text-center">MID Session</th>
+                  <th className="p-3 text-center">END Session</th>
+                  <th className="p-3 text-center">Summit Att %</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {summits.map(s => {
+                  const sAtt = attendance.filter(a => a.summitId === s.id && a.studentId === student.id);
+                  const startRec = sAtt.find(a => a.session === 'START');
+                  const midRec = sAtt.find(a => a.session === 'MID');
+                  const endRec = sAtt.find(a => a.session === 'END');
+                  const stat = attData.summitStats?.[s.id];
+
+                  return (
+                    <tr key={s.id}>
+                      <td className="p-3 font-bold text-slate-900 dark:text-white">{s.name}</td>
+                      <td className="p-3 text-center font-semibold">{startRec?.status || '-'}</td>
+                      <td className="p-3 text-center font-semibold">{midRec?.status || '-'}</td>
+                      <td className="p-3 text-center font-semibold">{endRec?.status || '-'}</td>
+                      <td className="p-3 text-center font-mono font-bold text-[#0E7C86]">
+                        {stat ? stat.percentage.toFixed(0) : 0}%
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 4: Certificates */}
+      {activeTab === 'certificates' && (
+        <div className="space-y-4">
+          <h3 className="text-base font-bold text-[#0F2A4A] dark:text-white">
+            My Distinction &amp; Merit Certificates
+          </h3>
+
+          {myCertificates.length === 0 ? (
+            <div className="p-12 text-center bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400">
+              <Award className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+              <p className="font-semibold text-sm">No merit certificates earned yet.</p>
+              <p className="text-xs">Certificates are automatically generated when you place 1st, 2nd, or 3rd in collegiate events.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {myCertificates.map((item, idx) => (
+                <div key={idx} className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border-2 border-amber-500/40 shadow-xs space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                      {item.position}
+                    </span>
+                    <span className="text-xs font-mono text-slate-400">{item.program.date}</span>
+                  </div>
+
+                  <h4 className="font-extrabold text-base text-slate-900 dark:text-white">
+                    {item.program.name}
+                  </h4>
+
+                  <p className="text-xs text-slate-500">
+                    Field: <strong>{item.fieldName}</strong> • Grade: <strong className="text-emerald-700">{item.grade}</strong>
+                  </p>
+
+                  <div className="pt-3 border-t flex justify-end">
+                    <button
+                      onClick={() => handleDownloadCert(item)}
+                      className="px-3.5 py-1.5 rounded-xl bg-[#0F2A4A] text-white text-xs font-semibold flex items-center gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download PDF Certificate</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};

@@ -1,0 +1,631 @@
+import React, { useState } from 'react';
+import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import {
+  Settings,
+  ShieldCheck,
+  History,
+  Search,
+  Sliders,
+  CheckCircle2,
+  CalendarCheck2,
+  TrendingUp,
+  Percent,
+  Download,
+  Filter,
+  GraduationCap,
+  Lock,
+  Unlock
+} from 'lucide-react';
+
+export const SettingsAuditLog = () => {
+  const {
+    settings,
+    updateSettings,
+    auditLogs,
+    students,
+    studentAttendanceMap
+  } = useApp();
+  const { currentUser } = useAuth();
+
+  const [activeTab, setActiveTab] = useState('settings'); // 'settings', 'attendance', 'ops', 'audit'
+  const [auditSearch, setAuditSearch] = useState('');
+  const [actionFilter, setActionFilter] = useState('all');
+  const [saveToast, setSaveToast] = useState(false);
+
+  // Form local state for immediate response
+  const [formData, setFormData] = useState({
+    collegeName: settings.collegeName || 'Majlis Umariyya Wafy College',
+    appTitle: settings.appTitle || 'MUSF Summit Register',
+    fairJudgingMode: !!settings.fairJudgingMode,
+    enforceJudgeRestrictions: settings.enforceJudgeRestrictions !== false,
+    lateCountsAsPresent: settings.lateCountsAsPresent !== false,
+    excusedCountsAsPresent: settings.excusedCountsAsPresent !== false,
+    lowAttendanceThreshold: settings.lowAttendanceThreshold || 75,
+    enableOverallPerformanceScore: !!settings.enableOverallPerformanceScore,
+    overallMarksWeight: settings.overallMarksWeight || 80,
+    overallAttendanceWeight: settings.overallAttendanceWeight || 20,
+    maxProgramsPerStudent: settings.maxProgramsPerStudent || 0
+  });
+
+  const handleToggle = (key) => {
+    const newVal = !formData[key];
+    const updates = { [key]: newVal };
+    // Synchronize both fairJudgingMode and hideTeamFromJudges
+    if (key === 'fairJudgingMode') {
+      updates.hideTeamFromJudges = newVal;
+    }
+    setFormData(prev => ({ ...prev, ...updates }));
+    updateSettings(updates, currentUser?.username || 'admin');
+    triggerToast();
+  };
+
+  const handleNumberChange = (key, val) => {
+    const num = Math.max(0, Math.min(100, Number(val) || 0));
+    let updates = { [key]: num };
+
+    // Auto balance weights if OPS
+    if (key === 'overallMarksWeight') {
+      updates.overallAttendanceWeight = 100 - num;
+    } else if (key === 'overallAttendanceWeight') {
+      updates.overallMarksWeight = 100 - num;
+    }
+
+    setFormData(prev => ({ ...prev, ...updates }));
+    updateSettings(updates, currentUser?.username || 'admin');
+    triggerToast();
+  };
+
+  const handleTextChange = (key, val) => {
+    setFormData(prev => ({ ...prev, [key]: val }));
+  };
+
+  const handleSaveText = (key) => {
+    updateSettings({ [key]: formData[key] }, currentUser?.username || 'admin');
+    triggerToast();
+  };
+
+  const triggerToast = () => {
+    setSaveToast(true);
+    setTimeout(() => setSaveToast(false), 2200);
+  };
+
+  // Low attendance count based on current threshold
+  const lowAttendanceCount = students.filter(st => {
+    const att = studentAttendanceMap[st.id]?.percentage || 0;
+    return att < formData.lowAttendanceThreshold;
+  }).length;
+
+  // Filtered audit logs
+  const filteredLogs = auditLogs.filter(log => {
+    const matchSearch =
+      log.actor.toLowerCase().includes(auditSearch.toLowerCase()) ||
+      log.action.toLowerCase().includes(auditSearch.toLowerCase()) ||
+      log.details.toLowerCase().includes(auditSearch.toLowerCase());
+
+    const matchAction = actionFilter === 'all' || log.action.includes(actionFilter);
+    return matchSearch && matchAction;
+  });
+
+  const exportAuditCSV = () => {
+    const rows = [
+      ['Timestamp', 'Actor', 'Action', 'Details'],
+      ...filteredLogs.map(l => [
+        `"${new Date(l.timestamp).toLocaleString()}"`,
+        `"${l.actor}"`,
+        `"${l.action}"`,
+        `"${l.details.replace(/"/g, '""')}"`
+      ])
+    ];
+    const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(e => e.join(',')).join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `MUSF_Summit_AuditLogs_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Tab Switcher */}
+      <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+            activeTab === 'settings'
+              ? 'bg-[#0F2A4A] text-white shadow-xs'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+          }`}
+        >
+          <Settings className="w-4 h-4 text-[#0E7C86]" />
+          <span>Summit & Fair Judging</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('attendance')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+            activeTab === 'attendance'
+              ? 'bg-[#0F2A4A] text-white shadow-xs'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+          }`}
+        >
+          <CalendarCheck2 className="w-4 h-4 text-emerald-500" />
+          <span>Attendance Rules</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ops')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+            activeTab === 'ops'
+              ? 'bg-[#0F2A4A] text-white shadow-xs'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4 text-[#C9A227]" />
+          <span>Overall Performance Score (OPS)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('audit')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+            activeTab === 'audit'
+              ? 'bg-[#0F2A4A] text-white shadow-xs'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+          }`}
+        >
+          <History className="w-4 h-4 text-slate-400" />
+          <span>Audit Trail ({auditLogs.length})</span>
+        </button>
+      </div>
+
+      {saveToast && (
+        <div className="fixed bottom-6 right-6 z-50 p-3.5 rounded-xl bg-slate-900 text-white border border-teal-500/40 shadow-xl flex items-center gap-2 text-xs font-semibold animate-in slide-in-from-bottom duration-200">
+          <CheckCircle2 className="w-4 h-4 text-teal-400" />
+          <span>Settings successfully updated & synchronized</span>
+        </div>
+      )}
+
+      {/* TAB 1: Summit & Fair Judging */}
+      {activeTab === 'settings' && (
+        <div className="space-y-5 max-w-3xl">
+          {/* Institutional Info */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white flex items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-[#0E7C86]" />
+              <span>Institutional Identity</span>
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                  College / Institution Name
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formData.collegeName}
+                    onChange={(e) => handleTextChange('collegeName', e.target.value)}
+                    className="flex-1 p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                  />
+                  <button
+                    onClick={() => handleSaveText('collegeName')}
+                    className="px-3 py-2 bg-[#0E7C86] text-white rounded-xl font-semibold"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                  Summit Register Title
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formData.appTitle}
+                    onChange={(e) => handleTextChange('appTitle', e.target.value)}
+                    className="flex-1 p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                  />
+                  <button
+                    onClick={() => handleSaveText('appTitle')}
+                    className="px-3 py-2 bg-[#0E7C86] text-white rounded-xl font-semibold"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Fair Judging Mode Toggle */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-[#0E7C86]" />
+                <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
+                  Fair Judging Mode (Mask Team Names)
+                </h4>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed max-w-xl">
+                When enabled, judges only see participant <strong>Chest Numbers</strong> on their scoring consoles. Team names and team colors are completely hidden from all judges to guarantee 100% objective academic evaluation.
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleToggle('fairJudgingMode')}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                formData.fairJudgingMode ? 'bg-[#0E7C86]' : 'bg-slate-300 dark:bg-slate-700'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  formData.fairJudgingMode ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Enforce Judge Program Restrictions Toggle */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                {formData.enforceJudgeRestrictions ? (
+                  <Lock className="w-5 h-5 text-amber-600" />
+                ) : (
+                  <Unlock className="w-5 h-5 text-emerald-600" />
+                )}
+                <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
+                  Enforce Judge Program Restrictions (ജഡ്ജ് നിയന്ത്രണങ്ങൾ)
+                </h4>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed max-w-xl">
+                When <strong>Enabled</strong>, judges can only view and evaluate events explicitly assigned to them.
+                When <strong>Disabled (Lift Restrictions)</strong>, any judge can evaluate all programs across summits without individual assignment.
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleToggle('enforceJudgeRestrictions')}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                formData.enforceJudgeRestrictions ? 'bg-amber-600' : 'bg-emerald-600'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  formData.enforceJudgeRestrictions ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Maximum Programs Allowed per Student */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1 max-w-xl">
+              <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
+                Maximum Programs per Student (per Summit)
+              </h4>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Limits how many events a single student can take part in within a summit. The system will block extra nominations beyond this limit. Set to <strong>0</strong> for unlimited participation.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="0"
+                max="10"
+                value={formData.maxProgramsPerStudent}
+                onChange={(e) => handleNumberChange('maxProgramsPerStudent', e.target.value)}
+                className="w-16 p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-center font-bold font-mono text-sm"
+              />
+              <span className="text-xs text-slate-400 font-semibold">
+                {formData.maxProgramsPerStudent === 0 ? '(Unlimited)' : 'Events Max'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: Attendance Rules */}
+      {activeTab === 'attendance' && (
+        <div className="space-y-5 max-w-3xl">
+          {/* Late rule */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
+                Count &quot;Late&quot; as Present
+              </h4>
+              <p className="text-xs text-slate-500 leading-relaxed max-w-xl">
+                When active, students marked &quot;Late&quot; in START, MID, or END sessions are credited as present towards their attendance percentage.
+              </p>
+            </div>
+            <button
+              onClick={() => handleToggle('lateCountsAsPresent')}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                formData.lateCountsAsPresent ? 'bg-[#0E7C86]' : 'bg-slate-300 dark:bg-slate-700'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  formData.lateCountsAsPresent ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Excused rule */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
+                Count &quot;Excused&quot; as Present
+              </h4>
+              <p className="text-xs text-slate-500 leading-relaxed max-w-xl">
+                When active, official college exemptions and excused medical leaves are not penalized in the aggregate attendance calculation.
+              </p>
+            </div>
+            <button
+              onClick={() => handleToggle('excusedCountsAsPresent')}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                formData.excusedCountsAsPresent ? 'bg-[#0E7C86]' : 'bg-slate-300 dark:bg-slate-700'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  formData.excusedCountsAsPresent ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Low Attendance Threshold */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white flex items-center gap-2">
+                  <span>Low Attendance Warning Threshold</span>
+                  <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300">
+                    {formData.lowAttendanceThreshold}%
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Students with attendance below this percentage are highlighted in red and flagged for administrative follow-up.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {[65, 75, 80, 85].map(pct => (
+                  <button
+                    key={pct}
+                    onClick={() => handleNumberChange('lowAttendanceThreshold', pct)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                      formData.lowAttendanceThreshold === pct
+                        ? 'bg-[#0F2A4A] text-white dark:bg-teal-600'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                    }`}
+                  >
+                    {pct}%
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <input
+                type="range"
+                min="50"
+                max="95"
+                step="5"
+                value={formData.lowAttendanceThreshold}
+                onChange={(e) => handleNumberChange('lowAttendanceThreshold', e.target.value)}
+                className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#0E7C86]"
+              />
+              <div className="flex justify-between text-[11px] text-slate-400 font-mono">
+                <span>50% Minimum</span>
+                <span className="font-bold text-amber-600">Current: {formData.lowAttendanceThreshold}%</span>
+                <span>95% Strict</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+              <span>Currently flagged below threshold:</span>
+              <strong className="font-bold font-mono text-sm">{lowAttendanceCount} student(s)</strong>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: Overall Performance Score (OPS) */}
+      {activeTab === 'ops' && (
+        <div className="space-y-5 max-w-3xl">
+          {/* OPS Toggle */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-[#C9A227]" />
+                <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
+                  Enable Overall Performance Score (OPS)
+                </h4>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed max-w-xl">
+                When enabled, the summit ranking formula blends academic event marks and session attendance into a single composite score out of 100%.
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleToggle('enableOverallPerformanceScore')}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                formData.enableOverallPerformanceScore ? 'bg-[#0E7C86]' : 'bg-slate-300 dark:bg-slate-700'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  formData.enableOverallPerformanceScore ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Formula weights configuration */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
+            <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white flex items-center gap-2">
+              <Sliders className="w-4 h-4 text-[#0E7C86]" />
+              <span>Score Weight Distribution (Total = 100%)</span>
+            </h4>
+
+            {/* Visual Bar */}
+            <div className="space-y-1.5">
+              <div className="w-full h-4 rounded-full overflow-hidden flex bg-slate-200 dark:bg-slate-700">
+                <div
+                  className="h-full bg-[#0F2A4A] dark:bg-teal-600 transition-all duration-300 flex items-center justify-center text-[10px] text-white font-bold"
+                  style={{ width: `${formData.overallMarksWeight}%` }}
+                >
+                  {formData.overallMarksWeight}% Marks
+                </div>
+                <div
+                  className="h-full bg-[#C9A227] transition-all duration-300 flex items-center justify-center text-[10px] text-slate-950 font-bold"
+                  style={{ width: `${formData.overallAttendanceWeight}%` }}
+                >
+                  {formData.overallAttendanceWeight}% Att
+                </div>
+              </div>
+              <div className="flex justify-between text-[11px] text-slate-500">
+                <span>Academic Marks Weight: <strong>{formData.overallMarksWeight}%</strong></span>
+                <span>Session Attendance Weight: <strong>{formData.overallAttendanceWeight}%</strong></span>
+              </div>
+            </div>
+
+            {/* Sliders */}
+            <div className="space-y-4 pt-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Marks Weight Percentage ({formData.overallMarksWeight}%)
+                </label>
+                <input
+                  type="range"
+                  min="50"
+                  max="95"
+                  step="5"
+                  value={formData.overallMarksWeight}
+                  onChange={(e) => handleNumberChange('overallMarksWeight', e.target.value)}
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#0F2A4A]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Attendance Weight Percentage ({formData.overallAttendanceWeight}%)
+                </label>
+                <input
+                  type="range"
+                  min="5"
+                  max="50"
+                  step="5"
+                  value={formData.overallAttendanceWeight}
+                  onChange={(e) => handleNumberChange('overallAttendanceWeight', e.target.value)}
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#C9A227]"
+                />
+              </div>
+            </div>
+
+            {/* Mathematical Equation Box */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-xs font-mono space-y-1 text-slate-700 dark:text-slate-300">
+              <div className="font-bold text-[#0E7C86]">Mathematical Formula Applied:</div>
+              <div>
+                OPS = (Marks% &times; {formData.overallMarksWeight / 100}) + (Attendance% &times; {formData.overallAttendanceWeight / 100})
+              </div>
+              <p className="text-[11px] text-slate-400 font-sans pt-1">
+                Where Marks% = (Marks Obtained / Max Marks Possible) &times; 100. Ties are resolved by maintaining identical ranks.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: Audit Logs */}
+      {activeTab === 'audit' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative min-w-[240px]">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={auditSearch}
+                  onChange={(e) => setAuditSearch(e.target.value)}
+                  placeholder="Search audit trail..."
+                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+                />
+              </div>
+
+              <select
+                value={actionFilter}
+                onChange={(e) => setActionFilter(e.target.value)}
+                className="py-2 px-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+              >
+                <option value="all">All Action Types</option>
+                <option value="MARK">Marks Operations</option>
+                <option value="ATTENDANCE">Attendance Operations</option>
+                <option value="PROGRAM">Program Operations</option>
+                <option value="SETTINGS">Settings Changes</option>
+                <option value="STUDENT">Student Management</option>
+                <option value="AUTH">Authentication</option>
+              </select>
+            </div>
+
+            <button
+              onClick={exportAuditCSV}
+              className="py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition self-start sm:self-auto"
+            >
+              <Download className="w-4 h-4 text-[#0E7C86]" />
+              <span>Export Audit Trail (CSV)</span>
+            </button>
+          </div>
+
+          <div className="bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 dark:bg-slate-800/60 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="py-3 px-4">Timestamp</th>
+                    <th className="py-3 px-4">Actor</th>
+                    <th className="py-3 px-4">Action</th>
+                    <th className="py-3 px-4">Change Details</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                  {filteredLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-slate-400">
+                        No audit log entries matching current criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredLogs.map(log => (
+                      <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                        <td className="py-2.5 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                          {new Date(log.timestamp).toLocaleString()}
+                        </td>
+                        <td className="py-2.5 px-4 font-semibold text-slate-900 dark:text-white">
+                          {log.actor}
+                        </td>
+                        <td className="py-2.5 px-4">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-[#0E7C86] dark:text-teal-400">
+                            {log.action}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-4 text-slate-600 dark:text-slate-300">
+                          {log.details}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

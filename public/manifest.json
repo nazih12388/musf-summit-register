@@ -1,0 +1,22 @@
+{
+  "name": "MUSF Summit Register",
+  "short_name": "MUSF Summit",
+  "description": "Academic & Leadership Summit Management System for Majlis Umariyya Wafy College",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F2A4A",
+  "theme_color": "#0F2A4A",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/college-campus.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/college-campus.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512"
+    }
+  ]
+}

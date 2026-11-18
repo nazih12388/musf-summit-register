@@ -1,0 +1,189 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --color-navy: #0F2A4A;
+    --color-slate-blue: #334E73;
+    --color-teal: #0E7C86;
+    --color-gold: #C9A227;
+    --color-bg-light: #F6F8FB;
+    --color-card-light: #FFFFFF;
+    --color-border-light: #E2E8F0;
+  }
+
+  .dark {
+    --color-navy: #0B1522;
+    --color-slate-blue: #1E2E44;
+    --color-teal: #14919D;
+    --color-gold: #D4AF37;
+    --color-bg-light: #080E18;
+    --color-card-light: #0F1B2B;
+    --color-border-light: #1E293B;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  body {
+    background-color: var(--color-bg-light);
+    color: #1E293B;
+    @apply antialiased selection:bg-teal-700 selection:text-white transition-colors duration-150;
+  }
+
+  .dark body {
+    color: #E2E8F0;
+    background-color: var(--color-bg-light);
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 78, 115, 0.3);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(51, 78, 115, 0.5);
+}
+
+/* Print-only helper: hidden on screen, displayed during window.print() */
+.print-only {
+  display: none !important;
+}
+
+/* Print Styles */
+@media print {
+  @page {
+    size: auto;
+    margin: 10mm 8mm 12mm 8mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  header, footer, nav, aside, .no-print, button, input, select, .modal-backdrop {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: #0F172A !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #root {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  table {
+    page-break-inside: auto;
+    width: 100% !important;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  .printable-card {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 1.25rem;
+  }
+}
+
+/* Splash & Opening Screen Animations */
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(14, 124, 134, 0.45), 0 0 50px rgba(201, 162, 39, 0.25);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(14, 124, 134, 0.75), 0 0 80px rgba(201, 162, 39, 0.45);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes shimmerSweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 20s linear infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmerSweep 2.2s infinite;
+}
+
+@keyframes kenBurns {
+  0% {
+    transform: scale(1.0) translate(0, 0);
+  }
+  50% {
+    transform: scale(1.06) translate(-0.5%, -1%);
+  }
+  100% {
+    transform: scale(1.12) translate(-1%, -2%);
+  }
+}
+
+@keyframes fadeInUpSmooth {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-ken-burns {
+  animation: kenBurns 14s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUpSmooth 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

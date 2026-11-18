@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#0F2A4A" />
+    <meta name="description" content="MUSF Summit Register - Official Academic, Leadership & Skills Summit Management System for Majlis Umariyya Wafy College" />
+    
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/jpeg" href="/college-campus.jpg" />
+    <link rel="apple-touch-icon" href="/college-campus.jpg" />
+
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('musf_theme');
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (saved === 'dark' || (!saved && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch(e) {}
+      })();
+    </script>
+    
+    <title>MUSF Summit Register | Majlis Umariyya Wafy College</title>
+  </head>
+  <body class="bg-[#F6F8FB] dark:bg-[#080E18]">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
