@@ -82,7 +82,7 @@ export const LoginPage = ({ isDark, setIsDark }) => {
         <div className="w-full max-w-md bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg p-5 sm:p-8 space-y-4 sm:space-y-6">
           {/* Header */}
           <div className="text-center space-y-2 sm:space-y-3">
-            <div className="relative w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full p-1 bg-gradient-to-br from-[#C9A227] via-[#0E7C86] to-[#0F2A4A] shadow-md animate-pulse-glow">
+            <div className="relative w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full p-1 bg-gradient-to-br from-[#C9A227] via-[#0E7C86] to-[#0F2A4A] shadow-md">
               <div className="w-full h-full rounded-full overflow-hidden border-2 border-white dark:border-slate-800 bg-[#0F2A4A]">
                 <img
                   src="/college-campus.jpg"

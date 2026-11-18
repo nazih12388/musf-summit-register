@@ -10,7 +10,6 @@ import { TeamLeaderDashboard } from './components/leader/TeamLeaderDashboard';
 import { JudgeDashboard } from './components/judge/JudgeDashboard';
 import { StudentDashboard } from './components/student/StudentDashboard';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { SplashScreen } from './components/common/SplashScreen';
 
 export function AppContent() {
   const { currentUser } = useAuth();
@@ -59,16 +58,11 @@ export function AppContent() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
-  // Splash Screen Opening Animation State (Disabled by default so phone opens immediately in one view)
-  const [showSplash, setShowSplash] = useState(false);
-
   // Mobile Drawer State
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   return (
     <>
-      {showSplash && <SplashScreen onFinished={() => setShowSplash(false)} />}
-
       {!currentUser ? (
         <LoginPage isDark={isDark} setIsDark={setIsDark} />
       ) : (

@@ -55,6 +55,16 @@
     input, select, textarea {
       font-size: 16px !important;
     }
+
+    /* Disable heavy/pulsing animations on mobile for instant, clean opening */
+    .animate-pulse-glow,
+    .animate-spin-slow,
+    .animate-shimmer,
+    .animate-ken-burns,
+    .animate-fade-in-up {
+      animation: none !important;
+      transform: none !important;
+    }
   }
 }
 
