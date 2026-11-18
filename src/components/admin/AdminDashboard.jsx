@@ -128,6 +128,15 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
               </button>
 
               <button
+                onClick={() => setActiveTab('teams')}
+                className="px-3 py-2 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-400/30 text-teal-200 font-bold text-xs flex items-center gap-1.5 transition shrink-0"
+                title="Manage house teams, leaders, member rosters and per-team summit printouts"
+              >
+                <Shield className="w-4 h-4 text-teal-300" />
+                <span>Team Management</span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab('library')}
                 className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 transition border border-white/20 shrink-0"
               >
@@ -163,9 +172,19 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
               <span className="text-[10px] text-[#0E7C86] font-semibold block truncate">{thamheediyyaStudentsCount} Th • {aliyaStudentsCount} Al</span>
             </div>
 
-            <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block truncate">House Teams</span>
-              <div className="text-lg sm:text-xl font-bold text-[#0F2A4A] dark:text-white">{totalTeams}</div>
+            <div
+              onClick={() => setActiveTab('teams')}
+              className="p-3 sm:p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1 cursor-pointer hover:border-[#0E7C86] hover:shadow-md transition group"
+              title="Click to view and manage house teams, members and summit rosters"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block truncate">House Teams</span>
+                <span className="text-[9px] font-bold text-[#0E7C86] opacity-0 group-hover:opacity-100 transition hidden sm:inline">&rarr;</span>
+              </div>
+              <div className="text-lg sm:text-xl font-bold text-[#0F2A4A] dark:text-white flex items-center gap-1.5">
+                <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
+                <span>{totalTeams}</span>
+              </div>
               <span className="text-[10px] text-slate-400 block truncate">
                 {teams.reduce((acc, t) => acc + (t.leader1Id || t.leaderId ? 1 : 0) + (t.leader2Id ? 1 : 0), 0)} Leaders Appointed
               </span>
@@ -224,6 +243,16 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
               <div className="space-y-3 pt-1">
                 {(() => {
                   const maxTeamPoints = Math.max(...teamStandings.map(t => t.totalPoints || 0), 0);
+                  if (maxTeamPoints === 0) {
+                    return (
+                      <div className="py-6 px-4 text-center text-slate-400 text-xs bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 space-y-1">
+                        <Shield className="w-5 h-5 mx-auto text-slate-300 dark:text-slate-600 mb-1" />
+                        <p className="font-semibold text-slate-600 dark:text-slate-300">No marks or points published yet</p>
+                        <p className="text-[11px] text-slate-400">House standings and visual comparison bars will appear once event marks are evaluated.</p>
+                      </div>
+                    );
+                  }
+
                   return teamStandings.map(t => {
                     const barWidth = maxTeamPoints > 0 && t.totalPoints > 0
                       ? Math.min(100, (t.totalPoints / maxTeamPoints) * 100)
@@ -240,7 +269,7 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
                             {t.totalPoints.toFixed(1)} pts <span className="text-slate-400 font-normal">(Th: {t.thamheediyyaPoints?.toFixed(1) || '0.0'} • Al: {t.aliyaPoints?.toFixed(1) || '0.0'})</span>
                           </span>
                         </div>
-                        <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{ width: `${barWidth}%`, backgroundColor: t.color }}
@@ -271,6 +300,16 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
               <div className="space-y-3 pt-1">
                 {(() => {
                   const maxClassMarks = Math.max(...classEvaluations.map(c => c.totalMarks || 0), 0);
+                  if (maxClassMarks === 0) {
+                    return (
+                      <div className="py-6 px-4 text-center text-slate-400 text-xs bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 space-y-1">
+                        <Layers className="w-5 h-5 mx-auto text-slate-300 dark:text-slate-600 mb-1" />
+                        <p className="font-semibold text-slate-600 dark:text-slate-300">No class marks or evaluations recorded yet</p>
+                        <p className="text-[11px] text-slate-400">Class performance metrics will display here as evaluations and attendance are logged.</p>
+                      </div>
+                    );
+                  }
+
                   return classEvaluations.map(c => {
                     const classBarWidth = maxClassMarks > 0 && c.totalMarks > 0
                       ? Math.min(100, (c.totalMarks / maxClassMarks) * 100)
@@ -286,7 +325,7 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
                             {c.totalMarks.toFixed(1)} pts ({c.avgAttendance.toFixed(0)}% Att)
                           </span>
                         </div>
-                        <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full bg-[#334E73] transition-all duration-500"
                             style={{ width: `${classBarWidth}%` }}

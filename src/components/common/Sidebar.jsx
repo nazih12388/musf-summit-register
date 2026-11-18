@@ -37,7 +37,7 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'attendance', label: t.nav.attendance, icon: Clock },
     { id: 'marks', label: t.nav.marks, icon: Scale },
     { id: 'students', label: t.nav.students, icon: Users },
-    { id: 'teams', label: 'Sections, Classes & Teams', icon: Shield },
+    { id: 'teams', label: 'Team Management', icon: Shield },
     { id: 'leaders', label: t.nav.leaders, icon: Crown },
     { id: 'judges', label: t.nav.judges, icon: Gavel },
     { id: 'notices', label: t.nav.notifications, icon: Bell },

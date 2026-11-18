@@ -368,7 +368,7 @@ export const Navbar = ({
                   { id: 'reports', label: 'Reports & Academic Audit', icon: BarChart3 },
                   { id: 'summits', label: 'Summits Calendar (48 Wks)', icon: Calendar },
                   { id: 'library', label: 'Program Library & Fields', icon: BookOpen },
-                  { id: 'teams', label: 'Sections, Classes & Teams', icon: Shield },
+                  { id: 'teams', label: 'Team Management & Houses', icon: Shield, badge: 'Teams' },
                   { id: 'leaders', label: 'Team Leaders (2/Team)', icon: Crown },
                   { id: 'judges', label: 'Judges & Evaluators', icon: Gavel },
                   { id: 'notices', label: 'Notifications & Notices', icon: Bell }

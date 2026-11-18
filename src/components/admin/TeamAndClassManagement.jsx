@@ -22,7 +22,16 @@ import {
   Search,
   Check,
   UserPlus,
-  UserMinus
+  UserMinus,
+  Printer,
+  Calendar,
+  Award,
+  FileText,
+  Clock,
+  MapPin,
+  CheckCircle2,
+  X,
+  ExternalLink
 } from 'lucide-react';
 
 export const TeamAndClassManagement = () => {
@@ -31,6 +40,11 @@ export const TeamAndClassManagement = () => {
     classes,
     teams,
     students,
+    summits,
+    programs,
+    entries,
+    marks,
+    settings,
     updateSection,
     updateClass,
     addTeam,
@@ -38,12 +52,34 @@ export const TeamAndClassManagement = () => {
     deleteTeam,
     bulkAssignTeams,
     appointTeamLeader,
-    updateStudent
+    updateStudent,
+    nominateStudentForProgram,
+    removeStudentEntry,
+    updateSummitProgramAllocation
   } = useApp();
   const { currentUser } = useAuth();
   const { t } = useLanguage();
 
-  // Leader Appoint Modal State
+  // Navigation Sub-tabs: 'teams' | 'summit_assignments' | 'classes'
+  const [activeSubTab, setActiveSubTab] = useState('teams');
+
+  // =========================================================================
+  // SUMMIT ASSIGNMENTS & PER-TEAM PRINT STATE
+  // =========================================================================
+  const [selectedSummitId, setSelectedSummitId] = useState(() => summits[0]?.id || '');
+  const [selectedTeamFilter, setSelectedTeamFilter] = useState('all');
+  const [printingTeamData, setPrintingTeamData] = useState(null); // { team, summit }
+  const [nominateModalData, setNominateModalData] = useState(null); // { program, team }
+  const [nominateStudentId, setNominateStudentId] = useState('');
+  const [nominateError, setNominateError] = useState('');
+  const [nominateSuccess, setNominateSuccess] = useState('');
+
+  // Active Summit object
+  const activeSummit = summits.find(s => s.id === selectedSummitId) || summits[0];
+
+  // =========================================================================
+  // LEADER APPOINT MODAL STATE
+  // =========================================================================
   const [leaderModalTeam, setLeaderModalTeam] = useState(null);
   const [leaderModalRole, setLeaderModalRole] = useState('leader1');
   const [leaderStudentId, setLeaderStudentId] = useState('');
@@ -83,16 +119,19 @@ export const TeamAndClassManagement = () => {
     setLeaderModalTeam(null);
   };
 
-  // Section Edit Modal
+  // =========================================================================
+  // SECTIONS & CLASS EDIT MODALS
+  // =========================================================================
   const [editingSection, setEditingSection] = useState(null);
   const [sectionNameInput, setSectionNameInput] = useState('');
 
-  // Class Edit Modal State (Name + Section)
   const [editingClass, setEditingClass] = useState(null);
   const [classNameInput, setClassNameInput] = useState('');
   const [classSectionInput, setClassSectionInput] = useState('thamheediyya');
 
-  // Team Modals State
+  // =========================================================================
+  // TEAM ADD / EDIT / DELETE MODALS
+  // =========================================================================
   const [isAddTeamOpen, setIsAddTeamOpen] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamColor, setNewTeamColor] = useState('#0E7C86');
@@ -101,7 +140,6 @@ export const TeamAndClassManagement = () => {
   const [editTeamName, setEditTeamName] = useState('');
   const [editTeamColor, setEditTeamColor] = useState('#0E7C86');
 
-  // Delete Team State
   const [teamToDelete, setTeamToDelete] = useState(null);
   const [targetMoveTeamId, setTargetMoveTeamId] = useState('');
   const [deleteError, setDeleteError] = useState('');
@@ -109,7 +147,7 @@ export const TeamAndClassManagement = () => {
   // Bulk Reassign Modal State
   const [isBulkAssignOpen, setIsBulkAssignOpen] = useState(false);
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
-  const [destinationTeamId, setDestinationTeamId] = useState(teams[0]?.id || '');
+  const [destinationTeamId, setDestinationTeamId] = useState(() => teams[0]?.id || '');
 
   // Manage Team Members & Quick Edit Modal State
   const [managingMembersTeam, setManagingMembersTeam] = useState(null);
@@ -244,300 +282,1113 @@ export const TeamAndClassManagement = () => {
     setSelectedStudentIds([]);
   };
 
+  // Quick Nominate Student for Program Handler
+  const handleQuickNominateSubmit = (e) => {
+    e.preventDefault();
+    setNominateError('');
+    if (!nominateModalData || !nominateStudentId) return;
+
+    const res = nominateStudentForProgram({
+      programId: nominateModalData.program.id,
+      studentId: nominateStudentId,
+      teamId: nominateModalData.team.id
+    }, currentUser?.username || 'admin');
+
+    if (res?.success === false) {
+      setNominateError(res.error || 'Failed to nominate member.');
+    } else {
+      setNominateSuccess(`Enrolled member successfully into ${nominateModalData.program.name}!`);
+      setTimeout(() => {
+        setNominateSuccess('');
+        setNominateModalData(null);
+        setNominateStudentId('');
+      }, 1500);
+    }
+  };
+
+  // Trigger browser print
+  const handlePrintTeamSheet = (team, summit) => {
+    setPrintingTeamData({ team, summit });
+  };
+
   return (
-    <div className="space-y-8">
-      {/* 1. SECTIONS OVERVIEW */}
-      <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Top Header & Sub-Navigation Tabs */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs">
         <div>
-          <h3 className="text-lg font-bold text-[#0F2A4A] dark:text-white flex items-center gap-2">
-            <Building className="w-5 h-5 text-[#0E7C86]" />
-            <span>Academic Sections (Stages)</span>
-          </h3>
-          <p className="text-xs text-slate-500">
-            The institutional division between Thamheediyya (Junior Preparatory) and Aliya (Senior Degree). Rankings and programs are administered section-wise.
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950/60 text-[#0E7C86] dark:text-teal-400 text-[10px] font-bold uppercase tracking-wider mb-1 font-mono">
+            <span>Directorate Team Console</span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-bold text-[#0F2A4A] dark:text-white flex items-center gap-2">
+            <Shield className="w-6 h-6 text-[#0E7C86]" />
+            <span>Team &amp; House Management</span>
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Manage house teams, leaders, member assignments, summit program allocations, and dedicated per-team print sheets.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {sections.map(sec => {
-            const secClasses = classes.filter(c => c.sectionId === sec.id);
-            const secStudents = students.filter(s => {
-              const cl = classes.find(c => c.id === s.classId);
-              return (cl?.sectionId || s.sectionId) === sec.id;
-            });
+        {/* 3 Nav Sub-Tabs */}
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 self-start md:self-center overflow-x-auto max-w-full">
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('teams')}
+            className={`py-2 px-3.5 rounded-lg font-bold text-xs flex items-center gap-2 transition shrink-0 ${
+              activeSubTab === 'teams'
+                ? 'bg-white dark:bg-[#0F1B2B] text-[#0F2A4A] dark:text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Shield className="w-4 h-4 text-[#0E7C86]" />
+            <span>House Teams ({teams.length})</span>
+          </button>
 
-            return (
-              <div
-                key={sec.id}
-                className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border-2 border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between"
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('summit_assignments')}
+            className={`py-2 px-3.5 rounded-lg font-bold text-xs flex items-center gap-2 transition shrink-0 ${
+              activeSubTab === 'summit_assignments'
+                ? 'bg-white dark:bg-[#0F1B2B] text-[#0F2A4A] dark:text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Calendar className="w-4 h-4 text-amber-500" />
+            <span>Summit Rosters &amp; Print</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('classes')}
+            className={`py-2 px-3.5 rounded-lg font-bold text-xs flex items-center gap-2 transition shrink-0 ${
+              activeSubTab === 'classes'
+                ? 'bg-white dark:bg-[#0F1B2B] text-[#0F2A4A] dark:text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-[#334E73]" />
+            <span>Academic Classes &amp; Stages</span>
+          </button>
+        </div>
+      </div>
+
+      {leaderSuccessMsg && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{leaderSuccessMsg}</span>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 1: HOUSE TEAMS & MEMBERS
+         ========================================================================= */}
+      {activeSubTab === 'teams' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-[#0F2A4A] dark:text-white flex items-center gap-2">
+                <Shield className="w-4 h-4 text-[#0E7C86]" />
+                <span>House Teams Roster &amp; Leadership</span>
+              </h3>
+              <p className="text-xs text-slate-500">
+                View enrolled members, appoint Leader 1 &amp; Leader 2, transfer students between teams, and manage house identities.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsBulkAssignOpen(true)}
+                className="py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition"
               >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-950/60 text-[#0E7C86] dark:text-teal-400 font-mono">
-                      Section Code: {sec.id}
-                    </span>
+                <ArrowRightLeft className="w-4 h-4 text-[#0E7C86]" />
+                <span>Bulk Assign Teams</span>
+              </button>
+
+              <button
+                onClick={() => setIsAddTeamOpen(true)}
+                className="py-2 px-3.5 rounded-xl bg-[#0F2A4A] dark:bg-[#0E7C86] text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-xs"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Team</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {teams.map(team => {
+              const currentTeamMembers = students.filter(s => s.teamId === team.id);
+              const memberCount = currentTeamMembers.length;
+              const leader1 = students.find(s => s.id === (team.leader1Id || team.leaderId));
+              const leader2 = students.find(s => s.id === team.leader2Id);
+
+              const thCount = currentTeamMembers.filter(s => {
+                const cl = classes.find(c => c.id === s.classId);
+                return (s.sectionId || cl?.sectionId) === 'thamheediyya';
+              }).length;
+
+              const alCount = currentTeamMembers.filter(s => {
+                const cl = classes.find(c => c.id === s.classId);
+                return (s.sectionId || cl?.sectionId) === 'aliya';
+              }).length;
+
+              return (
+                <div
+                  key={team.id}
+                  className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 relative overflow-hidden flex flex-col justify-between"
+                >
+                  <div
+                    className="absolute top-0 left-0 right-0 h-1.5"
+                    style={{ backgroundColor: team.color }}
+                  />
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-4 h-4 rounded-full border border-black/10 shrink-0"
+                          style={{ backgroundColor: team.color }}
+                        />
+                        <h4 className="font-bold text-slate-900 dark:text-white text-base">
+                          {team.name}
+                        </h4>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => openManageMembersModal(team)}
+                          className="p-1.5 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/60 text-[#0E7C86] dark:text-teal-400 transition"
+                          title="Manage Team & Members"
+                        >
+                          <Users className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingTeam(team);
+                            setEditTeamName(team.name);
+                            setEditTeamColor(team.color);
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition"
+                          title="Edit Team Name & Color"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setTeamToDelete(team);
+                            setTargetMoveTeamId('');
+                            setDeleteError('');
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition"
+                          title="Delete Team"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Leaders Breakdown */}
+                    <div className="space-y-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1 text-slate-500 font-semibold">
+                          <Crown className="w-3.5 h-3.5 text-[#C9A227]" />
+                          <span>Leader 1:</span>
+                        </span>
+                        <strong className="text-slate-800 dark:text-slate-200 font-semibold truncate max-w-[120px]">
+                          {leader1 ? leader1.name : <span className="text-slate-400 font-normal">None</span>}
+                        </strong>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1 text-slate-500 font-semibold">
+                          <Crown className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Leader 2:</span>
+                        </span>
+                        <strong className="text-slate-800 dark:text-slate-200 font-semibold truncate max-w-[120px]">
+                          {leader2 ? leader2.name : <span className="text-slate-400 font-normal">None</span>}
+                        </strong>
+                      </div>
+
+                      <div className="flex justify-between pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60">
+                        <span className="text-slate-500">Enrolled Members:</span>
+                        <strong className="text-slate-800 dark:text-slate-200 font-bold font-mono">
+                          {memberCount} ({thCount} Th • {alCount} Al)
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Team Quick Actions */}
+                  <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => openManageMembersModal(team)}
+                      className="w-full py-2.5 px-3 rounded-xl bg-[#0E7C86] hover:bg-[#0B636B] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      <span>View &amp; Edit Members ({memberCount})</span>
+                    </button>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openAppointLeaderModal(team, 'leader1')}
+                        className="py-1.5 px-2 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border border-amber-200 dark:border-amber-800 font-semibold text-[11px] flex items-center justify-center gap-1 transition"
+                      >
+                        <Crown className="w-3 h-3 text-[#C9A227]" />
+                        <span>Appoint Leaders</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTeamFilter(team.id);
+                          setActiveSubTab('summit_assignments');
+                        }}
+                        className="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-[11px] flex items-center justify-center gap-1 transition"
+                      >
+                        <Calendar className="w-3 h-3 text-[#0E7C86]" />
+                        <span>Summit Sheet</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 2: SUMMIT ROSTERS & PER-TEAM PRINT
+         ========================================================================= */}
+      {activeSubTab === 'summit_assignments' && (
+        <div className="space-y-6">
+          {/* Summit & Team Filter Controls */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-[#0F2A4A] dark:text-white flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-[#0E7C86]" />
+                  <span>Summit Event Allocations &amp; House Team Dossiers</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Select an academic summit to inspect programs assigned to each house, review nominated candidates, and print official team rosters.
+                </p>
+              </div>
+
+              {/* Summit Selector */}
+              <div className="flex items-center gap-2.5">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                  Selected Summit:
+                </span>
+                <select
+                  value={selectedSummitId}
+                  onChange={(e) => setSelectedSummitId(e.target.value)}
+                  className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs text-[#0F2A4A] dark:text-white min-w-[240px]"
+                >
+                  {summits.length === 0 ? (
+                    <option value="">-- No Summits Scheduled --</option>
+                  ) : (
+                    summits.map((sm, idx) => (
+                      <option key={sm.id} value={sm.id}>
+                        Summit {idx + 1}: {sm.name} ({sm.date || 'TBD'})
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            </div>
+
+            {/* Team Filter Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-slate-100 dark:border-slate-800">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                Filter House:
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedTeamFilter('all')}
+                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition shrink-0 ${
+                  selectedTeamFilter === 'all'
+                    ? 'bg-[#0F2A4A] text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                All 4 Houses
+              </button>
+
+              {teams.map(t => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setSelectedTeamFilter(t.id)}
+                  className={`py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    selectedTeamFilter === t.id
+                      ? 'bg-[#0E7C86] text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
+                  <span>{t.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* When 0 Summits Exist */}
+          {summits.length === 0 ? (
+            <div className="p-12 text-center bg-white dark:bg-[#0F1B2B] rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 space-y-3">
+              <Calendar className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+              <h4 className="font-bold text-slate-700 dark:text-slate-200 text-base">
+                No Summits Scheduled Yet
+              </h4>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Summits can be scheduled from the <strong>Summits &amp; Sessions</strong> console. Once a summit is scheduled, house program assignments and dedicated print sheets will appear here.
+              </p>
+            </div>
+          ) : (
+            /* Render Team Rosters for Selected Summit */
+            <div className="space-y-6">
+              {teams
+                .filter(t => selectedTeamFilter === 'all' || t.id === selectedTeamFilter)
+                .map(team => {
+                  const leader1 = students.find(s => s.id === (team.leader1Id || team.leaderId));
+                  const leader2 = students.find(s => s.id === team.leader2Id);
+
+                  // All programs for this summit
+                  const summitPrograms = programs.filter(p => p.summitId === activeSummit?.id);
+
+                  // Programs assigned to this team:
+                  // - In Thamheediyya, all programs are common to all 4 teams
+                  // - In Aliya, teamAllocations[team.id].assigned !== false
+                  const teamPrograms = summitPrograms.filter(p => {
+                    if (p.sectionId === 'thamheediyya') return true;
+                    return p.teamAllocations?.[team.id]?.assigned !== false;
+                  });
+
+                  // Calculate total enrolled participants for this team in this summit
+                  let totalTeamParticipants = 0;
+                  teamPrograms.forEach(p => {
+                    const progEntries = entries.filter(e => e.programId === p.id && (e.teamId === team.id || students.find(s => s.id === e.studentId)?.teamId === team.id));
+                    totalTeamParticipants += progEntries.length;
+                  });
+
+                  return (
+                    <div
+                      key={team.id}
+                      className="rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden"
+                    >
+                      {/* Team Header Banner */}
+                      <div
+                        className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-white"
+                        style={{
+                          background: `linear-gradient(135deg, ${team.color} 0%, #0F2A4A 100%)`
+                        }}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="w-3 h-3 rounded-full bg-white shrink-0 shadow-xs" />
+                            <h4 className="text-lg font-bold tracking-tight">
+                              {team.name}
+                            </h4>
+                            <span className="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold uppercase tracking-wider">
+                              {activeSummit?.name || 'Active Summit'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-white/80">
+                            Leaders: <strong>{leader1?.name || 'Leader 1'}</strong> &amp; <strong>{leader2?.name || 'Leader 2'}</strong> • Assigned Events: <strong>{teamPrograms.length}</strong> • Registered Participants: <strong>{totalTeamParticipants}</strong>
+                          </p>
+                        </div>
+
+                        {/* Dedicated Team Print Action Button */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handlePrintTeamSheet(team, activeSummit)}
+                            className="py-2.5 px-4 rounded-xl bg-white text-[#0F2A4A] hover:bg-slate-100 font-bold text-xs flex items-center gap-2 transition shadow-md"
+                            title={`Print official ${team.name} summit roster sheet`}
+                          >
+                            <Printer className="w-4 h-4 text-[#0E7C86]" />
+                            <span>🖨️ Print Team Summit Sheet</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Programs Table */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-50 dark:bg-slate-800/80 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                            <tr>
+                              <th className="p-3 w-12 text-center">#</th>
+                              <th className="p-3">Program / Event</th>
+                              <th className="p-3">Section</th>
+                              <th className="p-3">Category</th>
+                              <th className="p-3">Venue &amp; Time</th>
+                              <th className="p-3">Nominated Member(s)</th>
+                              <th className="p-3 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {teamPrograms.length === 0 ? (
+                              <tr>
+                                <td colSpan={7} className="p-8 text-center text-slate-400">
+                                  No programs assigned to {team.name} in this summit.
+                                </td>
+                              </tr>
+                            ) : (
+                              teamPrograms.map((prog, pIdx) => {
+                                const progEntries = entries.filter(e =>
+                                  e.programId === prog.id &&
+                                  (e.teamId === team.id || students.find(s => s.id === e.studentId)?.teamId === team.id)
+                                );
+                                const allowedCount = prog.teamAllocations?.[team.id]?.allowedCount || (prog.type === 'group' ? 2 : 1);
+                                const isFull = progEntries.length >= allowedCount;
+
+                                return (
+                                  <tr
+                                    key={prog.id}
+                                    className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition"
+                                  >
+                                    <td className="p-3 text-center font-mono font-bold text-slate-400">
+                                      {pIdx + 1}
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="font-bold text-slate-900 dark:text-white">
+                                        {prog.name}
+                                      </div>
+                                      <div className="text-[10px] text-slate-400 font-medium">
+                                        Max: {allowedCount} slot(s) • Type: {prog.type}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${
+                                        prog.sectionId === 'thamheediyya'
+                                          ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                          : 'bg-indigo-50 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300'
+                                      }`}>
+                                        {prog.sectionId === 'thamheediyya' ? 'Thamheediyya' : 'Aliya'}
+                                      </span>
+                                    </td>
+                                    <td className="p-3 text-slate-600 dark:text-slate-300">
+                                      {prog.category || 'Academic'}
+                                    </td>
+                                    <td className="p-3 text-slate-500">
+                                      <div>{prog.venue || activeSummit?.venue || 'College Auditorium'}</div>
+                                      <div className="text-[10px] text-slate-400">{prog.time || activeSummit?.date || 'Scheduled'}</div>
+                                    </td>
+                                    <td className="p-3">
+                                      {progEntries.length === 0 ? (
+                                        <span className="text-amber-600 dark:text-amber-400 italic text-[11px]">
+                                          None nominated ({progEntries.length}/{allowedCount})
+                                        </span>
+                                      ) : (
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {progEntries.map(e => {
+                                            const st = students.find(s => s.id === e.studentId);
+                                            const stClass = classes.find(c => c.id === st?.classId);
+                                            return (
+                                              <span
+                                                key={e.id}
+                                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-[#0E7C86] dark:text-teal-300 border border-teal-200 dark:border-teal-800 font-semibold text-[11px]"
+                                              >
+                                                <span>{st?.name || 'Student'}</span>
+                                                <span className="font-mono text-[9px] text-slate-500">({st?.cicNo || 'CIC'})</span>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => removeStudentEntry(e.id, currentUser?.username || 'admin')}
+                                                  className="hover:text-rose-600 transition ml-0.5"
+                                                  title="Remove participant"
+                                                >
+                                                  <X className="w-3 h-3" />
+                                                </button>
+                                              </span>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="p-3 text-right">
+                                      <button
+                                        type="button"
+                                        disabled={isFull}
+                                        onClick={() => {
+                                          setNominateModalData({ program: prog, team });
+                                          setNominateStudentId('');
+                                          setNominateError('');
+                                        }}
+                                        className="py-1.5 px-3 rounded-lg bg-[#0E7C86] hover:bg-[#0B636B] disabled:opacity-40 text-white font-bold text-[11px] inline-flex items-center gap-1 transition shadow-xs"
+                                        title={isFull ? 'All slots filled' : 'Nominate student from this house'}
+                                      >
+                                        <Plus className="w-3.5 h-3.5" />
+                                        <span>Nominate</span>
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 3: ACADEMIC CLASSES & STAGES
+         ========================================================================= */}
+      {activeSubTab === 'classes' && (
+        <div className="space-y-8">
+          {/* 1. SECTIONS OVERVIEW */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-base font-bold text-[#0F2A4A] dark:text-white flex items-center gap-2">
+                <Building className="w-5 h-5 text-[#0E7C86]" />
+                <span>Academic Sections (Stages)</span>
+              </h3>
+              <p className="text-xs text-slate-500">
+                The institutional division between Thamheediyya (Junior Preparatory) and Aliya (Senior Degree). Rankings and programs are administered section-wise.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {sections.map(sec => {
+                const secClasses = classes.filter(c => c.sectionId === sec.id);
+                const secStudents = students.filter(s => {
+                  const cl = classes.find(c => c.id === s.classId);
+                  return (cl?.sectionId || s.sectionId) === sec.id;
+                });
+
+                return (
+                  <div
+                    key={sec.id}
+                    className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border-2 border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-950/60 text-[#0E7C86] dark:text-teal-400 font-mono">
+                          Section Code: {sec.id}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setEditingSection(sec);
+                            setSectionNameInput(sec.name);
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition"
+                          title="Rename Section"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <h4 className="text-base font-bold text-[#0F2A4A] dark:text-white">
+                        {sec.name}
+                      </h4>
+                      <p className="text-xs text-slate-400">
+                        {sec.description || 'Academic program and ranking division.'}
+                      </p>
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                      <span className="text-slate-500">
+                        Classes: <strong className="text-slate-800 dark:text-slate-200">{secClasses.map(c => c.name.split(' ')[0] + ' ' + (c.name.split(' ')[1] || '')).join(', ') || 'None'}</strong>
+                      </span>
+                      <span className="font-bold font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[#0F2A4A] dark:text-white">
+                        {secStudents.length} Students
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. 5 CLASSES & SECTION MAPPING */}
+          <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div>
+              <h3 className="text-base font-bold text-[#0F2A4A] dark:text-white flex items-center gap-2">
+                <Layers className="w-5 h-5 text-[#334E73]" />
+                <span>Academic Classes &amp; Section Assignment</span>
+              </h3>
+              <p className="text-xs text-slate-500">
+                Assign each class to its respective Section. Enrolled students inherit their section automatically.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {classes.map((cls, idx) => {
+                const count = students.filter(s => s.classId === cls.id).length;
+                const sec = sections.find(s => s.id === cls.sectionId);
+
+                return (
+                  <div
+                    key={cls.id}
+                    className="p-4 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold uppercase text-[#0E7C86] font-mono">
+                          Class {idx + 1}
+                        </span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                          {sec?.name?.split(' ')[0] || 'Thamheediyya'}
+                        </span>
+                      </div>
+
+                      <h4 className="font-bold text-[#0F2A4A] dark:text-white text-sm">
+                        {cls.name}
+                      </h4>
+                      <span className="text-xs text-slate-400">
+                        {count} Enrolled Students
+                      </span>
+                    </div>
+
                     <button
                       onClick={() => {
-                        setEditingSection(sec);
-                        setSectionNameInput(sec.name);
+                        setEditingClass(cls);
+                        setClassNameInput(cls.name);
+                        setClassSectionInput(cls.sectionId || 'thamheediyya');
                       }}
-                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition"
-                      title="Rename Section"
+                      className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition"
+                      title="Edit Class & Section"
                     >
-                      <Edit2 className="w-3.5 h-3.5" />
+                      <Edit2 className="w-4 h-4" />
                     </button>
                   </div>
-
-                  <h4 className="text-base font-bold text-[#0F2A4A] dark:text-white">
-                    {sec.name}
-                  </h4>
-                  <p className="text-xs text-slate-400">
-                    {sec.description || 'Academic program and ranking division.'}
-                  </p>
-                </div>
-
-                <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">
-                    Classes: <strong className="text-slate-800 dark:text-slate-200">{secClasses.map(c => c.name.split(' ')[0] + ' ' + (c.name.split(' ')[1] || '')).join(', ') || 'None'}</strong>
-                  </span>
-                  <span className="font-bold font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[#0F2A4A] dark:text-white">
-                    {secStudents.length} Students
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 2. 5 CLASSES & SECTION MAPPING */}
-      <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-        <div>
-          <h3 className="text-lg font-bold text-[#0F2A4A] dark:text-white flex items-center gap-2">
-            <Layers className="w-5 h-5 text-[#334E73]" />
-            <span>Academic Classes & Section Assignment</span>
-          </h3>
-          <p className="text-xs text-slate-500">
-            Assign each class to its respective Section. Enrolled students inherit their section automatically.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {classes.map((cls, idx) => {
-            const count = students.filter(s => s.classId === cls.id).length;
-            const sec = sections.find(s => s.id === cls.sectionId);
-
-            return (
-              <div
-                key={cls.id}
-                className="p-4 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold uppercase text-[#0E7C86] font-mono">
-                      Class {idx + 1}
-                    </span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                      {sec?.name?.split(' ')[0] || 'Thamheediyya'}
-                    </span>
-                  </div>
-
-                  <h4 className="font-bold text-[#0F2A4A] dark:text-white text-sm">
-                    {cls.name}
-                  </h4>
-                  <span className="text-xs text-slate-400">
-                    {count} Enrolled Students
-                  </span>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setEditingClass(cls);
-                    setClassNameInput(cls.name);
-                    setClassSectionInput(cls.sectionId || 'thamheediyya');
-                  }}
-                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition"
-                  title="Edit Class & Section"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 3. SUMMIT TEAMS / HOUSES */}
-      <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-bold text-[#0F2A4A] dark:text-white flex items-center gap-2">
-              <Shield className="w-5 h-5 text-[#C9A227]" />
-              <span>Summit Teams & Categorization</span>
-            </h3>
-            <p className="text-xs text-slate-500">
-              Manage summit houses, recolor, add, and reassign students team-wise.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsBulkAssignOpen(true)}
-              className="py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition"
-            >
-              <ArrowRightLeft className="w-4 h-4 text-[#0E7C86]" />
-              <span>Bulk Assign Teams</span>
-            </button>
-
-            <button
-              onClick={() => setIsAddTeamOpen(true)}
-              className="py-2 px-3.5 rounded-xl bg-[#0F2A4A] dark:bg-[#0E7C86] text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-xs"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Team</span>
-            </button>
+                );
+              })}
+            </div>
           </div>
         </div>
+      )}
 
-        {leaderSuccessMsg && (
-          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 text-emerald-800 dark:text-emerald-300 text-xs font-semibold">
-            {leaderSuccessMsg}
-          </div>
-        )}
+      {/* =========================================================================
+          DEDICATED PRINT MODAL (AND PRINTABLE SHEET PREVIEW)
+         ========================================================================= */}
+      {printingTeamData && (() => {
+        const { team, summit } = printingTeamData;
+        const leader1 = students.find(s => s.id === (team.leader1Id || team.leaderId));
+        const leader2 = students.find(s => s.id === team.leader2Id);
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {teams.map(team => {
-            const memberCount = students.filter(s => s.teamId === team.id).length;
-            const leader1 = students.find(s => s.id === (team.leader1Id || team.leaderId));
-            const leader2 = students.find(s => s.id === team.leader2Id);
+        const summitPrograms = programs.filter(p => p.summitId === summit?.id);
+        const teamPrograms = summitPrograms.filter(p => {
+          if (p.sectionId === 'thamheediyya') return true;
+          return p.teamAllocations?.[team.id]?.assigned !== false;
+        });
 
-            return (
-              <div
-                key={team.id}
-                className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 relative overflow-hidden flex flex-col justify-between"
-              >
-                <div
-                  className="absolute top-0 left-0 right-0 h-1.5"
-                  style={{ backgroundColor: team.color }}
-                />
+        const printNow = () => {
+          window.print();
+        };
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-4 h-4 rounded-full border border-black/10 shrink-0"
-                        style={{ backgroundColor: team.color }}
-                      />
-                      <h4 className="font-bold text-slate-900 dark:text-white text-base">
-                        {team.name}
-                      </h4>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => openManageMembersModal(team)}
-                        className="p-1.5 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/60 text-[#0E7C86] dark:text-teal-400 transition"
-                        title="Manage Team & Members"
-                      >
-                        <Users className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingTeam(team);
-                          setEditTeamName(team.name);
-                          setEditTeamColor(team.color);
-                        }}
-                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition"
-                        title="Edit Team Name"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setTeamToDelete(team);
-                          setTargetMoveTeamId('');
-                          setDeleteError('');
-                        }}
-                        className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition"
-                        title="Delete Team"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Leaders Breakdown */}
-                  <div className="space-y-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1 text-slate-500 font-semibold">
-                        <Crown className="w-3 h-3 text-[#C9A227]" />
-                        <span>Leader 1:</span>
-                      </span>
-                      <strong className="text-slate-800 dark:text-slate-200 font-semibold truncate max-w-[120px]">
-                        {leader1 ? leader1.name : <span className="text-slate-400 font-normal">None</span>}
-                      </strong>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1 text-slate-500 font-semibold">
-                        <Crown className="w-3 h-3 text-slate-400" />
-                        <span>Leader 2:</span>
-                      </span>
-                      <strong className="text-slate-800 dark:text-slate-200 font-semibold truncate max-w-[120px]">
-                        {leader2 ? leader2.name : <span className="text-slate-400 font-normal">None</span>}
-                      </strong>
-                    </div>
-
-                    <div className="flex justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <span className="text-slate-500">Enrolled Members:</span>
-                      <strong className="text-slate-800 dark:text-slate-200 font-bold font-mono">
-                        {memberCount}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Team Quick Actions */}
-                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        return (
+          <Modal
+            isOpen={true}
+            onClose={() => setPrintingTeamData(null)}
+            title={`Print Dossier: ${team.name} - ${summit?.name || 'Summit'}`}
+            maxWidth="max-w-4xl"
+          >
+            <div className="space-y-6 text-xs max-h-[80vh] overflow-y-auto p-1">
+              {/* Action Bar */}
+              <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <span className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
+                  Print official high-resolution sheet for team captain, leaders and evaluators.
+                </span>
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => openManageMembersModal(team)}
-                    className="w-full py-2.5 px-3 rounded-xl bg-[#0E7C86] hover:bg-[#0B636B] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
+                    onClick={() => setPrintingTeamData(null)}
+                    className="px-3.5 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold"
                   >
-                    <Users className="w-3.5 h-3.5" />
-                    <span>View &amp; Edit Members ({memberCount})</span>
+                    Close
                   </button>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingTeam(team);
-                        setEditTeamName(team.name);
-                        setEditTeamColor(team.color);
-                      }}
-                      className="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-[11px] flex items-center justify-center gap-1 transition"
-                    >
-                      <Edit2 className="w-3 h-3 text-[#0E7C86]" />
-                      <span>Edit Name</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => openAppointLeaderModal(team, 'leader1')}
-                      className="py-1.5 px-2 rounded-lg bg-[#0F2A4A]/5 hover:bg-[#0F2A4A]/10 dark:bg-white/5 dark:hover:bg-white/10 text-[#0F2A4A] dark:text-white font-semibold text-[11px] flex items-center justify-center gap-1 transition border border-slate-200 dark:border-slate-700"
-                    >
-                      <Crown className="w-3 h-3 text-[#C9A227]" />
-                      <span>Leaders</span>
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={printNow}
+                    className="px-4 py-2 rounded-xl bg-[#0E7C86] hover:bg-[#0B636B] text-white font-bold flex items-center gap-2 shadow-xs"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Print Sheet (A4)</span>
+                  </button>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
 
+              {/* Printable Document Preview */}
+              <div className="bg-white text-slate-900 p-8 rounded-2xl border-2 border-slate-300 shadow-md space-y-6 font-sans">
+                {/* College Institutional Header */}
+                <div className="text-center border-b-2 border-slate-900 pb-4 space-y-1">
+                  <div className="text-[11px] font-bold uppercase tracking-widest text-slate-600">
+                    Co-ordination of Islamic Colleges (CIC) Affiliated
+                  </div>
+                  <h1 className="text-2xl font-black tracking-tight text-[#0F2A4A] uppercase">
+                    MAJLIS UMARIYYA WAFY COLLEGE
+                  </h1>
+                  <div className="text-xs font-bold text-[#0E7C86] uppercase tracking-wider">
+                    MUSF Summit Register • Official House Team Program Roster
+                  </div>
+                </div>
+
+                {/* Summit & House Details Banner */}
+                <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                  <div className="space-y-1.5">
+                    <div>
+                      <span className="text-slate-500 font-medium">Summit Gathering: </span>
+                      <strong className="text-slate-900">{summit?.name || 'Official Summit'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 font-medium">Date &amp; Venue: </span>
+                      <strong className="text-slate-900">{summit?.date || 'Scheduled Date'} • {summit?.venue || 'College Campus'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 font-medium">Academic Period: </span>
+                      <strong className="text-slate-900">Academic Year 2026-27</strong>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 border-l border-slate-200 pl-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 font-medium">House Team: </span>
+                      <span className="px-2 py-0.5 rounded font-black text-white text-[11px]" style={{ backgroundColor: team.color }}>
+                        {team.name}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 font-medium">Leader 1: </span>
+                      <strong className="text-slate-900">{leader1?.name ? `${leader1.name} (${leader1.cicNo})` : 'Appointed Leader 1'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 font-medium">Leader 2: </span>
+                      <strong className="text-slate-900">{leader2?.name ? `${leader2.name} (${leader2.cicNo})` : 'Appointed Leader 2'}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Programs & Participants Table */}
+                <div className="space-y-2">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-800">
+                    Allocated Programs &amp; Enrolled Participants ({teamPrograms.length} Events)
+                  </h4>
+                  <table className="w-full text-left border-collapse border border-slate-400 text-xs">
+                    <thead>
+                      <tr className="bg-slate-100 border-b border-slate-400 text-slate-800 font-bold uppercase text-[10px]">
+                        <th className="border border-slate-400 p-2 text-center w-8">Sl</th>
+                        <th className="border border-slate-400 p-2">Program Name</th>
+                        <th className="border border-slate-400 p-2">Section</th>
+                        <th className="border border-slate-400 p-2">Type</th>
+                        <th className="border border-slate-400 p-2">Nominated Student(s)</th>
+                        <th className="border border-slate-400 p-2">CIC No &amp; Class</th>
+                        <th className="border border-slate-400 p-2 text-center w-24">Score / Sign</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teamPrograms.map((prog, idx) => {
+                        const progEntries = entries.filter(e =>
+                          e.programId === prog.id &&
+                          (e.teamId === team.id || students.find(s => s.id === e.studentId)?.teamId === team.id)
+                        );
+
+                        return (
+                          <tr key={prog.id} className="border-b border-slate-300">
+                            <td className="border border-slate-300 p-2 text-center font-bold">
+                              {idx + 1}
+                            </td>
+                            <td className="border border-slate-300 p-2 font-bold text-slate-900">
+                              {prog.name}
+                              <div className="text-[10px] text-slate-500 font-normal">{prog.venue || summit?.venue || 'Campus'} • {prog.time || 'Scheduled'}</div>
+                            </td>
+                            <td className="border border-slate-300 p-2 uppercase font-mono text-[10px] font-semibold">
+                              {prog.sectionId === 'thamheediyya' ? 'Thamheediyya' : 'Aliya'}
+                            </td>
+                            <td className="border border-slate-300 p-2 capitalize text-[10px]">
+                              {prog.type}
+                            </td>
+                            <td className="border border-slate-300 p-2">
+                              {progEntries.length === 0 ? (
+                                <span className="text-slate-400 italic">Pending Nomination</span>
+                              ) : (
+                                progEntries.map((e, eIdx) => {
+                                  const st = students.find(s => s.id === e.studentId);
+                                  return (
+                                    <div key={e.id} className="font-semibold text-slate-900">
+                                      {eIdx + 1}. {st?.name || 'Nominated Student'}
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </td>
+                            <td className="border border-slate-300 p-2 font-mono text-[11px]">
+                              {progEntries.length === 0 ? (
+                                <span className="text-slate-400">-</span>
+                              ) : (
+                                progEntries.map(e => {
+                                  const st = students.find(s => s.id === e.studentId);
+                                  const cl = classes.find(c => c.id === st?.classId);
+                                  return (
+                                    <div key={e.id}>
+                                      {st?.cicNo || 'CIC'} ({cl?.name?.split(' ')[0] || 'Cls'})
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </td>
+                            <td className="border border-slate-300 p-2 text-center">
+                              <div className="h-6 border-b border-dotted border-slate-400 mt-2"></div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Signatures Footer */}
+                <div className="pt-10 grid grid-cols-3 gap-6 text-center text-xs">
+                  <div className="space-y-1">
+                    <div className="border-t border-slate-900 pt-1.5 font-bold">
+                      Team Leader Signature
+                    </div>
+                    <div className="text-[10px] text-slate-500">{team.name}</div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="border-t border-slate-900 pt-1.5 font-bold">
+                      General Captain / Coordinator
+                    </div>
+                    <div className="text-[10px] text-slate-500">MUSF Summit Coordination</div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="border-t border-slate-900 pt-1.5 font-bold">
+                      Summit Director
+                    </div>
+                    <div className="text-[10px] text-slate-500">Majlis Umariyya Wafy College</div>
+                  </div>
+                </div>
+
+                <div className="text-[9px] text-slate-400 text-center pt-4 border-t border-slate-200">
+                  Document generated by MUSF Summit Register Command Center • Official Record of Majlis Umariyya Wafy College
+                </div>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
+
+      {/* =========================================================================
+          PRINT-ONLY CONTAINER FOR BROWSER PRINT (A4 OUTPUT)
+         ========================================================================= */}
+      {printingTeamData && (() => {
+        const { team, summit } = printingTeamData;
+        const leader1 = students.find(s => s.id === (team.leader1Id || team.leaderId));
+        const leader2 = students.find(s => s.id === team.leader2Id);
+
+        const summitPrograms = programs.filter(p => p.summitId === summit?.id);
+        const teamPrograms = summitPrograms.filter(p => {
+          if (p.sectionId === 'thamheediyya') return true;
+          return p.teamAllocations?.[team.id]?.assigned !== false;
+        });
+
+        return (
+          <div id="printable-team-sheet" className="print-only p-8 text-black bg-white">
+            <div className="text-center border-b-2 border-black pb-4 space-y-1">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-700">
+                Co-ordination of Islamic Colleges (CIC) Affiliated
+              </div>
+              <h1 className="text-2xl font-black tracking-tight text-slate-900 uppercase">
+                MAJLIS UMARIYYA WAFY COLLEGE
+              </h1>
+              <div className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                MUSF Summit Register • Official House Team Program Roster
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 my-4 p-3 border border-black text-xs">
+              <div className="space-y-1">
+                <div>Summit Gathering: <strong>{summit?.name || 'Summit'}</strong></div>
+                <div>Date &amp; Venue: <strong>{summit?.date || 'Date'} • {summit?.venue || 'Campus'}</strong></div>
+                <div>Academic Period: <strong>Academic Year 2026-27</strong></div>
+              </div>
+              <div className="space-y-1 border-l border-black pl-3">
+                <div>House Team: <strong>{team.name}</strong></div>
+                <div>Leader 1: <strong>{leader1?.name ? `${leader1.name} (${leader1.cicNo})` : 'Appointed Leader 1'}</strong></div>
+                <div>Leader 2: <strong>{leader2?.name ? `${leader2.name} (${leader2.cicNo})` : 'Appointed Leader 2'}</strong></div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-black">
+                Allocated Programs &amp; Enrolled Participants ({teamPrograms.length} Events)
+              </h4>
+              <table className="w-full text-left border-collapse border border-black text-xs">
+                <thead>
+                  <tr className="bg-slate-200 border-b border-black text-black font-bold uppercase text-[10px]">
+                    <th className="border border-black p-2 text-center w-8">Sl</th>
+                    <th className="border border-black p-2">Program Name</th>
+                    <th className="border border-black p-2">Section</th>
+                    <th className="border border-black p-2">Type</th>
+                    <th className="border border-black p-2">Nominated Student(s)</th>
+                    <th className="border border-black p-2">CIC No &amp; Class</th>
+                    <th className="border border-black p-2 text-center w-24">Score / Sign</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teamPrograms.map((prog, idx) => {
+                    const progEntries = entries.filter(e =>
+                      e.programId === prog.id &&
+                      (e.teamId === team.id || students.find(s => s.id === e.studentId)?.teamId === team.id)
+                    );
+
+                    return (
+                      <tr key={prog.id} className="border-b border-black">
+                        <td className="border border-black p-2 text-center font-bold">{idx + 1}</td>
+                        <td className="border border-black p-2 font-bold">{prog.name}</td>
+                        <td className="border border-black p-2 uppercase font-mono text-[10px]">{prog.sectionId}</td>
+                        <td className="border border-black p-2 capitalize text-[10px]">{prog.type}</td>
+                        <td className="border border-black p-2">
+                          {progEntries.length === 0 ? 'Pending Nomination' : progEntries.map((e, eIdx) => {
+                            const st = students.find(s => s.id === e.studentId);
+                            return <div key={e.id}>{eIdx + 1}. {st?.name || 'Nominated'}</div>;
+                          })}
+                        </td>
+                        <td className="border border-black p-2 font-mono text-[11px]">
+                          {progEntries.length === 0 ? '-' : progEntries.map(e => {
+                            const st = students.find(s => s.id === e.studentId);
+                            const cl = classes.find(c => c.id === st?.classId);
+                            return <div key={e.id}>{st?.cicNo || 'CIC'} ({cl?.name?.split(' ')[0] || ''})</div>;
+                          })}
+                        </td>
+                        <td className="border border-black p-2 text-center">
+                          <div className="h-6 border-b border-dotted border-black mt-2"></div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="pt-16 grid grid-cols-3 gap-6 text-center text-xs">
+              <div>
+                <div className="border-t border-black pt-1 font-bold">Team Leader Signature</div>
+                <div className="text-[10px]">{team.name}</div>
+              </div>
+              <div>
+                <div className="border-t border-black pt-1 font-bold">General Captain / Coordinator</div>
+                <div className="text-[10px]">MUSF Summit Coordination</div>
+              </div>
+              <div>
+                <div className="border-t border-black pt-1 font-bold">Summit Director</div>
+                <div className="text-[10px]">Majlis Umariyya Wafy College</div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* =========================================================================
+          QUICK NOMINATE STUDENT MODAL
+         ========================================================================= */}
+      {nominateModalData && (() => {
+        const { program, team } = nominateModalData;
+        const teamStudents = students.filter(s => s.teamId === team.id);
+
+        // Filter eligible students:
+        // Must belong to program section (Thamheediyya vs Aliya)
+        const eligibleStudents = teamStudents.filter(s => {
+          const cl = classes.find(c => c.id === s.classId);
+          const sSec = s.sectionId || cl?.sectionId || 'thamheediyya';
+          if (program.sectionId === 'both') return true;
+          return sSec === program.sectionId;
+        });
+
+        // Already nominated in this program
+        const alreadyNominatedIds = entries
+          .filter(e => e.programId === program.id)
+          .map(e => e.studentId);
+
+        return (
+          <Modal
+            isOpen={true}
+            onClose={() => setNominateModalData(null)}
+            title={`Nominate Member: ${program.name}`}
+            maxWidth="max-w-md"
+          >
+            <form onSubmit={handleQuickNominateSubmit} className="space-y-4 text-xs">
+              {nominateError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{nominateError}</span>
+                </div>
+              )}
+
+              {nominateSuccess && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{nominateSuccess}</span>
+                </div>
+              )}
+
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: team.color }} />
+                  <strong className="text-slate-900 dark:text-white">{team.name}</strong>
+                </div>
+                <div className="text-slate-500">
+                  Program: <strong>{program.name}</strong> ({program.sectionId === 'thamheediyya' ? 'Thamheediyya' : 'Aliya'})
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                  Select Team Member to Enroll
+                </label>
+                <select
+                  required
+                  value={nominateStudentId}
+                  onChange={(e) => setNominateStudentId(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold"
+                >
+                  <option value="">-- Choose eligible student from {team.name} --</option>
+                  {eligibleStudents.map(s => {
+                    const cl = classes.find(c => c.id === s.classId);
+                    const isAlready = alreadyNominatedIds.includes(s.id);
+                    return (
+                      <option key={s.id} value={s.id} disabled={isAlready}>
+                        {s.name} ({s.cicNo}) • {cl?.name || 'Class'} {isAlready ? ' (Already Nominated)' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Only students belonging to {team.name} in {program.sectionId === 'thamheediyya' ? 'Class 1 & 2' : 'Class 3, 4 & 5'} are eligible.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setNominateModalData(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 rounded-xl font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!nominateStudentId}
+                  className="px-4 py-2 bg-[#0E7C86] hover:bg-[#0B636B] disabled:opacity-50 text-white rounded-xl font-bold shadow-xs"
+                >
+                  Confirm Nomination
+                </button>
+              </div>
+            </form>
+          </Modal>
+        );
+      })()}
+
+      {/* =========================================================================
+          OTHER MODALS (ADD/EDIT TEAM, BULK ASSIGN, LEADER APPOINT, EDIT CLASS)
+         ========================================================================= */}
       {/* Edit Section Modal */}
       {editingSection && (
         <Modal
@@ -891,7 +1742,7 @@ export const TeamAndClassManagement = () => {
                     </div>
                   </div>
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold text-white" style={{ backgroundColor: currentTeam?.color }}>
-                    {currentTeam?.name}
+                    {currentTeam?.name || 'Unassigned'}
                   </span>
                 </label>
               );
