@@ -43,7 +43,7 @@ export const MobileTabBar = ({ activeTab, setActiveTab }) => {
     { id: 'overview', label: 'Home', icon: LayoutDashboard },
     { id: 'programs', label: 'Programs', icon: Layers },
     { id: 'attendance', label: 'Attendance', icon: Clock },
-    { id: 'marks', label: 'Marks', icon: Award }
+    { id: 'certificates', label: 'Certificates', icon: Award }
   ];
 
   const tabs = currentUser.role === 'admin' ? adminMobile
@@ -52,7 +52,7 @@ export const MobileTabBar = ({ activeTab, setActiveTab }) => {
     : studentMobile;
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#0B1522]/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex items-center justify-around py-2 px-1 text-[10px]">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#0B1522]/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex items-center justify-around py-2 px-1 pb-[calc(env(safe-area-inset-bottom)+0.4rem)] text-[10px] shadow-lg">
       {tabs.map(tab => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;

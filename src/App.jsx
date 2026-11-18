@@ -78,7 +78,7 @@ export function AppContent() {
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {/* Main Content Viewport with ErrorBoundary */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-20 lg:pb-8 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 pb-28 lg:pb-8 overflow-y-auto">
           <ErrorBoundary onReset={() => setActiveTab('dashboard')}>
             {currentUser.role === 'admin' && (
               <AdminDashboard activeTab={activeTab} setActiveTab={setActiveTab} />

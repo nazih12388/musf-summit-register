@@ -66,11 +66,11 @@ export const Navbar = ({ isDark, setIsDark, activeTab, setActiveTab }) => {
               <img src="/college-campus.jpg" alt="Logo" className="w-full h-full object-cover" />
             </div>
 
-            <div>
-              <h1 className="text-xs sm:text-sm font-bold text-[#0F2A4A] dark:text-white leading-tight">
+            <div className="min-w-0 max-w-[130px] xs:max-w-[200px] sm:max-w-none">
+              <h1 className="text-xs sm:text-sm font-bold text-[#0F2A4A] dark:text-white leading-tight truncate">
                 {settings.collegeName}
               </h1>
-              <p className="text-[11px] font-semibold text-[#0E7C86] dark:text-teal-400">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-[#0E7C86] dark:text-teal-400 truncate">
                 {t.appTitle}
               </p>
             </div>

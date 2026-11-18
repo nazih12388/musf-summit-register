@@ -167,29 +167,31 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
         </div>
 
         {/* Badges / Quick Stats */}
-        <div className="flex flex-wrap items-center gap-2 relative z-10">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 relative z-10 w-full md:w-auto">
           <button
             onClick={handleDownloadMyReportCard}
-            className="p-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
+            className="p-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm w-full sm:w-auto"
             title="Download My Official Monthly / Multi-Month Progress Report Card (PDF)"
           >
             <Download className="w-4 h-4" />
             <span>Progress Report PDF</span>
           </button>
 
-          <div className="p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[90px]">
-            <span className="text-[10px] uppercase font-bold text-white/70 block">Section Rank</span>
-            <div className="text-lg font-bold text-white font-mono">#{myStanding.sectionRank || 1}</div>
-          </div>
+          <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
+            <div className="p-2.5 sm:p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[70px] sm:min-w-[90px]">
+              <span className="text-[9px] sm:text-[10px] uppercase font-bold text-white/70 block">Section</span>
+              <div className="text-base sm:text-lg font-bold text-white font-mono">#{myStanding.sectionRank || 1}</div>
+            </div>
 
-          <div className="p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[90px]">
-            <span className="text-[10px] uppercase font-bold text-white/70 block">Class Rank</span>
-            <div className="text-lg font-bold text-white font-mono">#{myStanding.classRank || 1}</div>
-          </div>
+            <div className="p-2.5 sm:p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[70px] sm:min-w-[90px]">
+              <span className="text-[9px] sm:text-[10px] uppercase font-bold text-white/70 block">Class</span>
+              <div className="text-base sm:text-lg font-bold text-white font-mono">#{myStanding.classRank || 1}</div>
+            </div>
 
-          <div className="p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[90px]">
-            <span className="text-[10px] uppercase font-bold text-white/70 block">Overall Rank</span>
-            <div className="text-lg font-bold text-amber-300 font-mono">#{myStanding.overallRank || myStanding.rank || 1}</div>
+            <div className="p-2.5 sm:p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[70px] sm:min-w-[90px]">
+              <span className="text-[9px] sm:text-[10px] uppercase font-bold text-white/70 block">Overall</span>
+              <div className="text-base sm:text-lg font-bold text-amber-300 font-mono">#{myStanding.overallRank || myStanding.rank || 1}</div>
+            </div>
           </div>
         </div>
       </div>
