@@ -18,7 +18,10 @@ import {
   CheckSquare,
   Square,
   Search,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  Clock,
+  Check
 } from 'lucide-react';
 
 export const JudgeManagement = () => {
@@ -44,7 +47,9 @@ export const JudgeManagement = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('judge123');
   const [unrestricted, setUnrestricted] = useState(false);
+  const [assignedSummits, setAssignedSummits] = useState([]);
   const [assignedPrograms, setAssignedPrograms] = useState([]);
+  const [allowMarkEditing, setAllowMarkEditing] = useState(true);
   const [programSearch, setProgramSearch] = useState('');
 
   // Edit form
@@ -52,14 +57,22 @@ export const JudgeManagement = () => {
   const [editUsername, setEditUsername] = useState('');
   const [editPassword, setEditPassword] = useState('');
   const [editUnrestricted, setEditUnrestricted] = useState(false);
+  const [editAssignedSummits, setEditAssignedSummits] = useState([]);
   const [editAssignedPrograms, setEditAssignedPrograms] = useState([]);
+  const [editAllowMarkEditing, setEditAllowMarkEditing] = useState(true);
   const [editProgramSearch, setEditProgramSearch] = useState('');
 
   const globalRestrictionsEnforced = settings?.enforceJudgeRestrictions !== false;
+  const globalMarkEditingAllowed = settings?.allowJudgeMarkEditing !== false;
 
   const handleToggleGlobalRestrictions = () => {
     const nextVal = !globalRestrictionsEnforced;
     updateSettings({ enforceJudgeRestrictions: nextVal }, currentUser?.username || 'admin');
+  };
+
+  const handleToggleGlobalMarkEditing = () => {
+    const nextVal = !globalMarkEditingAllowed;
+    updateSettings({ allowJudgeMarkEditing: nextVal }, currentUser?.username || 'admin');
   };
 
   const handleAddSubmit = async (e) => {
@@ -70,14 +83,18 @@ export const JudgeManagement = () => {
       username,
       password,
       unrestricted,
-      assignedPrograms: unrestricted ? [] : assignedPrograms
+      assignedSummits: unrestricted ? [] : assignedSummits,
+      assignedPrograms: unrestricted ? [] : assignedPrograms,
+      allowMarkEditing
     }, currentUser?.username);
     setIsAddOpen(false);
     setName('');
     setUsername('');
     setPassword('judge123');
     setUnrestricted(false);
+    setAssignedSummits([]);
     setAssignedPrograms([]);
+    setAllowMarkEditing(true);
     setProgramSearch('');
   };
 
@@ -88,7 +105,9 @@ export const JudgeManagement = () => {
       name: editName,
       username: editUsername,
       unrestricted: editUnrestricted,
-      assignedPrograms: editUnrestricted ? [] : editAssignedPrograms
+      assignedSummits: editUnrestricted ? [] : editAssignedSummits,
+      assignedPrograms: editUnrestricted ? [] : editAssignedPrograms,
+      allowMarkEditing: editAllowMarkEditing
     };
     if (editPassword) updates.password = editPassword;
 
@@ -102,19 +121,28 @@ export const JudgeManagement = () => {
     setEditUsername(judge.username);
     setEditPassword('');
     setEditUnrestricted(Boolean(judge.unrestricted));
+    setEditAssignedSummits(judge.assignedSummits || []);
     setEditAssignedPrograms(judge.assignedPrograms || []);
+    setEditAllowMarkEditing(judge.allowMarkEditing !== false);
     setEditProgramSearch('');
   };
 
-  const filteredProgramsAdd = programs.filter(p =>
-    p.name.toLowerCase().includes(programSearch.toLowerCase()) ||
-    (p.code && p.code.toLowerCase().includes(programSearch.toLowerCase()))
-  );
+  const filteredProgramsAdd = programs.filter(p => {
+    // If specific summits are selected, only show programs of those summits
+    if (assignedSummits.length > 0 && !assignedSummits.includes(p.summitId)) return false;
+    return (
+      p.name.toLowerCase().includes(programSearch.toLowerCase()) ||
+      (p.code && p.code.toLowerCase().includes(programSearch.toLowerCase()))
+    );
+  });
 
-  const filteredProgramsEdit = programs.filter(p =>
-    p.name.toLowerCase().includes(editProgramSearch.toLowerCase()) ||
-    (p.code && p.code.toLowerCase().includes(editProgramSearch.toLowerCase()))
-  );
+  const filteredProgramsEdit = programs.filter(p => {
+    if (editAssignedSummits.length > 0 && !editAssignedSummits.includes(p.summitId)) return false;
+    return (
+      p.name.toLowerCase().includes(editProgramSearch.toLowerCase()) ||
+      (p.code && p.code.toLowerCase().includes(editProgramSearch.toLowerCase()))
+    );
+  });
 
   return (
     <div className="space-y-6">
@@ -123,13 +151,13 @@ export const JudgeManagement = () => {
         <div>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Gavel className="w-5 h-5 text-emerald-600" />
-            <span>Judges & Evaluators</span>
+            <span>Judges &amp; Evaluators</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
               {judges.length} Active
             </span>
           </h3>
           <p className="text-xs text-slate-500">
-            Manage judges, grant all-program access or restrict evaluations to specific summit events.
+            Allocate summits and events to judges, manage scoring permissions, and restrict/unrestrict score editing.
           </p>
         </div>
 
@@ -137,7 +165,9 @@ export const JudgeManagement = () => {
           onClick={() => {
             setIsAddOpen(true);
             setUnrestricted(false);
+            setAssignedSummits([]);
             setAssignedPrograms([]);
+            setAllowMarkEditing(true);
           }}
           className="py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition self-start sm:self-auto shadow-xs"
         >
@@ -146,61 +176,121 @@ export const JudgeManagement = () => {
         </button>
       </div>
 
-      {/* Global Judge Policy Banner */}
-      <div className={`p-4 rounded-2xl border transition flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-        globalRestrictionsEnforced
-          ? 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/50'
-          : 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50'
-      }`}>
-        <div className="flex items-start gap-3">
-          <div className={`p-2 rounded-xl shrink-0 ${
-            globalRestrictionsEnforced
-              ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300'
-              : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300'
-          }`}>
-            {globalRestrictionsEnforced ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                {globalRestrictionsEnforced ? 'System Judge Restrictions: ENFORCED' : 'System Judge Restrictions: REMOVED (All Allowed)'}
-              </h4>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                globalRestrictionsEnforced
-                  ? 'bg-amber-200 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200'
-                  : 'bg-emerald-200 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200'
-              }`}>
-                {globalRestrictionsEnforced ? 'Restricted' : 'Unrestricted'}
-              </span>
+      {/* Global Judge Policy Banners (Restrictions & Mark Editing) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Policy 1: Program & Summit Allocation Enforcement */}
+        <div className={`p-4 rounded-2xl border transition flex flex-col justify-between gap-3 ${
+          globalRestrictionsEnforced
+            ? 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/50'
+            : 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50'
+        }`}>
+          <div className="flex items-start gap-3">
+            <div className={`p-2 rounded-xl shrink-0 ${
+              globalRestrictionsEnforced
+                ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300'
+                : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300'
+            }`}>
+              {globalRestrictionsEnforced ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
             </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-              {globalRestrictionsEnforced
-                ? 'Judges can only mark their explicitly assigned events. You can toggle restrictions per judge below or lift restrictions globally.'
-                : 'All judges are currently allowed to evaluate any program across all summits without restrictions.'}
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                  Summit &amp; Program Restriction
+                </h4>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                  globalRestrictionsEnforced
+                    ? 'bg-amber-200 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200'
+                    : 'bg-emerald-200 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200'
+                }`}>
+                  {globalRestrictionsEnforced ? 'Restricted' : 'Unrestricted'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                {globalRestrictionsEnforced
+                  ? 'Judges can only see and score summits & events explicitly allocated to their account.'
+                  : 'All judges are permitted to evaluate any summit and program without restrictions.'}
+              </p>
+            </div>
           </div>
+
+          <button
+            onClick={handleToggleGlobalRestrictions}
+            className={`self-end px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs ${
+              globalRestrictionsEnforced
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                : 'bg-amber-600 hover:bg-amber-700 text-white'
+            }`}
+          >
+            {globalRestrictionsEnforced ? (
+              <>
+                <Unlock className="w-4 h-4" />
+                <span>Lift Restrictions Globally</span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-4 h-4" />
+                <span>Enforce Restrictions Globally</span>
+              </>
+            )}
+          </button>
         </div>
 
-        <button
-          onClick={handleToggleGlobalRestrictions}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition shrink-0 shadow-xs ${
-            globalRestrictionsEnforced
-              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-              : 'bg-amber-600 hover:bg-amber-700 text-white'
-          }`}
-        >
-          {globalRestrictionsEnforced ? (
-            <>
-              <Unlock className="w-4 h-4" />
-              <span>Lift Restrictions Globally</span>
-            </>
-          ) : (
-            <>
-              <Lock className="w-4 h-4" />
-              <span>Enforce Restrictions Globally</span>
-            </>
-          )}
-        </button>
+        {/* Policy 2: Score Edit Permission (Restrict vs Unrestrict Edit) */}
+        <div className={`p-4 rounded-2xl border transition flex flex-col justify-between gap-3 ${
+          !globalMarkEditingAllowed
+            ? 'bg-rose-50/70 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/50'
+            : 'bg-teal-50/70 dark:bg-teal-950/20 border-teal-200 dark:border-teal-800/50'
+        }`}>
+          <div className="flex items-start gap-3">
+            <div className={`p-2 rounded-xl shrink-0 ${
+              !globalMarkEditingAllowed
+                ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300'
+                : 'bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-300'
+            }`}>
+              {!globalMarkEditingAllowed ? <Lock className="w-5 h-5 text-rose-600" /> : <Edit className="w-5 h-5 text-teal-600" />}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                  Judge Score Edit Policy
+                </h4>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                  !globalMarkEditingAllowed
+                    ? 'bg-rose-200 dark:bg-rose-900/60 text-rose-900 dark:text-rose-200'
+                    : 'bg-teal-200 dark:bg-teal-900/60 text-teal-900 dark:text-teal-200'
+                }`}>
+                  {!globalMarkEditingAllowed ? 'Editing Restricted' : 'Editing Allowed'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                {!globalMarkEditingAllowed
+                  ? 'Judges CANNOT edit marks once saved. Scores are locked upon initial submission.'
+                  : 'Judges CAN re-edit and update previously submitted marks anytime.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleToggleGlobalMarkEditing}
+            className={`self-end px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs ${
+              !globalMarkEditingAllowed
+                ? 'bg-teal-600 hover:bg-teal-700 text-white'
+                : 'bg-rose-600 hover:bg-rose-700 text-white'
+            }`}
+          >
+            {!globalMarkEditingAllowed ? (
+              <>
+                <Unlock className="w-4 h-4" />
+                <span>Unrestrict Mark Editing (Allow Updates)</span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-4 h-4" />
+                <span>Restrict Mark Editing (Lock on Save)</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Judges Grid */}
@@ -208,36 +298,53 @@ export const JudgeManagement = () => {
         {judges.map(judge => {
           const isJudgeUnrestricted = Boolean(judge.unrestricted) || !globalRestrictionsEnforced;
           const assignedList = programs.filter(p => judge.assignedPrograms?.includes(p.id));
+          const allocatedSummitsList = summits.filter(s => judge.assignedSummits?.includes(s.id));
+          const isMarkEditingAllowed = globalMarkEditingAllowed && judge.allowMarkEditing !== false;
 
           return (
             <div
               key={judge.id}
-              className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3"
+              className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4"
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="font-bold text-base text-slate-900 dark:text-white">
                       {judge.name}
                     </h4>
                     {isJudgeUnrestricted ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold">
                         <Sparkles className="w-3 h-3" />
-                        <span>All Programs</span>
+                        <span>All Summits &amp; Programs</span>
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-medium">
                         <Lock className="w-3 h-3 text-slate-500" />
-                        <span>{assignedList.length} Assigned</span>
+                        <span>Restricted Access</span>
                       </span>
                     )}
+
+                    {/* Mark Editing Badge */}
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      isMarkEditingAllowed
+                        ? 'bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300'
+                        : 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300'
+                    }`}>
+                      {isMarkEditingAllowed ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                      <span>{isMarkEditingAllowed ? 'Edit Allowed' : 'Edit Restricted'}</span>
+                    </span>
                   </div>
-                  <div className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+
+                  <div className="text-xs text-slate-500 flex items-center gap-1.5 mt-1">
                     <span className="font-semibold text-emerald-700 dark:text-emerald-400 font-mono">
                       @{judge.username}
                     </span>
                     <span>•</span>
-                    <span>{isJudgeUnrestricted ? 'No program restrictions' : `${assignedList.length} restricted events`}</span>
+                    <span>
+                      {isJudgeUnrestricted
+                        ? 'Full Directorate Access'
+                        : `${allocatedSummitsList.length} Summits &bull; ${assignedList.length} Events`}
+                    </span>
                   </div>
                 </div>
 
@@ -245,7 +352,7 @@ export const JudgeManagement = () => {
                   <button
                     onClick={() => openEditModal(judge)}
                     className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
-                    title="Edit Judge & Restrictions"
+                    title="Edit Judge, Summits &amp; Restrictions"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
@@ -259,58 +366,80 @@ export const JudgeManagement = () => {
                 </div>
               </div>
 
-              {/* Quick Toggle Restriction Button */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                  Restriction Status:
+              {/* Allocated Summits Breakdown */}
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-1.5 text-xs">
+                <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                  <Calendar className="w-3 h-3 text-[#0E7C86]" />
+                  <span>Allocated Summits:</span>
                 </span>
-                <button
-                  onClick={() => toggleJudgeRestrictions(judge.id, currentUser?.username || 'admin')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition ${
-                    judge.unrestricted
-                      ? 'bg-amber-100 hover:bg-amber-200 dark:bg-amber-950 dark:hover:bg-amber-900 text-amber-800 dark:text-amber-300'
-                      : 'bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300'
-                  }`}
-                  title={judge.unrestricted ? "Click to restrict this judge to assigned programs only" : "Click to allow this judge to evaluate ALL programs"}
-                >
-                  {judge.unrestricted ? (
-                    <>
-                      <Lock className="w-3 h-3" />
-                      <span>Restrict to Events</span>
-                    </>
-                  ) : (
-                    <>
-                      <Unlock className="w-3 h-3" />
-                      <span>Remove Restrictions (Allow All)</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Programs List */}
-              <div className="space-y-1.5 text-xs">
                 {isJudgeUnrestricted ? (
-                  <div className="p-2.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
-                    <span>Unrestricted Evaluator: Can evaluate all {programs.length} programs in every summit.</span>
-                  </div>
-                ) : assignedList.length === 0 ? (
-                  <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-[11px] text-rose-700 dark:text-rose-300 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
-                    <span>No programs assigned. Click &quot;Edit&quot; or &quot;Remove Restrictions&quot; to permit scoring.</span>
-                  </div>
+                  <span className="text-slate-600 dark:text-slate-300 font-semibold">
+                    All Published Summits Available
+                  </span>
+                ) : allocatedSummitsList.length === 0 ? (
+                  <span className="text-rose-600 dark:text-rose-400 italic text-[11px]">
+                    No summits explicitly allocated yet (Click Edit to assign).
+                  </span>
                 ) : (
-                  <div className="flex flex-wrap gap-1.5 pt-1 max-h-24 overflow-y-auto">
-                    {assignedList.map(p => (
+                  <div className="flex flex-wrap gap-1.5">
+                    {allocatedSummitsList.map(s => (
                       <span
-                        key={p.id}
-                        className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-300 text-[11px] font-medium"
+                        key={s.id}
+                        className="px-2 py-0.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-[11px] text-[#0F2A4A] dark:text-white"
                       >
-                        {p.name}
+                        {s.name}
                       </span>
                     ))}
                   </div>
                 )}
+              </div>
+
+              {/* Quick Action Buttons: Restriction & Mark Editing Toggle */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => toggleJudgeRestrictions(judge.id, currentUser?.username || 'admin')}
+                  className={`py-1.5 px-2.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition ${
+                    judge.unrestricted
+                      ? 'bg-amber-100 hover:bg-amber-200 dark:bg-amber-950 dark:hover:bg-amber-900 text-amber-800 dark:text-amber-300'
+                      : 'bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300'
+                  }`}
+                >
+                  {judge.unrestricted ? (
+                    <>
+                      <Lock className="w-3 h-3" />
+                      <span>Restrict Summits</span>
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="w-3 h-3" />
+                      <span>Allow All Summits</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateJudge(judge.id, { allowMarkEditing: judge.allowMarkEditing === false }, currentUser?.username || 'admin')}
+                  className={`py-1.5 px-2.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition ${
+                    judge.allowMarkEditing === false
+                      ? 'bg-teal-100 hover:bg-teal-200 dark:bg-teal-950 dark:hover:bg-teal-900 text-teal-800 dark:text-teal-300'
+                      : 'bg-rose-100 hover:bg-rose-200 dark:bg-rose-950 dark:hover:bg-rose-900 text-rose-800 dark:text-rose-300'
+                  }`}
+                  title={judge.allowMarkEditing === false ? "Click to allow this judge to edit submitted marks" : "Click to lock marks upon submission"}
+                >
+                  {judge.allowMarkEditing === false ? (
+                    <>
+                      <Unlock className="w-3 h-3" />
+                      <span>Unrestrict Editing</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3 h-3" />
+                      <span>Restrict Editing</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           );
@@ -319,29 +448,29 @@ export const JudgeManagement = () => {
 
       {/* Add Judge Modal */}
       <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Add Judge / Evaluator" maxWidth="max-w-lg">
-        <form onSubmit={handleAddSubmit} className="space-y-3.5 text-xs">
+        <form onSubmit={handleAddSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block font-semibold mb-1">Judge Name</label>
+            <label className="block font-semibold mb-1">Judge Full Name</label>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Usthad Abdul Hameed"
-              className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+              placeholder="e.g. Usthad Abdul Hameed Al-Wafy"
+              className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold mb-1">Username</label>
+              <label className="block font-semibold mb-1">Login Username</label>
               <input
                 type="text"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. judge5"
-                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                placeholder="e.g. judge_hameed"
+                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
               />
             </div>
 
@@ -352,8 +481,8 @@ export const JudgeManagement = () => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                placeholder="judge123"
+                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
               />
             </div>
           </div>
@@ -363,10 +492,10 @@ export const JudgeManagement = () => {
             <div>
               <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-emerald-600" />
-                <span>Allow Access to ALL Programs (No Restrictions)</span>
+                <span>Allow Access to ALL Summits &amp; Programs</span>
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Judge can score any program in any summit without requiring individual assignment.
+                Judge can evaluate any program across all summits without requiring individual summit allocation.
               </p>
             </div>
             <button
@@ -384,76 +513,159 @@ export const JudgeManagement = () => {
             </button>
           </div>
 
-          {/* Program Restrictions Selector (only shown if not unrestricted) */}
+          {/* Mark Editing Permission Toggle */}
+          <div className="p-3.5 rounded-xl bg-teal-50/60 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-800/50 flex items-center justify-between gap-3">
+            <div>
+              <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Edit className="w-4 h-4 text-[#0E7C86]" />
+                <span>Allow Re-Editing Submitted Marks (Unrestricted Editing)</span>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                When enabled, judge can re-edit scores anytime. When disabled, scores are locked upon saving.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAllowMarkEditing(!allowMarkEditing)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                allowMarkEditing ? 'bg-[#0E7C86]' : 'bg-slate-300 dark:bg-slate-600'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  allowMarkEditing ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Summit & Program Allocation (When restricted) */}
           {!unrestricted && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="font-semibold block">Assign to Specific Programs:</label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setAssignedPrograms(programs.map(p => p.id))}
-                    className="text-[11px] text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1"
-                  >
-                    <CheckSquare className="w-3.5 h-3.5" />
-                    <span>Select All ({programs.length})</span>
-                  </button>
-                  <span className="text-slate-300">|</span>
-                  <button
-                    type="button"
-                    onClick={() => setAssignedPrograms([])}
-                    className="text-[11px] text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1"
-                  >
-                    <Square className="w-3.5 h-3.5" />
-                    <span>Clear All</span>
-                  </button>
+            <div className="space-y-3 pt-1 border-t border-slate-200 dark:border-slate-700">
+              {/* 1. Allocate Summits */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-[#0E7C86]" />
+                    <span>Allocate Summits ({assignedSummits.length} Selected):</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAssignedSummits(summits.map(s => s.id))}
+                      className="text-[11px] text-emerald-600 font-bold hover:underline"
+                    >
+                      Select All
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setAssignedSummits([])}
+                      className="text-[11px] text-rose-600 font-bold hover:underline"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="max-h-36 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl p-2 space-y-1 bg-slate-50 dark:bg-slate-900">
+                  {summits.length === 0 ? (
+                    <div className="text-slate-400 p-2 italic text-center">No summits scheduled yet.</div>
+                  ) : (
+                    summits.map(s => {
+                      const checked = assignedSummits.includes(s.id);
+                      return (
+                        <label key={s.id} className="flex items-center justify-between p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                if (e.target.checked) setAssignedSummits(prev => [...prev, s.id]);
+                                else setAssignedSummits(prev => prev.filter(id => id !== s.id));
+                              }}
+                              className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                            />
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{s.name}</span>
+                          </div>
+                          <span className="text-[10px] text-slate-400">{s.date || 'Scheduled'}</span>
+                        </label>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-3" />
-                <input
-                  type="text"
-                  placeholder="Filter programs by name..."
-                  value={programSearch}
-                  onChange={(e) => setProgramSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
-                />
-              </div>
+              {/* 2. Allocate Programs */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <Gavel className="w-3.5 h-3.5 text-[#0E7C86]" />
+                    <span>Assign Specific Programs ({assignedPrograms.length} Selected):</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAssignedPrograms(filteredProgramsAdd.map(p => p.id))}
+                      className="text-[11px] text-emerald-600 font-bold hover:underline"
+                    >
+                      Select All
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setAssignedPrograms([])}
+                      className="text-[11px] text-rose-600 font-bold hover:underline"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
 
-              <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-2 space-y-1">
-                {filteredProgramsAdd.map(p => {
-                  const checked = assignedPrograms.includes(p.id);
-                  const summit = summits?.find(s => s.id === p.summitId);
-                  return (
-                    <label key={p.id} className="flex items-center justify-between p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={(e) => {
-                            if (e.target.checked) setAssignedPrograms(prev => [...prev, p.id]);
-                            else setAssignedPrograms(prev => prev.filter(id => id !== p.id));
-                          }}
-                          className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-                        />
-                        <span className="font-medium text-slate-800 dark:text-slate-200">{p.name}</span>
-                      </div>
-                      {summit && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                          {summit.name?.split('-')[0] || summit.name}
-                        </span>
-                      )}
-                    </label>
-                  );
-                })}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Search programs..."
+                    value={programSearch}
+                    onChange={(e) => setProgramSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                  />
+                </div>
+
+                <div className="max-h-36 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl p-2 space-y-1 bg-slate-50 dark:bg-slate-900">
+                  {filteredProgramsAdd.length === 0 ? (
+                    <div className="text-slate-400 p-2 italic text-center">No programs matching filter.</div>
+                  ) : (
+                    filteredProgramsAdd.map(p => {
+                      const checked = assignedPrograms.includes(p.id);
+                      return (
+                        <label key={p.id} className="flex items-center justify-between p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                if (e.target.checked) setAssignedPrograms(prev => [...prev, p.id]);
+                                else setAssignedPrograms(prev => prev.filter(id => id !== p.id));
+                              }}
+                              className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                            />
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{p.name}</span>
+                          </div>
+                          <span className="text-[10px] uppercase font-mono text-slate-400">{p.sectionId}</span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </div>
           )}
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl mt-4 shadow-xs"
+            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl mt-4 shadow-xs"
           >
             Create Judge
           </button>
@@ -462,8 +674,8 @@ export const JudgeManagement = () => {
 
       {/* Edit Judge Modal */}
       {editingJudge && (
-        <Modal isOpen={Boolean(editingJudge)} onClose={() => setEditingJudge(null)} title="Edit Judge & Program Restrictions" maxWidth="max-w-lg">
-          <form onSubmit={handleEditSubmit} className="space-y-3.5 text-xs">
+        <Modal isOpen={Boolean(editingJudge)} onClose={() => setEditingJudge(null)} title="Configure Judge, Summits &amp; Restrictions" maxWidth="max-w-lg">
+          <form onSubmit={handleEditSubmit} className="space-y-4 text-xs">
             <div>
               <label className="block font-semibold mb-1">Judge Name</label>
               <input
@@ -471,7 +683,7 @@ export const JudgeManagement = () => {
                 required
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold"
               />
             </div>
 
@@ -483,7 +695,7 @@ export const JudgeManagement = () => {
                   required
                   value={editUsername}
                   onChange={(e) => setEditUsername(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
                 />
               </div>
 
@@ -493,8 +705,8 @@ export const JudgeManagement = () => {
                   type="password"
                   value={editPassword}
                   onChange={(e) => setEditPassword(e.target.value)}
-                  placeholder="New password"
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  placeholder="Leave blank to keep current"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
                 />
               </div>
             </div>
@@ -504,10 +716,10 @@ export const JudgeManagement = () => {
               <div>
                 <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-emerald-600" />
-                  <span>Allow Access to ALL Programs (No Restrictions)</span>
+                  <span>Allow Access to ALL Summits &amp; Programs</span>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  When enabled, this judge can evaluate any program across all summits.
+                  When enabled, this judge can evaluate any summit and program.
                 </p>
               </div>
               <button
@@ -525,80 +737,161 @@ export const JudgeManagement = () => {
               </button>
             </div>
 
-            {/* Program Restrictions Selector (only shown if not unrestricted) */}
+            {/* Mark Editing Permission Toggle */}
+            <div className="p-3.5 rounded-xl bg-teal-50/60 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-800/50 flex items-center justify-between gap-3">
+              <div>
+                <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <Edit className="w-4 h-4 text-[#0E7C86]" />
+                  <span>Allow Re-Editing Submitted Marks (Unrestricted Editing)</span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  When enabled, this judge can update scores. When disabled, scores are locked once submitted.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditAllowMarkEditing(!editAllowMarkEditing)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  editAllowMarkEditing ? 'bg-[#0E7C86]' : 'bg-slate-300 dark:bg-slate-600'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                    editAllowMarkEditing ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Summit & Program Allocation (When restricted) */}
             {!editUnrestricted && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="font-semibold block">
-                    Assigned Programs ({editAssignedPrograms.length} selected):
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditAssignedPrograms(programs.map(p => p.id))}
-                      className="text-[11px] text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1"
-                    >
-                      <CheckSquare className="w-3.5 h-3.5" />
-                      <span>Select All ({programs.length})</span>
-                    </button>
-                    <span className="text-slate-300">|</span>
-                    <button
-                      type="button"
-                      onClick={() => setEditAssignedPrograms([])}
-                      className="text-[11px] text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1"
-                    >
-                      <Square className="w-3.5 h-3.5" />
-                      <span>Clear All</span>
-                    </button>
+              <div className="space-y-3 pt-1 border-t border-slate-200 dark:border-slate-700">
+                {/* 1. Allocate Summits */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-[#0E7C86]" />
+                      <span>Allocate Summits ({editAssignedSummits.length} Selected):</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditAssignedSummits(summits.map(s => s.id))}
+                        className="text-[11px] text-emerald-600 font-bold hover:underline"
+                      >
+                        Select All
+                      </button>
+                      <span className="text-slate-300">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setEditAssignedSummits([])}
+                        className="text-[11px] text-rose-600 font-bold hover:underline"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-36 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl p-2 space-y-1 bg-slate-50 dark:bg-slate-900">
+                    {summits.length === 0 ? (
+                      <div className="text-slate-400 p-2 italic text-center">No summits scheduled yet.</div>
+                    ) : (
+                      summits.map(s => {
+                        const checked = editAssignedSummits.includes(s.id);
+                        return (
+                          <label key={s.id} className="flex items-center justify-between p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) => {
+                                  if (e.target.checked) setEditAssignedSummits(prev => [...prev, s.id]);
+                                  else setEditAssignedSummits(prev => prev.filter(id => id !== s.id));
+                                }}
+                                className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                              />
+                              <span className="font-semibold text-slate-800 dark:text-slate-200">{s.name}</span>
+                            </div>
+                            <span className="text-[10px] text-slate-400">{s.date || 'Scheduled'}</span>
+                          </label>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
 
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-3" />
-                  <input
-                    type="text"
-                    placeholder="Filter programs by name..."
-                    value={editProgramSearch}
-                    onChange={(e) => setEditProgramSearch(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
-                  />
-                </div>
+                {/* 2. Assign Specific Programs */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <Gavel className="w-3.5 h-3.5 text-[#0E7C86]" />
+                      <span>Assigned Programs ({editAssignedPrograms.length} Selected):</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditAssignedPrograms(filteredProgramsEdit.map(p => p.id))}
+                        className="text-[11px] text-emerald-600 font-bold hover:underline"
+                      >
+                        Select All
+                      </button>
+                      <span className="text-slate-300">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setEditAssignedPrograms([])}
+                        className="text-[11px] text-rose-600 font-bold hover:underline"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
 
-                <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-2 space-y-1">
-                  {filteredProgramsEdit.map(p => {
-                    const checked = editAssignedPrograms.includes(p.id);
-                    const summit = summits?.find(s => s.id === p.summitId);
-                    return (
-                      <label key={p.id} className="flex items-center justify-between p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(e) => {
-                              if (e.target.checked) setEditAssignedPrograms(prev => [...prev, p.id]);
-                              else setEditAssignedPrograms(prev => prev.filter(id => id !== p.id));
-                            }}
-                            className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-                          />
-                          <span className="font-medium text-slate-800 dark:text-slate-200">{p.name}</span>
-                        </div>
-                        {summit && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                            {summit.name?.split('-')[0] || summit.name}
-                          </span>
-                        )}
-                      </label>
-                    );
-                  })}
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="Filter programs..."
+                      value={editProgramSearch}
+                      onChange={(e) => setEditProgramSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                    />
+                  </div>
+
+                  <div className="max-h-36 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl p-2 space-y-1 bg-slate-50 dark:bg-slate-900">
+                    {filteredProgramsEdit.length === 0 ? (
+                      <div className="text-slate-400 p-2 italic text-center">No programs matching filter.</div>
+                    ) : (
+                      filteredProgramsEdit.map(p => {
+                        const checked = editAssignedPrograms.includes(p.id);
+                        return (
+                          <label key={p.id} className="flex items-center justify-between p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) => {
+                                  if (e.target.checked) setEditAssignedPrograms(prev => [...prev, p.id]);
+                                  else setEditAssignedPrograms(prev => prev.filter(id => id !== p.id));
+                                }}
+                                className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                              />
+                              <span className="font-semibold text-slate-800 dark:text-slate-200">{p.name}</span>
+                            </div>
+                            <span className="text-[10px] uppercase font-mono text-slate-400">{p.sectionId}</span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
             )}
 
             <button
               type="submit"
-              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl mt-4 shadow-xs"
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl mt-4 shadow-xs"
             >
-              Update Judge & Restrictions
+              Update Judge &amp; Allocations
             </button>
           </form>
         </Modal>

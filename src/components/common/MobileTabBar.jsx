@@ -14,7 +14,7 @@ import {
   FileCheck
 } from 'lucide-react';
 
-export const MobileTabBar = ({ activeTab, setActiveTab, onOpenMore }) => {
+export const MobileTabBar = ({ activeTab, setActiveTab, onOpenMore, isMoreOpen }) => {
   const { currentUser } = useAuth();
 
   if (!currentUser) return null;
@@ -56,7 +56,7 @@ export const MobileTabBar = ({ activeTab, setActiveTab, onOpenMore }) => {
   return (
     <nav 
       aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#0B1522]/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex items-center justify-around px-1 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-[10px] shadow-lg"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-white/95 dark:bg-[#0B1522]/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex items-center justify-around px-1 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-[10px] shadow-lg"
     >
       {tabs.map(tab => {
         const Icon = tab.icon;
@@ -79,16 +79,20 @@ export const MobileTabBar = ({ activeTab, setActiveTab, onOpenMore }) => {
         );
       })}
 
-      {/* "More" Drawer Trigger for Admin and Roles with extended modules */}
+      {/* "More" Drawer Trigger: toggles open/close on tap */}
       {onOpenMore && (
         <button
           type="button"
           onClick={onOpenMore}
-          className="flex flex-col items-center justify-center min-w-[48px] min-h-[44px] py-1 px-2 rounded-xl font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition active:scale-95"
-          title="More Sections"
+          className={`flex flex-col items-center justify-center min-w-[48px] min-h-[44px] py-1 px-2 rounded-xl font-semibold transition active:scale-95 ${
+            isMoreOpen
+              ? 'text-[#0E7C86] dark:text-teal-400 font-bold bg-teal-50/80 dark:bg-teal-950/60 shadow-xs'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+          title={isMoreOpen ? "Close Menu" : "More Sections"}
         >
-          <Menu className="w-5 h-5 mb-0.5 shrink-0" />
-          <span className="leading-tight">More</span>
+          <Menu className={`w-5 h-5 mb-0.5 shrink-0 ${isMoreOpen ? 'rotate-90 text-[#0E7C86]' : ''} transition-transform duration-200`} />
+          <span className="leading-tight">{isMoreOpen ? 'Close' : 'More'}</span>
         </button>
       )}
     </nav>

@@ -239,7 +239,10 @@ export const INITIAL_JUDGES = [
     username: 'judge1',
     passwordHash: HASHED_PASSWORDS.judge,
     role: 'judge',
-    assignedPrograms: ['p_oct1_1', 'p_oct1_2', 'p_oct1_3', 'p_oct1_4', 'p_oct2_1', 'p_oct3_1', 'p_oct4_1', 'p_nov1_1', 'p_nov2_1', 'p_nov3_1']
+    unrestricted: false,
+    allowMarkEditing: true,
+    assignedSummits: ['summit_oct_1', 'summit_oct_2'],
+    assignedPrograms: []
   },
   {
     id: 'j2',
@@ -247,7 +250,10 @@ export const INITIAL_JUDGES = [
     username: 'judge2',
     passwordHash: HASHED_PASSWORDS.judge,
     role: 'judge',
-    assignedPrograms: ['p_oct1_1', 'p_oct1_3', 'p_oct1_4', 'p_oct2_3', 'p_oct3_2', 'p_oct4_3', 'p_nov1_2', 'p_nov2_3', 'p_nov3_2']
+    unrestricted: false,
+    allowMarkEditing: true,
+    assignedSummits: ['summit_oct_1', 'summit_oct_3'],
+    assignedPrograms: []
   },
   {
     id: 'j3',
@@ -255,7 +261,10 @@ export const INITIAL_JUDGES = [
     username: 'judge3',
     passwordHash: HASHED_PASSWORDS.judge,
     role: 'judge',
-    assignedPrograms: ['p_oct1_2', 'p_oct2_2', 'p_oct3_1', 'p_nov1_1', 'p_nov2_2', 'p_nov3_1']
+    unrestricted: false,
+    allowMarkEditing: true,
+    assignedSummits: ['summit_oct_2', 'summit_oct_4'],
+    assignedPrograms: []
   },
   {
     id: 'j4',
@@ -263,7 +272,10 @@ export const INITIAL_JUDGES = [
     username: 'judge4',
     passwordHash: HASHED_PASSWORDS.judge,
     role: 'judge',
-    assignedPrograms: ['p_oct2_1', 'p_oct3_2', 'p_oct4_2', 'p_nov2_1', 'p_nov3_2']
+    unrestricted: false,
+    allowMarkEditing: false,
+    assignedSummits: ['summit_oct_3'],
+    assignedPrograms: []
   }
 ];
 
@@ -295,6 +307,7 @@ export const INITIAL_SETTINGS = {
   appTitle: 'MUSF Summit Register',
   fairJudgingMode: false,
   enforceJudgeRestrictions: true,
+  allowJudgeMarkEditing: true,
   lateCountsAsPresent: true,
   excusedCountsAsPresent: true,
   lowAttendanceThreshold: 75,

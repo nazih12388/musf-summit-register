@@ -120,10 +120,17 @@ export const Navbar = ({
 
               {/* Notification Center Dropdown */}
               {notifDropdownOpen && (
-                <div 
-                  className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-96 max-w-sm bg-white dark:bg-[#0F1B2B] rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 py-2 text-xs z-50 animate-in fade-in"
-                  onClick={(e) => e.stopPropagation()}
-                >
+                <>
+                  {/* Backdrop to dismiss on tap anywhere on mobile or desktop */}
+                  <div
+                    className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]"
+                    onClick={() => setNotifDropdownOpen(false)}
+                    onTouchStart={() => setNotifDropdownOpen(false)}
+                  />
+                  <div 
+                    className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-96 max-w-full bg-white dark:bg-[#0F1B2B] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 py-2 text-xs z-50 animate-in fade-in max-h-[80vh] flex flex-col"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                   <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 dark:border-slate-800">
                     <span className="font-bold text-[#0F2A4A] dark:text-white flex items-center gap-1.5">
                       <Bell className="w-3.5 h-3.5 text-[#0E7C86]" />
@@ -201,7 +208,8 @@ export const Navbar = ({
                     )}
                   </div>
                 </div>
-              )}
+              </>
+            )}
             </div>
 
             {/* Language Toggle (Desktop Header) */}
@@ -323,6 +331,7 @@ export const Navbar = ({
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
             onClick={() => setMobileDrawerOpen(false)}
+            onTouchStart={() => setMobileDrawerOpen(false)}
           />
 
           {/* Drawer Content - Fixed 100dvh with min-h-0 so navigation modules always scroll and never collapse */}

@@ -110,7 +110,8 @@ export function AppContent() {
           <MobileTabBar
             activeTab={activeTab}
             setActiveTab={setActiveTab}
-            onOpenMore={() => setMobileDrawerOpen(true)}
+            onOpenMore={() => setMobileDrawerOpen(prev => !prev)}
+            isMoreOpen={mobileDrawerOpen}
           />
         </div>
       )}
