@@ -750,7 +750,7 @@ export const SummitManagement = () => {
                 className="w-full p-3 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-left font-semibold flex items-center justify-between transition"
               >
                 <div>
-                  <div className="font-bold">Remove Summit Completely</div>
+                  <div className="font-bold">Delete Summit Permanently</div>
                   <div className="text-[10px] text-slate-500 font-normal">Permanently remove this gathering from the month schedule.</div>
                 </div>
                 <Trash2 className="w-4 h-4 text-rose-600 shrink-0" />

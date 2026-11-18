@@ -1003,6 +1003,26 @@ export const AppProvider = ({ children }) => {
     addAuditLog(actor, 'DUPLICATE_LIBRARY_PROGRAM', `Duplicated library program: ${p.name}`);
   };
 
+  const bulkImportLibraryPrograms = (programsList, actor = 'admin') => {
+    if (!Array.isArray(programsList) || programsList.length === 0) return { count: 0 };
+    const newItems = programsList.map((data, idx) => ({
+      id: 'lib_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substring(2, 6),
+      name: (data.name || '').trim(),
+      fieldId: data.fieldId || fields[0]?.id || 'f_communicative',
+      sectionId: data.sectionId || 'aliya',
+      type: data.type || 'individual',
+      maxMarks: Number(data.maxMarks) || 10,
+      defaultAllowedPerTeam: Number(data.defaultAllowedPerTeam) || 1,
+      description: data.description || '',
+      rules: data.rules || '',
+      active: true
+    })).filter(p => p.name.length > 0);
+
+    setProgramLibrary(prev => [...prev, ...newItems]);
+    addAuditLog(actor, 'BULK_IMPORT_PROGRAMS', `Bulk imported ${newItems.length} programs to master library`);
+    return { count: newItems.length };
+  };
+
   const toggleLibraryProgramActive = (id, actor) => {
     setProgramLibrary(prev => prev.map(p => {
       if (p.id === id) {
@@ -2426,6 +2446,7 @@ export const AppProvider = ({ children }) => {
       updateLibraryProgram,
       deleteLibraryProgram,
       duplicateLibraryProgram,
+      bulkImportLibraryPrograms,
       toggleLibraryProgramActive,
       assignProgramToSummit,
       updateSummitProgramAllocation,

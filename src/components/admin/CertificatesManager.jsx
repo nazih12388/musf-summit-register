@@ -458,20 +458,22 @@ export const CertificatesManager = () => {
 
                 {/* Actions Toolbar */}
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <button
                       onClick={() => openEditModal(cert)}
-                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition"
+                      className="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition text-[11px] font-semibold inline-flex items-center gap-1"
                       title="Edit Certificate Details"
                     >
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-3.5 h-3.5" />
+                      <span>Edit</span>
                     </button>
                     <button
                       onClick={() => setDeletingCertId(cert.id)}
-                      className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 transition"
-                      title="Delete Certificate"
+                      className="px-2 py-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 text-rose-600 border border-rose-200/80 dark:border-rose-900/60 transition inline-flex items-center gap-1 text-[11px] font-semibold"
+                      title="Delete Permanently"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                      <span>Delete Permanently</span>
                     </button>
                   </div>
 
@@ -677,11 +679,13 @@ export const CertificatesManager = () => {
           if (deletingCertId) {
             deleteCertificate(deletingCertId, currentUser?.username || 'admin');
             setDeletingCertId(null);
-            triggerToast('Certificate removed.');
+            triggerToast('Certificate permanently deleted.');
           }
         }}
-        title="Remove Certificate"
-        message="Are you sure you want to delete this certificate allocation? The student will no longer see it."
+        title="Delete Certificate Permanently"
+        message="Are you sure you want to permanently delete this certificate? It will be removed immediately from the system and student portal."
+        confirmLabel="Delete Permanently"
+        isDestructive={true}
       />
     </div>
   );

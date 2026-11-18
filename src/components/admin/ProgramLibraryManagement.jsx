@@ -19,7 +19,12 @@ import {
   Users,
   User,
   SlidersHorizontal,
-  FileText
+  FileText,
+  Upload,
+  Download,
+  Check,
+  AlertCircle,
+  FileSpreadsheet
 } from 'lucide-react';
 
 export const ProgramLibraryManagement = () => {
@@ -34,6 +39,7 @@ export const ProgramLibraryManagement = () => {
     updateLibraryProgram,
     deleteLibraryProgram,
     duplicateLibraryProgram,
+    bulkImportLibraryPrograms,
     toggleLibraryProgramActive
   } = useApp();
   const { currentUser } = useAuth();
@@ -50,6 +56,11 @@ export const ProgramLibraryManagement = () => {
   const [isAddProgramOpen, setIsAddProgramOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState(null);
   const [deletingProgram, setDeletingProgram] = useState(null);
+
+  // Bulk Import State
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [bulkImportText, setBulkImportText] = useState('');
+  const [bulkImportStatus, setBulkImportStatus] = useState('');
 
   const [programForm, setProgramForm] = useState({
     name: '',
@@ -178,6 +189,88 @@ export const ProgramLibraryManagement = () => {
     }
   };
 
+  // Parse CSV text for Programs
+  const parsedBulkPrograms = useMemo(() => {
+    if (!bulkImportText.trim()) return [];
+    const lines = bulkImportText.trim().split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const parsed = [];
+
+    const hasHeader = /program|name|category|section|field|type/i.test(lines[0]);
+    const dataLines = hasHeader ? lines.slice(1) : lines;
+
+    dataLines.forEach((line) => {
+      const parts = line.split(/[,\t;]/).map(p => p.trim().replace(/^["']|["']$/g, ''));
+      if (!parts[0]) return;
+
+      const name = parts[0];
+      const rawSection = (parts[1] || '').toLowerCase();
+      const rawField = (parts[2] || '').toLowerCase();
+      const rawType = (parts[3] || '').toLowerCase();
+      const rawSlots = parseInt(parts[4], 10);
+      const rawMarks = parseInt(parts[5], 10);
+
+      let sectionId = 'aliya';
+      if (/tham|thameed|thamheed/i.test(rawSection)) {
+        sectionId = 'thamheediyya';
+      } else if (/both|all|common/i.test(rawSection)) {
+        sectionId = 'both';
+      } else if (/ali|aliya/i.test(rawSection)) {
+        sectionId = 'aliya';
+      }
+
+      let fieldObj = fields.find(f => f.name.toLowerCase().includes(rawField) || (rawField && rawField.includes(f.name.toLowerCase())));
+      if (!fieldObj) {
+        fieldObj = fields[0];
+      }
+
+      const type = /group/i.test(rawType) ? 'group' : 'individual';
+
+      parsed.push({
+        name,
+        sectionId,
+        fieldId: fieldObj?.id || fields[0]?.id || 'f_communicative',
+        fieldName: fieldObj?.name || 'General',
+        type,
+        defaultAllowedPerTeam: isNaN(rawSlots) || rawSlots < 1 ? 1 : rawSlots,
+        maxMarks: isNaN(rawMarks) || rawMarks < 1 ? 10 : rawMarks,
+        description: `Institutional catalog program for ${sectionId.toUpperCase()}`
+      });
+    });
+
+    return parsed;
+  }, [bulkImportText, fields]);
+
+  const handleExecuteBulkImport = () => {
+    if (parsedBulkPrograms.length === 0) return;
+    bulkImportLibraryPrograms(parsedBulkPrograms, currentUser?.username || 'admin');
+    setBulkImportStatus(`Successfully imported ${parsedBulkPrograms.length} programs!`);
+    setTimeout(() => {
+      setBulkImportStatus('');
+      setIsBulkImportOpen(false);
+      setBulkImportText('');
+    }, 1200);
+  };
+
+  const handleCopySampleCSV = () => {
+    const sample = `Program Name,Category / Section,Field Group,Type,Slots Per Team\nQuran Recitation & Tajweed,thamheediyya,Foundational,individual,1\nContemporary Islamic Research,aliya,Foundational,individual,1\nBilingual Debate Championship,aliya,Communicative,group,3\nUrdu Ghazal & Eloquence,both,Creative,individual,1\nAcademic Quiz Bowl,aliya,Foundational,group,4`;
+    navigator.clipboard.writeText(sample);
+    setBulkImportStatus('Sample template copied to clipboard!');
+    setTimeout(() => setBulkImportStatus(''), 2500);
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const content = evt.target?.result;
+      if (typeof content === 'string') {
+        setBulkImportText(content);
+      }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner */}
@@ -195,7 +288,18 @@ export const ProgramLibraryManagement = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          {activeTab === 'library' && (
+            <button
+              onClick={() => setIsBulkImportOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
+              title="Bulk import programs with category/section (Aliya / Thamheediyya) and fields"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Bulk Import Programs</span>
+            </button>
+          )}
+
           {activeTab === 'library' ? (
             <button
               onClick={handleOpenAddProgram}
@@ -410,10 +514,11 @@ export const ProgramLibraryManagement = () => {
                         </button>
                         <button
                           onClick={() => setDeletingProgram(prog)}
-                          className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition"
-                          title="Delete Program"
+                          className="px-2 py-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 text-rose-600 border border-rose-200/80 dark:border-rose-900/60 transition text-xs font-semibold inline-flex items-center gap-1"
+                          title="Delete Permanently from Library"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete</span>
                         </button>
                       </div>
                     </div>
@@ -694,17 +799,177 @@ export const ProgramLibraryManagement = () => {
         </Modal>
       )}
 
+      {/* BULK IMPORT PROGRAMS MODAL */}
+      {isBulkImportOpen && (
+        <Modal
+          isOpen={true}
+          onClose={() => {
+            setIsBulkImportOpen(false);
+            setBulkImportText('');
+            setBulkImportStatus('');
+          }}
+          title="Bulk Import Programs (Category &amp; Fields)"
+          maxWidth="max-w-2xl"
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-4 rounded-xl bg-teal-50/80 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-900/40 text-teal-900 dark:text-teal-200 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-sm flex items-center gap-1.5">
+                  <FileSpreadsheet className="w-4 h-4 text-[#0E7C86]" />
+                  <span>CSV / Spreadsheet Format Guide</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopySampleCSV}
+                  className="px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-[11px] flex items-center gap-1 transition"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copy Sample Template</span>
+                </button>
+              </div>
+              <p className="text-[11px] leading-relaxed">
+                Paste or upload programs with columns: <strong>Program Name, Category (Aliya / Thamheediyya / Both), Field Group, Type (individual / group), Slots Per Team</strong>.
+              </p>
+              <div className="font-mono text-[10px] bg-white/70 dark:bg-black/30 p-2 rounded border border-teal-200/60 overflow-x-auto whitespace-pre">
+{`Program Name, Category, Field, Type, Slots
+Quran Recitation & Tajweed, thamheediyya, Foundational, individual, 1
+Contemporary Islamic Research, aliya, Foundational, individual, 1
+Bilingual Debate Championship, aliya, Communicative, group, 3
+Academic Quiz Bowl, aliya, Foundational, group, 4`}
+              </div>
+            </div>
+
+            {/* File Upload or Direct Paste */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-800 dark:text-slate-200">
+                  Paste CSV Lines OR Upload CSV File:
+                </label>
+                <label className="cursor-pointer px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 font-semibold text-[11px] flex items-center gap-1">
+                  <Upload className="w-3.5 h-3.5 text-[#0E7C86]" />
+                  <span>Upload .CSV File</span>
+                  <input
+                    type="file"
+                    accept=".csv,.txt"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              <textarea
+                rows={7}
+                value={bulkImportText}
+                onChange={(e) => setBulkImportText(e.target.value)}
+                placeholder="Paste CSV data here... (e.g. Speech Elocution, aliya, Communicative, individual, 1)"
+                className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs focus:ring-2 focus:ring-[#0E7C86] focus:border-[#0E7C86]"
+              />
+            </div>
+
+            {bulkImportStatus && (
+              <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 font-bold text-xs flex items-center gap-2 border border-emerald-200">
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span>{bulkImportStatus}</span>
+              </div>
+            )}
+
+            {/* Live Parsing Preview */}
+            {parsedBulkPrograms.length > 0 && (
+              <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                    Preview: {parsedBulkPrograms.length} Programs Detected
+                  </span>
+                  <div className="flex items-center gap-2 text-[10px] font-mono">
+                    <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200 font-bold">
+                      Aliya: {parsedBulkPrograms.filter(p => p.sectionId === 'aliya').length}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200 font-bold">
+                      Thamheediyya: {parsedBulkPrograms.filter(p => p.sectionId === 'thamheediyya').length}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-200 font-bold">
+                      Both: {parsedBulkPrograms.filter(p => p.sectionId === 'both').length}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 dark:bg-slate-800/60 font-bold uppercase tracking-wider text-slate-500 border-b">
+                      <tr>
+                        <th className="py-2 px-3">#</th>
+                        <th className="py-2 px-3">Program Name</th>
+                        <th className="py-2 px-3">Category</th>
+                        <th className="py-2 px-3">Field</th>
+                        <th className="py-2 px-3 text-center">Format</th>
+                        <th className="py-2 px-3 text-center">Slots</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {parsedBulkPrograms.map((p, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                          <td className="py-2 px-3 font-mono text-slate-400">{idx + 1}</td>
+                          <td className="py-2 px-3 font-bold text-slate-900 dark:text-white">{p.name}</td>
+                          <td className="py-2 px-3">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              p.sectionId === 'aliya'
+                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                : p.sectionId === 'thamheediyya'
+                                ? 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300'
+                                : 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
+                            }`}>
+                              {p.sectionId}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-slate-600 dark:text-slate-300 font-medium">{p.fieldName}</td>
+                          <td className="py-2 px-3 text-center font-mono capitalize">{p.type}</td>
+                          <td className="py-2 px-3 text-center font-mono font-bold">{p.defaultAllowedPerTeam}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBulkImportOpen(false);
+                  setBulkImportText('');
+                }}
+                className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={parsedBulkPrograms.length === 0}
+                onClick={handleExecuteBulkImport}
+                className="px-5 py-2 rounded-xl bg-[#0E7C86] hover:bg-[#14919D] disabled:opacity-50 text-white font-bold transition shadow-xs flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Import {parsedBulkPrograms.length} Programs Now</span>
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {/* Delete Program Confirm */}
       {deletingProgram && (
         <ConfirmDialog
           isOpen={true}
-          title="Delete Library Program"
-          message={`Are you sure you want to delete "${deletingProgram.name}" from the master library?`}
+          title="Delete Program Permanently from Master Library"
+          message={`Are you sure you want to permanently delete "${deletingProgram.name}" from the master library? This action cannot be undone.`}
+          confirmLabel="Delete Permanently"
+          isDestructive={true}
           onConfirm={() => {
             deleteLibraryProgram(deletingProgram.id, currentUser?.username);
             setDeletingProgram(null);
           }}
-          onCancel={() => setDeletingProgram(null)}
+          onClose={() => setDeletingProgram(null)}
         />
       )}
 
@@ -712,13 +977,15 @@ export const ProgramLibraryManagement = () => {
       {deletingField && (
         <ConfirmDialog
           isOpen={true}
-          title="Delete Field Group"
-          message={`Are you sure you want to delete the field "${deletingField.name}"?`}
+          title="Delete Field Group Permanently"
+          message={`Are you sure you want to permanently delete the field "${deletingField.name}"?`}
+          confirmLabel="Delete Permanently"
+          isDestructive={true}
           onConfirm={() => {
             deleteField(deletingField.id, currentUser?.username);
             setDeletingField(null);
           }}
-          onCancel={() => setDeletingField(null)}
+          onClose={() => setDeletingField(null)}
         />
       )}
     </div>

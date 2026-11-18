@@ -29,7 +29,9 @@ import {
   Check,
   UserCheck,
   Edit,
-  Gavel
+  Gavel,
+  Search,
+  Trash2
 } from 'lucide-react';
 
 export const ProgramManagement = () => {
@@ -77,6 +79,9 @@ export const ProgramManagement = () => {
   const [isAddProgramOpen, setIsAddProgramOpen] = useState(false);
   const [addMode, setAddMode] = useState('library'); // 'library' or 'custom'
   const [selectedLibraryProgId, setSelectedLibraryProgId] = useState(programLibrary[0]?.id || '');
+  const [progSearchText, setProgSearchText] = useState('');
+  const [selectedAliyaTeamIds, setSelectedAliyaTeamIds] = useState(() => teams.map(t => t.id));
+  const [aliyaSlotCount, setAliyaSlotCount] = useState(1);
   const [addVenue, setAddVenue] = useState('Auditorium Stage');
   const [addTime, setAddTime] = useState('10:00 AM');
   const [addAssignedJudges, setAddAssignedJudges] = useState([]);
@@ -129,9 +134,32 @@ export const ProgramManagement = () => {
     return programLibrary.filter(lp => lp.sectionId === activeSection || lp.sectionId === 'both');
   }, [programLibrary, activeSection]);
 
+  // Live filtered library programs based on typing search query
+  const filteredLibraryPrograms = useMemo(() => {
+    const q = progSearchText.toLowerCase().trim();
+    if (!q) return availableLibraryPrograms;
+    return availableLibraryPrograms.filter(lp =>
+      lp.name.toLowerCase().includes(q) ||
+      (lp.description && lp.description.toLowerCase().includes(q))
+    );
+  }, [availableLibraryPrograms, progSearchText]);
+
   // Handle Add Program Submit
   const handleAddProgramSubmit = (e) => {
     e.preventDefault();
+
+    // Prepare team allocations for Aliya if activeSection is aliya
+    let teamAllocations = undefined;
+    if (activeSection === 'aliya') {
+      teamAllocations = {};
+      teams.forEach(t => {
+        const isAssigned = selectedAliyaTeamIds.includes(t.id);
+        teamAllocations[t.id] = {
+          assigned: isAssigned,
+          allowedCount: isAssigned ? (Number(aliyaSlotCount) || 1) : 1
+        };
+      });
+    }
 
     if (addMode === 'library') {
       const libProg = programLibrary.find(lp => lp.id === selectedLibraryProgId);
@@ -141,14 +169,15 @@ export const ProgramManagement = () => {
         libraryProgramId: libProg.id,
         name: libProg.name,
         fieldId: libProg.fieldId,
-        sectionId: libProg.sectionId,
+        sectionId: libProg.sectionId || activeSection,
         type: libProg.type,
         maxMarks: libProg.maxMarks || 10,
-        defaultAllowedPerTeam: libProg.defaultAllowedPerTeam || 1,
+        defaultAllowedPerTeam: activeSection === 'aliya' ? (Number(aliyaSlotCount) || 1) : (libProg.defaultAllowedPerTeam || 1),
         stage: addVenue || 'Auditorium Stage',
         date: activeSummit?.date,
         time: addTime || '10:00 AM',
         assignedJudges: addAssignedJudges,
+        teamAllocations,
         allowLeaderMarkEntry: false
       }, currentUser?.username);
     } else {
@@ -159,12 +188,14 @@ export const ProgramManagement = () => {
         time: newCustomProg.time || addTime || '10:00 AM',
         assignedJudges: addAssignedJudges,
         sectionId: activeSection,
-        date: activeSummit?.date
+        date: activeSummit?.date,
+        teamAllocations
       }, currentUser?.username);
     }
 
     setIsAddProgramOpen(false);
     setAddAssignedJudges([]);
+    setProgSearchText('');
   };
 
   // Open Edit Program Modal
@@ -575,10 +606,10 @@ export const ProgramManagement = () => {
 
                               <button
                                 onClick={() => setCancellingProgram(prog)}
-                                className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition"
-                                title="Cancel Program"
+                                className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 transition"
+                                title="Delete Permanently from Summit"
                               >
-                                <XCircle className="w-3.5 h-3.5" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </td>
@@ -776,10 +807,10 @@ export const ProgramManagement = () => {
                                 </button>
                                 <button
                                   onClick={() => setCancellingProgram(prog)}
-                                  className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition"
-                                  title="Cancel Program"
+                                  className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 transition"
+                                  title="Delete Permanently from Summit"
                                 >
-                                  <XCircle className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                             </td>
@@ -887,9 +918,10 @@ export const ProgramManagement = () => {
 
                       <button
                         onClick={() => setCancellingProgram(prog)}
-                        className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition"
+                        className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 transition"
+                        title="Delete Permanently from Summit"
                       >
-                        <XCircle className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -937,41 +969,90 @@ export const ProgramManagement = () => {
 
             {addMode === 'library' ? (
               <div className="space-y-3">
-                <label className="block font-semibold text-slate-700 dark:text-slate-300">
-                  Select {activeSection === 'aliya' ? 'Aliya' : 'Thamheediyya'} Library Program:
-                </label>
-                <div className="max-h-60 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl divide-y">
-                  {availableLibraryPrograms.map(lp => {
-                    const f = fields.find(x => x.id === lp.fieldId);
-                    const isSelected = selectedLibraryProgId === lp.id;
-                    return (
-                      <label
-                        key={lp.id}
-                        className={`flex items-center justify-between p-3 cursor-pointer transition ${
-                          isSelected ? 'bg-teal-50 dark:bg-teal-950/40' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <input
-                            type="radio"
-                            name="libraryProg"
-                            checked={isSelected}
-                            onChange={() => setSelectedLibraryProgId(lp.id)}
-                            className="text-[#0E7C86] focus:ring-[#0E7C86]"
-                          />
-                          <div>
-                            <div className="font-bold text-slate-900 dark:text-white text-xs">{lp.name}</div>
-                            <div className="text-[11px] text-slate-400">
-                              Field: {f?.name} • Format: {lp.type} ({lp.defaultAllowedPerTeam} slots)
+                <div className="space-y-1.5">
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300">
+                    Type Program Name to Search &amp; Select:
+                  </label>
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      value={progSearchText}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setProgSearchText(val);
+                        const q = val.toLowerCase().trim();
+                        const firstMatch = availableLibraryPrograms.find(lp =>
+                          lp.name.toLowerCase().includes(q)
+                        );
+                        if (firstMatch) {
+                          setSelectedLibraryProgId(firstMatch.id);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (filteredLibraryPrograms.length > 0) {
+                            setSelectedLibraryProgId(filteredLibraryPrograms[0].id);
+                          }
+                        }
+                      }}
+                      placeholder="Start typing program name (press Enter to choose)..."
+                      className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold focus:ring-2 focus:ring-[#0E7C86] focus:border-[#0E7C86]"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-slate-500">
+                  <span>
+                    Matching Programs: <strong>{filteredLibraryPrograms.length}</strong> of {availableLibraryPrograms.length}
+                  </span>
+                  {selectedLibraryProgId && (
+                    <span className="text-[#0E7C86] font-bold">
+                      ✓ Selected: {programLibrary.find(p => p.id === selectedLibraryProgId)?.name}
+                    </span>
+                  )}
+                </div>
+
+                <div className="max-h-56 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl divide-y">
+                  {filteredLibraryPrograms.length === 0 ? (
+                    <div className="p-6 text-center text-slate-400 italic">
+                      No programs match &quot;{progSearchText}&quot;. Switch to &quot;Create Custom Event&quot; above to add it.
+                    </div>
+                  ) : (
+                    filteredLibraryPrograms.map(lp => {
+                      const f = fields.find(x => x.id === lp.fieldId);
+                      const isSelected = selectedLibraryProgId === lp.id;
+                      return (
+                        <label
+                          key={lp.id}
+                          className={`flex items-center justify-between p-3 cursor-pointer transition ${
+                            isSelected ? 'bg-teal-50 dark:bg-teal-950/40 border-l-4 border-l-[#0E7C86]' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <input
+                              type="radio"
+                              name="libraryProg"
+                              checked={isSelected}
+                              onChange={() => setSelectedLibraryProgId(lp.id)}
+                              className="text-[#0E7C86] focus:ring-[#0E7C86]"
+                            />
+                            <div>
+                              <div className="font-bold text-slate-900 dark:text-white text-xs">{lp.name}</div>
+                              <div className="text-[11px] text-slate-400">
+                                Field: {f?.name} • Format: {lp.type} ({lp.defaultAllowedPerTeam} slots)
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600">
-                          Max: 10 pts
-                        </span>
-                      </label>
-                    );
-                  })}
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600">
+                            Max: 10 pts
+                          </span>
+                        </label>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             ) : (
@@ -1032,6 +1113,83 @@ export const ProgramManagement = () => {
                       onChange={(e) => setNewCustomProg(prev => ({ ...prev, time: e.target.value }))}
                       className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-mono"
                     />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ALIYA HOUSE TEAM SELECTION */}
+            {activeSection === 'aliya' && (
+              <div className="p-3.5 rounded-xl border border-amber-200/80 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900/40 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-xs text-[#0F2A4A] dark:text-white flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-[#0E7C86]" />
+                    <span>Assign to House Teams (Aliya Section):</span>
+                  </label>
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAliyaTeamIds(teams.map(t => t.id))}
+                      className="text-[#0E7C86] font-bold hover:underline"
+                    >
+                      Select All
+                    </button>
+                    <span>•</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAliyaTeamIds([])}
+                      className="text-slate-500 hover:underline"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  {teams.map(t => {
+                    const isChecked = selectedAliyaTeamIds.includes(t.id);
+                    return (
+                      <label
+                        key={t.id}
+                        className={`p-2 rounded-lg border flex items-center gap-2 cursor-pointer transition ${
+                          isChecked
+                            ? 'bg-white dark:bg-slate-900 border-[#0E7C86] shadow-xs'
+                            : 'bg-slate-100/60 dark:bg-slate-800/40 border-transparent opacity-60'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedAliyaTeamIds(prev => [...prev, t.id]);
+                            } else {
+                              setSelectedAliyaTeamIds(prev => prev.filter(id => id !== t.id));
+                            }
+                          }}
+                          className="rounded text-[#0E7C86] focus:ring-[#0E7C86]"
+                        />
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
+                          <span className="font-bold text-xs truncate text-slate-800 dark:text-slate-200">{t.name}</span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center justify-between pt-1 text-[11px] text-slate-600 dark:text-slate-400">
+                  <span>Allowed Participant Slots per Selected Team:</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={aliyaSlotCount}
+                      onChange={(e) => setAliyaSlotCount(Math.max(1, Number(e.target.value) || 1))}
+                      className="w-14 p-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono font-bold text-center"
+                    />
+                    <span>participant(s)</span>
                   </div>
                 </div>
               </div>
@@ -1489,17 +1647,19 @@ export const ProgramManagement = () => {
         </Modal>
       )}
 
-      {/* CONFIRM CANCEL PROGRAM */}
+      {/* CONFIRM DELETE PROGRAM FROM SUMMIT */}
       {cancellingProgram && (
         <ConfirmDialog
           isOpen={true}
-          title="Cancel Program from Summit"
-          message={`Are you sure you want to cancel "${cancellingProgram.name}" for ${activeSummit.name}? Enrolled participants will be notified.`}
+          title="Delete Program Permanently from Summit"
+          message={`Are you sure you want to permanently delete "${cancellingProgram.name}" from ${activeSummit.name}? All student participant registrations for this program will be removed.`}
+          confirmLabel="Delete Permanently"
+          isDestructive={true}
           onConfirm={() => {
             cancelProgram(cancellingProgram.id, currentUser?.username);
             setCancellingProgram(null);
           }}
-          onCancel={() => setCancellingProgram(null)}
+          onClose={() => setCancellingProgram(null)}
         />
       )}
     </div>
