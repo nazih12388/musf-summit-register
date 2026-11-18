@@ -80,6 +80,15 @@
   - Built with `npm run build` &mdash; 0 errors, built in 748ms.
   - Deployed to Firebase Hosting (`musf-summit-reg.web.app`).
   - Pushed commits to GitHub `origin main`.
+- [x] **Phase 13: Native Mobile App Look & Zero-Scroll Feed Overhaul**
+  - **Top Navbar Polish**: Simplified phone header on `< md` screens. Removed competing language and theme buttons from the top bar (moved into User Profile dropdown and Drawer menu) so College brand ("Majlis Umariyya Wafy College") and App title have ample breathing room alongside the Bell and User Profile avatar.
+  - **Judge Scoring Console**: Converted scoring view on phones from a horizontal scroll table to a sleek, compact native mobile card feed ("otta ithil thanne"). Each participant card clearly displays index, student name, CIC number, house badge, class, mark input field (`w-20 h-11`), grade pill, quick fast-tap preset chips (`7.0` to `10.0`), and instant save button with zero horizontal panning.
+  - **Attendance Module**: Converted student attendance on phones into a native mobile list. Each card shows student name, CIC, class, house, summit and overall attendance %, with full-width 4-button segmented status toggles (`P`, `A`, `L`, `E`) with min 44px tap height and active feedback.
+  - **Marks Management**: Converted evaluation table to a native mobile card list with final mark, grade, position, judge breakdown chips, and quick edit button.
+  - **Student Directory**: Converted students table to a responsive mobile card list with full student details, division badge, house badge, and permanent delete/edit actions.
+  - **Student Dashboard**: Replaced horizontal scroll evaluation table with mobile card list view showing program event, field group, score, grade, and position.
+  - **Hero Banners**: Reduced mobile padding and hidden promotional copy on small phones across Admin, Leader, Judge, and Student dashboards so interactive content appears immediately without excessive scrolling.
+  - Built with `npm run build` (0 errors, 787ms), committed to Git, and deployed live to Firebase Hosting.
 
 ---
 
