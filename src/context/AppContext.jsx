@@ -21,6 +21,7 @@ import {
   HASHED_PASSWORDS
 } from '../services/initialData';
 import { STORAGE_KEYS } from '../services/firebase';
+import { syncToCloud, subscribeToCloud } from '../services/firebaseSync';
 import { hashPassword } from '../utils/crypto';
 import { getSummitRunningInfo, formatMonthLabel, computeComprehensiveReport } from '../utils/reportCalculations';
 
@@ -109,26 +110,99 @@ export const AppProvider = ({ children }) => {
     }
   });
 
-  // Sync state to LocalStorage
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.SECTIONS, JSON.stringify(sections)); }, [sections]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(classes)); }, [classes]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teams)); }, [teams]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.FIELDS, JSON.stringify(fields)); }, [fields]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.PROGRAM_LIBRARY, JSON.stringify(programLibrary)); }, [programLibrary]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.SUMMITS, JSON.stringify(summits)); }, [summits]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories)); }, [categories]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.JUDGES, JSON.stringify(judges)); }, [judges]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students)); }, [students]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ARCHIVED_STUDENTS, JSON.stringify(archivedStudents)); }, [archivedStudents]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.PROGRAMS, JSON.stringify(programs)); }, [programs]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(entries)); }, [entries]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.MARKS, JSON.stringify(marks)); }, [marks]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(attendance)); }, [attendance]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.NOTICES, JSON.stringify(notices)); }, [notices]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications)); }, [notifications]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs)); }, [auditLogs]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings)); }, [settings]);
-  useEffect(() => { localStorage.setItem('musf_report_history', JSON.stringify(reportHistory)); }, [reportHistory]);
+  // Sync state to LocalStorage & Cloud Firestore
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.SECTIONS, JSON.stringify(sections)); syncToCloud('sections', sections); }, [sections]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(classes)); syncToCloud('classes', classes); }, [classes]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teams)); syncToCloud('teams', teams); }, [teams]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.FIELDS, JSON.stringify(fields)); syncToCloud('fields', fields); }, [fields]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.PROGRAM_LIBRARY, JSON.stringify(programLibrary)); syncToCloud('programLibrary', programLibrary); }, [programLibrary]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.SUMMITS, JSON.stringify(summits)); syncToCloud('summits', summits); }, [summits]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories)); syncToCloud('categories', categories); }, [categories]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.JUDGES, JSON.stringify(judges)); syncToCloud('judges', judges); }, [judges]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students)); syncToCloud('students', students); }, [students]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ARCHIVED_STUDENTS, JSON.stringify(archivedStudents)); syncToCloud('archivedStudents', archivedStudents); }, [archivedStudents]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.PROGRAMS, JSON.stringify(programs)); syncToCloud('programs', programs); }, [programs]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(entries)); syncToCloud('entries', entries); }, [entries]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.MARKS, JSON.stringify(marks)); syncToCloud('marks', marks); }, [marks]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(attendance)); syncToCloud('attendance', attendance); }, [attendance]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.NOTICES, JSON.stringify(notices)); syncToCloud('notices', notices); }, [notices]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications)); syncToCloud('notifications', notifications); }, [notifications]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs)); syncToCloud('auditLogs', auditLogs); }, [auditLogs]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings)); syncToCloud('settings', settings); }, [settings]);
+  useEffect(() => { localStorage.setItem('musf_report_history', JSON.stringify(reportHistory)); syncToCloud('reportHistory', reportHistory); }, [reportHistory]);
+
+  // Real-time Cloud Firestore Subscriptions across devices
+  useEffect(() => {
+    const unsubMarks = subscribeToCloud('marks', (cloudMarks) => {
+      if (Array.isArray(cloudMarks) && cloudMarks.length > 0) {
+        setMarks(cloudMarks);
+      }
+    });
+    const unsubAttendance = subscribeToCloud('attendance', (cloudAtt) => {
+      if (Array.isArray(cloudAtt) && cloudAtt.length > 0) {
+        setAttendance(cloudAtt);
+      }
+    });
+    const unsubPrograms = subscribeToCloud('programs', (cloudProgs) => {
+      if (Array.isArray(cloudProgs) && cloudProgs.length > 0) {
+        setPrograms(cloudProgs);
+      }
+    });
+    const unsubEntries = subscribeToCloud('entries', (cloudEntries) => {
+      if (Array.isArray(cloudEntries) && cloudEntries.length > 0) {
+        setEntries(cloudEntries);
+      }
+    });
+    const unsubStudents = subscribeToCloud('students', (cloudStudents) => {
+      if (Array.isArray(cloudStudents) && cloudStudents.length > 0) {
+        setStudents(cloudStudents);
+      }
+    });
+    const unsubSummits = subscribeToCloud('summits', (cloudSummits) => {
+      if (Array.isArray(cloudSummits) && cloudSummits.length > 0) {
+        setSummits(cloudSummits);
+      }
+    });
+    const unsubJudges = subscribeToCloud('judges', (cloudJudges) => {
+      if (Array.isArray(cloudJudges) && cloudJudges.length > 0) {
+        setJudges(cloudJudges);
+      }
+    });
+    const unsubTeams = subscribeToCloud('teams', (cloudTeams) => {
+      if (Array.isArray(cloudTeams) && cloudTeams.length > 0) {
+        setTeams(cloudTeams);
+      }
+    });
+    const unsubClasses = subscribeToCloud('classes', (cloudClasses) => {
+      if (Array.isArray(cloudClasses) && cloudClasses.length > 0) {
+        setClasses(cloudClasses);
+      }
+    });
+    const unsubSettings = subscribeToCloud('settings', (cloudSettings) => {
+      if (cloudSettings && typeof cloudSettings === 'object') {
+        setSettings(prev => ({ ...prev, ...cloudSettings }));
+      }
+    });
+    const unsubNotices = subscribeToCloud('notices', (cloudNotices) => {
+      if (Array.isArray(cloudNotices)) {
+        setNotices(cloudNotices);
+      }
+    });
+
+    return () => {
+      unsubMarks();
+      unsubAttendance();
+      unsubPrograms();
+      unsubEntries();
+      unsubStudents();
+      unsubSummits();
+      unsubJudges();
+      unsubTeams();
+      unsubClasses();
+      unsubSettings();
+      unsubNotices();
+    };
+  }, []);
 
   // Backward compatibility: Migrate any legacy cached password hashes & two leaders
   useEffect(() => {
