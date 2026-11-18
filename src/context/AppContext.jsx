@@ -45,6 +45,15 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     try {
       const oldKeys = [
+        'musf_summit_programs_v3',
+        'musf_summit_summits_v3',
+        'musf_summit_students_v3',
+        'musf_summit_archived_students_v3',
+        'musf_summit_entries_v3',
+        'musf_summit_marks_v3',
+        'musf_summit_attendance_v3',
+        'musf_summit_certificates_v3',
+        'musf_summit_teams_v3',
         'musf_summit_students_v2',
         'musf_summit_archived_students_v2',
         'musf_summit_entries_v2',
@@ -290,40 +299,8 @@ export const AppProvider = ({ children }) => {
 
     // 4. Migrate to Weekly Summits (12 Months Academic Year)
     setSummits(prev => {
-      if (!prev.some(s => s.id === 'summit_oct_1') || prev.length < 12) {
-        const existingIds = new Set(prev.map(s => s.id));
-        const missing = INITIAL_SUMMITS.filter(s => !existingIds.has(s.id));
-        if (missing.length > 0) {
-          return [...prev, ...missing];
-        }
-      }
-      return prev;
-    });
-
-    setPrograms(prev => {
-      if (!prev.some(p => p.id === 'p_oct1_1')) {
-        return INITIAL_PROGRAMS;
-      }
-      return prev;
-    });
-
-    setEntries(prev => {
-      if (!prev.some(e => e.id === 'e_oct1_1')) {
-        return INITIAL_ENTRIES;
-      }
-      return prev;
-    });
-
-    setMarks(prev => {
-      if (!prev.some(m => m.id === 'm_oct1_1')) {
-        return INITIAL_MARKS;
-      }
-      return prev;
-    });
-
-    setAttendance(prev => {
-      if (!prev.some(a => a.id.startsWith('att_summit_oct_1'))) {
-        return INITIAL_ATTENDANCE;
+      if (!prev || prev.length === 0) {
+        return INITIAL_SUMMITS;
       }
       return prev;
     });

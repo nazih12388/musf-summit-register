@@ -187,28 +187,28 @@ const buildAllTeamsAllocations = (allowedCount = 1) => ({
 // 6. WEEKLY SUMMITS (12-Month Academic Year - 4 Weekly Summits per Month)
 export const INITIAL_SUMMITS = [
   // --- JUNE 2026 (4 Weekly Summits) ---
-  { id: 'summit_jun_1', name: 'June 2026 - Summit 1: Academic Orientation & Induction', month: '2026-06', date: '2026-06-05', registrationDeadline: '2026-06-02T18:00', venue: 'Wafy Central Auditorium', registrationLocked: true, status: 'completed' },
-  { id: 'summit_jun_2', name: 'June 2026 - Summit 2: Foundational Literary Review', month: '2026-06', date: '2026-06-12', registrationDeadline: '2026-06-09T18:00', venue: 'Conference Hall A', registrationLocked: true, status: 'completed' },
-  { id: 'summit_jun_3', name: 'June 2026 - Summit 3: Scholastic Discourse Workshop', month: '2026-06', date: '2026-06-19', registrationDeadline: '2026-06-16T18:00', venue: 'Preliminary Seminar Room', registrationLocked: true, status: 'completed' },
-  { id: 'summit_jun_4', name: 'June 2026 - Summit 4: Monthly Scholastic Synthesis', month: '2026-06', date: '2026-06-26', registrationDeadline: '2026-06-23T18:00', venue: 'Main Auditorium', registrationLocked: true, status: 'completed' },
+  { id: 'summit_jun_1', name: 'June 2026 - Summit 1: Academic Orientation & Induction', month: '2026-06', date: '2026-06-05', registrationDeadline: '2026-06-02T18:00', venue: 'Wafy Central Auditorium', registrationLocked: false, status: 'planned' },
+  { id: 'summit_jun_2', name: 'June 2026 - Summit 2: Foundational Literary Review', month: '2026-06', date: '2026-06-12', registrationDeadline: '2026-06-09T18:00', venue: 'Conference Hall A', registrationLocked: false, status: 'planned' },
+  { id: 'summit_jun_3', name: 'June 2026 - Summit 3: Scholastic Discourse Workshop', month: '2026-06', date: '2026-06-19', registrationDeadline: '2026-06-16T18:00', venue: 'Preliminary Seminar Room', registrationLocked: false, status: 'planned' },
+  { id: 'summit_jun_4', name: 'June 2026 - Summit 4: Monthly Scholastic Synthesis', month: '2026-06', date: '2026-06-26', registrationDeadline: '2026-06-23T18:00', venue: 'Main Auditorium', registrationLocked: false, status: 'planned' },
 
   // --- JULY 2026 (4 Weekly Summits) ---
-  { id: 'summit_jul_1', name: 'July 2026 - Summit 1: Arabic Rhetoric & Translation', month: '2026-07', date: '2026-07-03', registrationDeadline: '2026-06-30T18:00', venue: 'Academic Seminar Complex', registrationLocked: true, status: 'completed' },
-  { id: 'summit_jul_2', name: 'July 2026 - Summit 2: Jurisprudence & Logic Session', month: '2026-07', date: '2026-07-10', registrationDeadline: '2026-07-07T18:00', venue: 'Conference Hall B', registrationLocked: true, status: 'completed' },
-  { id: 'summit_jul_3', name: 'July 2026 - Summit 3: Qur’anic Hermeneutics Colloquium', month: '2026-07', date: '2026-07-17', registrationDeadline: '2026-07-14T18:00', venue: 'Chamber Hall A', registrationLocked: true, status: 'completed' },
-  { id: 'summit_jul_4', name: 'July 2026 - Summit 4: Academic Writing & Debate', month: '2026-07', date: '2026-07-24', registrationDeadline: '2026-07-21T18:00', venue: 'Central Auditorium', registrationLocked: true, status: 'completed' },
+  { id: 'summit_jul_1', name: 'July 2026 - Summit 1: Arabic Rhetoric & Translation', month: '2026-07', date: '2026-07-03', registrationDeadline: '2026-06-30T18:00', venue: 'Academic Seminar Complex', registrationLocked: false, status: 'planned' },
+  { id: 'summit_jul_2', name: 'July 2026 - Summit 2: Jurisprudence & Logic Session', month: '2026-07', date: '2026-07-10', registrationDeadline: '2026-07-07T18:00', venue: 'Conference Hall B', registrationLocked: false, status: 'planned' },
+  { id: 'summit_jul_3', name: 'July 2026 - Summit 3: Qur’anic Hermeneutics Colloquium', month: '2026-07', date: '2026-07-17', registrationDeadline: '2026-07-14T18:00', venue: 'Chamber Hall A', registrationLocked: false, status: 'planned' },
+  { id: 'summit_jul_4', name: 'July 2026 - Summit 4: Academic Writing & Debate', month: '2026-07', date: '2026-07-24', registrationDeadline: '2026-07-21T18:00', venue: 'Central Auditorium', registrationLocked: false, status: 'planned' },
 
   // --- AUGUST 2026 (4 Weekly Summits) ---
-  { id: 'summit_aug_1', name: 'August 2026 - Summit 1: Hadith Sciences & Analysis', month: '2026-08', date: '2026-08-07', registrationDeadline: '2026-08-04T18:00', venue: 'Wafy Central Auditorium', registrationLocked: true, status: 'completed' },
-  { id: 'summit_aug_2', name: 'August 2026 - Summit 2: Comparative Literature Forum', month: '2026-08', date: '2026-08-14', registrationDeadline: '2026-08-11T18:00', venue: 'Conference Hall A', registrationLocked: true, status: 'completed' },
-  { id: 'summit_aug_3', name: 'August 2026 - Summit 3: Public Eloquence Workshop', month: '2026-08', date: '2026-08-21', registrationDeadline: '2026-08-18T18:00', venue: 'Preliminary Seminar Room', registrationLocked: true, status: 'completed' },
-  { id: 'summit_aug_4', name: 'August 2026 - Summit 4: Historical Perspectives Round', month: '2026-08', date: '2026-08-28', registrationDeadline: '2026-08-25T18:00', venue: 'Main Auditorium', registrationLocked: true, status: 'completed' },
+  { id: 'summit_aug_1', name: 'August 2026 - Summit 1: Hadith Sciences & Analysis', month: '2026-08', date: '2026-08-07', registrationDeadline: '2026-08-04T18:00', venue: 'Wafy Central Auditorium', registrationLocked: false, status: 'planned' },
+  { id: 'summit_aug_2', name: 'August 2026 - Summit 2: Comparative Literature Forum', month: '2026-08', date: '2026-08-14', registrationDeadline: '2026-08-11T18:00', venue: 'Conference Hall A', registrationLocked: false, status: 'planned' },
+  { id: 'summit_aug_3', name: 'August 2026 - Summit 3: Public Eloquence Workshop', month: '2026-08', date: '2026-08-21', registrationDeadline: '2026-08-18T18:00', venue: 'Preliminary Seminar Room', registrationLocked: false, status: 'planned' },
+  { id: 'summit_aug_4', name: 'August 2026 - Summit 4: Historical Perspectives Round', month: '2026-08', date: '2026-08-28', registrationDeadline: '2026-08-25T18:00', venue: 'Main Auditorium', registrationLocked: false, status: 'planned' },
 
   // --- SEPTEMBER 2026 (4 Weekly Summits) ---
-  { id: 'summit_sep_1', name: 'September 2026 - Summit 1: Classical Grammatical Dialectics', month: '2026-09', date: '2026-09-04', registrationDeadline: '2026-09-01T18:00', venue: 'Academic Seminar Complex', registrationLocked: true, status: 'completed' },
-  { id: 'summit_sep_2', name: 'September 2026 - Summit 2: Critical Thinking & Philosophy', month: '2026-09', date: '2026-09-11', registrationDeadline: '2026-09-08T18:00', venue: 'Conference Hall B', registrationLocked: true, status: 'completed' },
-  { id: 'summit_sep_3', name: 'September 2026 - Summit 3: English Prose & Declamation', month: '2026-09', date: '2026-09-18', registrationDeadline: '2026-09-15T18:00', venue: 'Chamber Hall A', registrationLocked: true, status: 'completed' },
-  { id: 'summit_sep_4', name: 'September 2026 - Summit 4: Mid-Year Scholastic Assembly', month: '2026-09', date: '2026-09-25', registrationDeadline: '2026-09-22T18:00', venue: 'Central Auditorium', registrationLocked: true, status: 'completed' },
+  { id: 'summit_sep_1', name: 'September 2026 - Summit 1: Classical Grammatical Dialectics', month: '2026-09', date: '2026-09-04', registrationDeadline: '2026-09-01T18:00', venue: 'Academic Seminar Complex', registrationLocked: false, status: 'planned' },
+  { id: 'summit_sep_2', name: 'September 2026 - Summit 2: Critical Thinking & Philosophy', month: '2026-09', date: '2026-09-11', registrationDeadline: '2026-09-08T18:00', venue: 'Conference Hall B', registrationLocked: false, status: 'planned' },
+  { id: 'summit_sep_3', name: 'September 2026 - Summit 3: English Prose & Declamation', month: '2026-09', date: '2026-09-18', registrationDeadline: '2026-09-15T18:00', venue: 'Chamber Hall A', registrationLocked: false, status: 'planned' },
+  { id: 'summit_sep_4', name: 'September 2026 - Summit 4: Mid-Year Scholastic Assembly', month: '2026-09', date: '2026-09-25', registrationDeadline: '2026-09-22T18:00', venue: 'Central Auditorium', registrationLocked: false, status: 'planned' },
 
   // --- OCTOBER 2026 (4 Weekly Summits) ---
   {
@@ -218,8 +218,8 @@ export const INITIAL_SUMMITS = [
     date: '2026-10-02',
     registrationDeadline: '2026-09-29T18:00',
     venue: 'Wafy Central Auditorium',
-    registrationLocked: true,
-    status: 'completed'
+    registrationLocked: false,
+    status: 'planned'
   },
   {
     id: 'summit_oct_2',
@@ -228,8 +228,8 @@ export const INITIAL_SUMMITS = [
     date: '2026-10-09',
     registrationDeadline: '2026-10-06T18:00',
     venue: 'Conference Hall & Grounds',
-    registrationLocked: true,
-    status: 'completed'
+    registrationLocked: false,
+    status: 'planned'
   },
   {
     id: 'summit_oct_3',
@@ -238,8 +238,8 @@ export const INITIAL_SUMMITS = [
     date: '2026-10-16',
     registrationDeadline: '2026-10-13T18:00',
     venue: 'Preliminary Seminar Room',
-    registrationLocked: true,
-    status: 'completed'
+    registrationLocked: false,
+    status: 'planned'
   },
   {
     id: 'summit_oct_4',
@@ -248,8 +248,8 @@ export const INITIAL_SUMMITS = [
     date: '2026-10-23',
     registrationDeadline: '2026-10-20T18:00',
     venue: 'Main Auditorium',
-    registrationLocked: true,
-    status: 'completed'
+    registrationLocked: false,
+    status: 'planned'
   },
 
   // --- NOVEMBER 2026 (4 Weekly Summits) ---
@@ -260,8 +260,8 @@ export const INITIAL_SUMMITS = [
     date: '2026-11-06',
     registrationDeadline: '2026-11-03T18:00',
     venue: 'Academic Seminar Complex',
-    registrationLocked: true,
-    status: 'completed'
+    registrationLocked: false,
+    status: 'planned'
   },
   {
     id: 'summit_nov_2',
@@ -270,8 +270,8 @@ export const INITIAL_SUMMITS = [
     date: '2026-11-13',
     registrationDeadline: '2026-11-10T18:00',
     venue: 'Conference Hall B',
-    registrationLocked: true,
-    status: 'completed'
+    registrationLocked: false,
+    status: 'planned'
   },
   {
     id: 'summit_nov_3',
@@ -280,7 +280,7 @@ export const INITIAL_SUMMITS = [
     date: '2026-11-20',
     registrationDeadline: '2026-11-18T18:00',
     venue: 'Chamber Hall A',
-    registrationLocked: true,
+    registrationLocked: false,
     status: 'published'
   },
   {
@@ -416,413 +416,7 @@ export const INITIAL_JUDGES = [
 export const INITIAL_STUDENTS = [];
 
 // 8. PROGRAMS ALLOCATED ACROSS 8 WEEKLY SUMMITS
-export const INITIAL_PROGRAMS = [
-  // --- OCTOBER SUMMIT 1 (2026-10-02) ---
-  {
-    id: 'p_oct1_1',
-    summitId: 'summit_oct_1',
-    libraryProgramId: 'lib_th_1',
-    name: 'Arabic Calligraphy & Orthography',
-    fieldId: 'f_foundation',
-    sectionId: 'thamheediyya',
-    type: 'individual',
-    stage: 'Preliminary Seminar Room',
-    date: '2026-10-02',
-    time: '09:00 AM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildThamheediyyaAllocations(1),
-    assignedJudges: ['j1', 'j2'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-  {
-    id: 'p_oct1_2',
-    summitId: 'summit_oct_1',
-    libraryProgramId: 'lib_th_2',
-    name: "Qur'anic Memorization & Tajweed",
-    fieldId: 'f_foundation',
-    sectionId: 'thamheediyya',
-    type: 'individual',
-    stage: 'Mosque Annex Hall',
-    date: '2026-10-02',
-    time: '11:00 AM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildThamheediyyaAllocations(1),
-    assignedJudges: ['j1'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-  {
-    id: 'p_oct1_3',
-    summitId: 'summit_oct_1',
-    libraryProgramId: 'lib_al_1',
-    name: 'Parliamentary Debate Championship',
-    fieldId: 'f_communicative',
-    sectionId: 'aliya',
-    type: 'group',
-    stage: 'Chamber Hall A',
-    date: '2026-10-02',
-    time: '02:00 PM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 2,
-    teamAllocations: {
-      t1: { assigned: true, allowedCount: 2 },
-      t2: { assigned: true, allowedCount: 2 },
-      t3: { assigned: false, allowedCount: 0 },
-      t4: { assigned: true, allowedCount: 2 }
-    },
-    assignedJudges: ['j1', 'j2'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-  {
-    id: 'p_oct1_4',
-    summitId: 'summit_oct_1',
-    libraryProgramId: 'lib_al_4',
-    name: 'Research Paper Presentation',
-    fieldId: 'f_creative',
-    sectionId: 'aliya',
-    type: 'individual',
-    stage: 'Main Seminar Hall',
-    date: '2026-10-02',
-    time: '04:00 PM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildAllTeamsAllocations(1),
-    assignedJudges: ['j1', 'j2'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-
-  // --- OCTOBER SUMMIT 2 (2026-10-09) ---
-  {
-    id: 'p_oct2_1',
-    summitId: 'summit_oct_2',
-    libraryProgramId: 'lib_th_3',
-    name: 'English Elocution & Reading',
-    fieldId: 'f_foundation',
-    sectionId: 'thamheediyya',
-    type: 'individual',
-    stage: 'Conference Hall B',
-    date: '2026-10-09',
-    time: '10:00 AM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildThamheediyyaAllocations(1),
-    assignedJudges: ['j1'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-  {
-    id: 'p_oct2_2',
-    summitId: 'summit_oct_2',
-    libraryProgramId: 'lib_al_3',
-    name: 'Media Critique & Analytical Journalism',
-    fieldId: 'f_communicative',
-    sectionId: 'aliya',
-    type: 'individual',
-    stage: 'IT Research Lab',
-    date: '2026-10-09',
-    time: '02:30 PM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildAllTeamsAllocations(1),
-    assignedJudges: [],
-    allowLeaderMarkEntry: true,
-    status: 'published'
-  },
-  {
-    id: 'p_oct2_3',
-    summitId: 'summit_oct_2',
-    libraryProgramId: 'lib_al_5',
-    name: 'Academic Essay Colloquium',
-    fieldId: 'f_creative',
-    sectionId: 'aliya',
-    type: 'individual',
-    stage: 'Library Reading Hall',
-    date: '2026-10-09',
-    time: '04:30 PM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: {
-      t1: { assigned: true, allowedCount: 1 },
-      t2: { assigned: false, allowedCount: 0 },
-      t3: { assigned: true, allowedCount: 1 },
-      t4: { assigned: true, allowedCount: 1 }
-    },
-    assignedJudges: ['j2'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-
-  // --- OCTOBER SUMMIT 3 (2026-10-16) ---
-  {
-    id: 'p_oct3_1',
-    summitId: 'summit_oct_3',
-    libraryProgramId: 'lib_th_2',
-    name: "Qur'anic Memorization & Tajweed",
-    fieldId: 'f_foundation',
-    sectionId: 'thamheediyya',
-    type: 'individual',
-    stage: 'Mosque Annex',
-    date: '2026-10-16',
-    time: '09:30 AM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildThamheediyyaAllocations(1),
-    assignedJudges: ['j1'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-  {
-    id: 'p_oct3_2',
-    summitId: 'summit_oct_3',
-    libraryProgramId: 'lib_al_2',
-    name: 'Public Discourse & Rhetoric',
-    fieldId: 'f_communicative',
-    sectionId: 'aliya',
-    type: 'individual',
-    stage: 'Research Annex',
-    date: '2026-10-16',
-    time: '02:00 PM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildAllTeamsAllocations(1),
-    assignedJudges: ['j2'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-
-  // --- OCTOBER SUMMIT 4 (2026-10-23) ---
-  // Note: Nihal Rahman (s1) enters BOTH p_oct4_1 (Quiz) AND p_oct4_2 (Elocution)
-  {
-    id: 'p_oct4_1',
-    summitId: 'summit_oct_4',
-    libraryProgramId: 'lib_th_4',
-    name: 'Islamic History Foundation Quiz',
-    fieldId: 'f_foundation',
-    sectionId: 'thamheediyya',
-    type: 'group',
-    stage: 'Auditorium Main',
-    date: '2026-10-23',
-    time: '10:00 AM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 2,
-    teamAllocations: buildThamheediyyaAllocations(2),
-    assignedJudges: ['j1'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-  {
-    id: 'p_oct4_2',
-    summitId: 'summit_oct_4',
-    libraryProgramId: 'lib_th_3',
-    name: 'English Elocution & Reading',
-    fieldId: 'f_foundation',
-    sectionId: 'thamheediyya',
-    type: 'individual',
-    stage: 'Seminar Room 2',
-    date: '2026-10-23',
-    time: '11:30 AM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildThamheediyyaAllocations(1),
-    assignedJudges: ['j1'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-  {
-    id: 'p_oct4_3',
-    summitId: 'summit_oct_4',
-    libraryProgramId: 'lib_al_6',
-    name: 'Creative Literary Composition',
-    fieldId: 'f_creative',
-    sectionId: 'aliya',
-    type: 'individual',
-    stage: 'Writing Hall',
-    date: '2026-10-23',
-    time: '03:00 PM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildAllTeamsAllocations(1),
-    assignedJudges: ['j2'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-
-  // --- NOVEMBER SUMMIT 1 (2026-11-06) ---
-  {
-    id: 'p_nov1_1',
-    summitId: 'summit_nov_1',
-    libraryProgramId: 'lib_th_1',
-    name: 'Arabic Calligraphy & Orthography',
-    fieldId: 'f_foundation',
-    sectionId: 'thamheediyya',
-    type: 'individual',
-    stage: 'Calligraphy Hall',
-    date: '2026-11-06',
-    time: '09:00 AM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildThamheediyyaAllocations(1),
-    assignedJudges: ['j1'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-  {
-    id: 'p_nov1_2',
-    summitId: 'summit_nov_1',
-    libraryProgramId: 'lib_al_1',
-    name: 'Parliamentary Debate Championship',
-    fieldId: 'f_communicative',
-    sectionId: 'aliya',
-    type: 'group',
-    stage: 'Chamber Hall B',
-    date: '2026-11-06',
-    time: '02:00 PM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 2,
-    teamAllocations: buildAllTeamsAllocations(2),
-    assignedJudges: ['j2'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-
-  // --- NOVEMBER SUMMIT 2 (2026-11-13) ---
-  // Note: Mazin Noor (s14) entered in p_nov2_3 was absent!
-  {
-    id: 'p_nov2_1',
-    summitId: 'summit_nov_2',
-    libraryProgramId: 'lib_th_3',
-    name: 'English Elocution & Reading',
-    fieldId: 'f_foundation',
-    sectionId: 'thamheediyya',
-    type: 'individual',
-    stage: 'Auditorium Stage',
-    date: '2026-11-13',
-    time: '10:00 AM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildThamheediyyaAllocations(1),
-    assignedJudges: ['j1'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-  {
-    id: 'p_nov2_2',
-    summitId: 'summit_nov_2',
-    libraryProgramId: 'lib_al_3',
-    name: 'Media Critique & Analytical Journalism',
-    fieldId: 'f_communicative',
-    sectionId: 'aliya',
-    type: 'individual',
-    stage: 'IT Lab',
-    date: '2026-11-13',
-    time: '02:00 PM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildAllTeamsAllocations(1),
-    assignedJudges: [],
-    allowLeaderMarkEntry: true,
-    status: 'published'
-  },
-  {
-    id: 'p_nov2_3',
-    summitId: 'summit_nov_2',
-    libraryProgramId: 'lib_al_5',
-    name: 'Academic Essay Colloquium',
-    fieldId: 'f_creative',
-    sectionId: 'aliya',
-    type: 'individual',
-    stage: 'Colloquium Room',
-    date: '2026-11-13',
-    time: '04:00 PM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildAllTeamsAllocations(1),
-    assignedJudges: ['j2'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-
-  // --- NOVEMBER SUMMIT 3 (2026-11-20) ---
-  {
-    id: 'p_nov3_1',
-    summitId: 'summit_nov_3',
-    libraryProgramId: 'lib_th_4',
-    name: 'Islamic History Foundation Quiz',
-    fieldId: 'f_foundation',
-    sectionId: 'thamheediyya',
-    type: 'group',
-    stage: 'Central Auditorium',
-    date: '2026-11-20',
-    time: '10:00 AM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 2,
-    teamAllocations: buildThamheediyyaAllocations(2),
-    assignedJudges: ['j1'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-  {
-    id: 'p_nov3_2',
-    summitId: 'summit_nov_3',
-    libraryProgramId: 'lib_al_4',
-    name: 'Research Paper Presentation',
-    fieldId: 'f_creative',
-    sectionId: 'aliya',
-    type: 'individual',
-    stage: 'Research Hall',
-    date: '2026-11-20',
-    time: '02:30 PM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildAllTeamsAllocations(1),
-    assignedJudges: ['j2'],
-    allowLeaderMarkEntry: false,
-    status: 'published'
-  },
-
-  // --- NOVEMBER SUMMIT 4 (2026-11-27) ---
-  {
-    id: 'p_nov4_1',
-    summitId: 'summit_nov_4',
-    libraryProgramId: 'lib_th_2',
-    name: "Qur'anic Memorization & Tajweed",
-    fieldId: 'f_foundation',
-    sectionId: 'thamheediyya',
-    type: 'individual',
-    stage: 'Mosque Annex',
-    date: '2026-11-27',
-    time: '10:00 AM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildThamheediyyaAllocations(1),
-    assignedJudges: ['j1'],
-    allowLeaderMarkEntry: false,
-    status: 'open'
-  },
-  {
-    id: 'p_nov4_2',
-    summitId: 'summit_nov_4',
-    libraryProgramId: 'lib_al_6',
-    name: 'Creative Literary Composition',
-    fieldId: 'f_creative',
-    sectionId: 'aliya',
-    type: 'individual',
-    stage: 'Writing Annex',
-    date: '2026-11-27',
-    time: '02:30 PM',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    teamAllocations: buildAllTeamsAllocations(1),
-    assignedJudges: ['j2'],
-    allowLeaderMarkEntry: false,
-    status: 'open'
-  }
-];
+export const INITIAL_PROGRAMS = [];
 
 // 9. STUDENT NOMINATIONS & ENTRIES ACROSS 8 SUMMITS
 export const INITIAL_ENTRIES = [];

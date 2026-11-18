@@ -218,25 +218,34 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
               </div>
 
               <div className="space-y-3 pt-1">
-                {teamStandings.map(t => (
-                  <div key={t.id} className="space-y-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-semibold gap-0.5">
-                      <span className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
-                        <span>{t.name}</span>
-                      </span>
-                      <span className="font-mono text-slate-600 dark:text-slate-300 text-[11px] sm:text-xs">
-                        {t.totalPoints.toFixed(1)} pts <span className="text-slate-400 font-normal">(Th: {t.thamheediyyaPoints?.toFixed(1) || '0.0'} • Al: {t.aliyaPoints?.toFixed(1) || '0.0'})</span>
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, Math.max(10, t.marksPercentage))}%`, backgroundColor: t.color }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                {(() => {
+                  const maxTeamPoints = Math.max(...teamStandings.map(t => t.totalPoints || 0), 0);
+                  return teamStandings.map(t => {
+                    const barWidth = maxTeamPoints > 0 && t.totalPoints > 0
+                      ? Math.min(100, (t.totalPoints / maxTeamPoints) * 100)
+                      : 0;
+
+                    return (
+                      <div key={t.id} className="space-y-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-semibold gap-0.5">
+                          <span className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
+                            <span>{t.name}</span>
+                          </span>
+                          <span className="font-mono text-slate-600 dark:text-slate-300 text-[11px] sm:text-xs">
+                            {t.totalPoints.toFixed(1)} pts <span className="text-slate-400 font-normal">(Th: {t.thamheediyyaPoints?.toFixed(1) || '0.0'} • Al: {t.aliyaPoints?.toFixed(1) || '0.0'})</span>
+                          </span>
+                        </div>
+                        <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{ width: `${barWidth}%`, backgroundColor: t.color }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
 
@@ -256,24 +265,33 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
               </div>
 
               <div className="space-y-3 pt-1">
-                {classEvaluations.map(c => (
-                  <div key={c.id} className="space-y-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-semibold gap-0.5">
-                      <span className="truncate max-w-[200px]">
-                        {c.name} <span className="text-[10px] text-slate-400">({c.sectionName})</span>
-                      </span>
-                      <span className="font-mono text-slate-600 dark:text-slate-400 text-[11px] sm:text-xs">
-                        {c.totalMarks.toFixed(1)} pts ({c.avgAttendance.toFixed(0)}% Att)
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-[#334E73] transition-all duration-500"
-                        style={{ width: `${Math.min(100, Math.max(10, (c.totalMarks / 50) * 100))}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                {(() => {
+                  const maxClassMarks = Math.max(...classEvaluations.map(c => c.totalMarks || 0), 0);
+                  return classEvaluations.map(c => {
+                    const classBarWidth = maxClassMarks > 0 && c.totalMarks > 0
+                      ? Math.min(100, (c.totalMarks / maxClassMarks) * 100)
+                      : 0;
+
+                    return (
+                      <div key={c.id} className="space-y-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-semibold gap-0.5">
+                          <span className="truncate max-w-[200px]">
+                            {c.name} <span className="text-[10px] text-slate-400">({c.sectionName})</span>
+                          </span>
+                          <span className="font-mono text-slate-600 dark:text-slate-400 text-[11px] sm:text-xs">
+                            {c.totalMarks.toFixed(1)} pts ({c.avgAttendance.toFixed(0)}% Att)
+                          </span>
+                        </div>
+                        <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-[#334E73] transition-all duration-500"
+                            style={{ width: `${classBarWidth}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
           </div>
