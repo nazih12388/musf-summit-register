@@ -95,6 +95,9 @@
   - **Admin Overview Quick Buttons**: Placed `[Certificates]` and `[Auditing]` quick action buttons directly into the top header row of `AdminDashboard.jsx`.
   - **Summit & Program Management Phone Polish**: Refactored Summit Program Matrix header (`ProgramManagement.jsx`) with responsive 2-column action buttons (`Unlock Registrations`, `Copy Setup...`, full-width `Assign Program`), 2-column segmented section tabs (`Thamheediyya (1 & 2)` vs `Aliya (3, 4 & 5)`), and clean spacing for the Thamheediyya rule box.
   - Built with `npm run build` (0 errors, 791ms), pushed to GitHub, and deployed live to Firebase Hosting.
+- [x] **Phase 15: Student Report Download Removal**
+  - **Removed Report Card Download from Student Portal**: Removed the "Progress Report PDF" download button from `StudentDashboard.jsx` header banner so students cannot download their comprehensive academic report cards.
+  - Built with `npm run build` (0 errors, 717ms), pushed to GitHub, and deployed live to Firebase Hosting.
 
 ---
 
