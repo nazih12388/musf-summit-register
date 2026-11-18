@@ -89,6 +89,12 @@
   - **Student Dashboard**: Replaced horizontal scroll evaluation table with mobile card list view showing program event, field group, score, grade, and position.
   - **Hero Banners**: Reduced mobile padding and hidden promotional copy on small phones across Admin, Leader, Judge, and Student dashboards so interactive content appears immediately without excessive scrolling.
   - Built with `npm run build` (0 errors, 787ms), committed to Git, and deployed live to Firebase Hosting.
+- [x] **Phase 14: Mobile Drawer Height Fix & Certificate / Audit Quick Links**
+  - **Fixed Mobile Drawer Collapse**: Resolved flexbox height issue (`h-[100dvh]`, `min-h-0`, `shrink-0` on headers/footers) so the navigation drawer in `Navbar.jsx` renders full height with smooth scrolling on mobile without overlapping or cutting off menu items.
+  - **Prominent Certificate & Auditing Access**: Added direct, prominent links to **Academic Certificates** (`certificates`) and **System Settings & Audit Log** (`settings`) with distinctive badges in the mobile drawer.
+  - **Admin Overview Quick Buttons**: Placed `[Certificates]` and `[Auditing]` quick action buttons directly into the top header row of `AdminDashboard.jsx`.
+  - **Summit & Program Management Phone Polish**: Refactored Summit Program Matrix header (`ProgramManagement.jsx`) with responsive 2-column action buttons (`Unlock Registrations`, `Copy Setup...`, full-width `Assign Program`), 2-column segmented section tabs (`Thamheediyya (1 & 2)` vs `Aliya (3, 4 & 5)`), and clean spacing for the Thamheediyya rule box.
+  - Built with `npm run build` (0 errors, 791ms), pushed to GitHub, and deployed live to Firebase Hosting.
 
 ---
 
