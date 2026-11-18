@@ -109,6 +109,15 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
     generateCertificatePDF(cert);
   };
 
+  if (!student) {
+    return (
+      <div className="p-8 text-center bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+        <p className="text-slate-700 dark:text-slate-300 font-semibold text-sm">No student account found</p>
+        <p className="text-xs text-slate-400">Please enroll students in the Admin Console or log in with active student credentials.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Student Header Banner */}

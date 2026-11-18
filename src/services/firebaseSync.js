@@ -1,7 +1,7 @@
 import { db } from './firebase';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 
-const COLLECTION_NAME = 'musf_summit_data';
+const COLLECTION_NAME = 'musf_summit_data_v3';
 const debounceTimers = {};
 
 /**

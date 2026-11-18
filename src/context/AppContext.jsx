@@ -33,13 +33,30 @@ export const AppProvider = ({ children }) => {
   const safeParseArray = (key, fallback) => {
     try {
       const raw = localStorage.getItem(key);
-      if (!raw) return fallback;
+      if (raw === null) return fallback;
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : fallback;
+      return Array.isArray(parsed) ? parsed : fallback;
     } catch {
       return fallback;
     }
   };
+
+  // One-time cleanup of legacy demo caches
+  useEffect(() => {
+    try {
+      const oldKeys = [
+        'musf_summit_students_v2',
+        'musf_summit_archived_students_v2',
+        'musf_summit_entries_v2',
+        'musf_summit_marks_v2',
+        'musf_summit_attendance_v2',
+        'musf_summit_certificates_v2',
+        'musf_summit_teams_v2',
+        'musf_summit_current_user_v2'
+      ];
+      oldKeys.forEach(k => localStorage.removeItem(k));
+    } catch {}
+  }, []);
 
   // Load State from LocalStorage or seed defaults
   const [sections, setSections] = useState(() => safeParseArray(STORAGE_KEYS.SECTIONS, INITIAL_SECTIONS));
@@ -52,54 +69,22 @@ export const AppProvider = ({ children }) => {
   const [judges, setJudges] = useState(() => safeParseArray(STORAGE_KEYS.JUDGES, INITIAL_JUDGES));
   const [students, setStudents] = useState(() => safeParseArray(STORAGE_KEYS.STUDENTS, INITIAL_STUDENTS));
 
-  const [archivedStudents, setArchivedStudents] = useState(() => {
-    try {
-      const s = localStorage.getItem(STORAGE_KEYS.ARCHIVED_STUDENTS);
-      const parsed = s ? JSON.parse(s) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const [programs, setPrograms] = useState(() => {
-    const s = localStorage.getItem(STORAGE_KEYS.PROGRAMS);
-    return s ? JSON.parse(s) : INITIAL_PROGRAMS;
-  });
-
-  const [entries, setEntries] = useState(() => {
-    const s = localStorage.getItem(STORAGE_KEYS.ENTRIES);
-    return s ? JSON.parse(s) : INITIAL_ENTRIES;
-  });
-
-  const [marks, setMarks] = useState(() => {
-    const s = localStorage.getItem(STORAGE_KEYS.MARKS);
-    return s ? JSON.parse(s) : INITIAL_MARKS;
-  });
-
-  const [attendance, setAttendance] = useState(() => {
-    const s = localStorage.getItem(STORAGE_KEYS.ATTENDANCE);
-    return s ? JSON.parse(s) : INITIAL_ATTENDANCE;
-  });
-
-  const [notices, setNotices] = useState(() => {
-    const s = localStorage.getItem(STORAGE_KEYS.NOTICES);
-    return s ? JSON.parse(s) : INITIAL_NOTICES;
-  });
-
-  const [notifications, setNotifications] = useState(() => {
-    const s = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
-    return s ? JSON.parse(s) : INITIAL_NOTIFICATIONS;
-  });
-
-  const [auditLogs, setAuditLogs] = useState(() => {
-    const s = localStorage.getItem(STORAGE_KEYS.AUDIT_LOGS);
-    return s ? JSON.parse(s) : INITIAL_AUDIT_LOGS;
-  });
+  const [archivedStudents, setArchivedStudents] = useState(() => safeParseArray(STORAGE_KEYS.ARCHIVED_STUDENTS, []));
+  const [programs, setPrograms] = useState(() => safeParseArray(STORAGE_KEYS.PROGRAMS, INITIAL_PROGRAMS));
+  const [entries, setEntries] = useState(() => safeParseArray(STORAGE_KEYS.ENTRIES, INITIAL_ENTRIES));
+  const [marks, setMarks] = useState(() => safeParseArray(STORAGE_KEYS.MARKS, INITIAL_MARKS));
+  const [attendance, setAttendance] = useState(() => safeParseArray(STORAGE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE));
+  const [notices, setNotices] = useState(() => safeParseArray(STORAGE_KEYS.NOTICES, INITIAL_NOTICES));
+  const [notifications, setNotifications] = useState(() => safeParseArray(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS));
+  const [auditLogs, setAuditLogs] = useState(() => safeParseArray(STORAGE_KEYS.AUDIT_LOGS, INITIAL_AUDIT_LOGS));
 
   const [settings, setSettings] = useState(() => {
-    const s = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    return s ? JSON.parse(s) : INITIAL_SETTINGS;
+    try {
+      const s = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+      return s ? JSON.parse(s) : INITIAL_SETTINGS;
+    } catch {
+      return INITIAL_SETTINGS;
+    }
   });
 
   const [reportHistory, setReportHistory] = useState(() => {
@@ -111,14 +96,7 @@ export const AppProvider = ({ children }) => {
     }
   });
 
-  const [certificates, setCertificates] = useState(() => {
-    try {
-      const s = localStorage.getItem(STORAGE_KEYS.CERTIFICATES);
-      return s ? JSON.parse(s) : INITIAL_CERTIFICATES;
-    } catch {
-      return INITIAL_CERTIFICATES;
-    }
-  });
+  const [certificates, setCertificates] = useState(() => safeParseArray(STORAGE_KEYS.CERTIFICATES, INITIAL_CERTIFICATES));
 
   // Sync state to LocalStorage & Cloud Firestore
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.SECTIONS, JSON.stringify(sections)); syncToCloud('sections', sections); }, [sections]);
@@ -145,12 +123,12 @@ export const AppProvider = ({ children }) => {
   // Real-time Cloud Firestore Subscriptions across devices
   useEffect(() => {
     const unsubMarks = subscribeToCloud('marks', (cloudMarks) => {
-      if (Array.isArray(cloudMarks) && cloudMarks.length > 0) {
+      if (Array.isArray(cloudMarks)) {
         setMarks(cloudMarks);
       }
     });
     const unsubAttendance = subscribeToCloud('attendance', (cloudAtt) => {
-      if (Array.isArray(cloudAtt) && cloudAtt.length > 0) {
+      if (Array.isArray(cloudAtt)) {
         setAttendance(cloudAtt);
       }
     });
@@ -160,12 +138,12 @@ export const AppProvider = ({ children }) => {
       }
     });
     const unsubEntries = subscribeToCloud('entries', (cloudEntries) => {
-      if (Array.isArray(cloudEntries) && cloudEntries.length > 0) {
+      if (Array.isArray(cloudEntries)) {
         setEntries(cloudEntries);
       }
     });
     const unsubStudents = subscribeToCloud('students', (cloudStudents) => {
-      if (Array.isArray(cloudStudents) && cloudStudents.length > 0) {
+      if (Array.isArray(cloudStudents)) {
         setStudents(cloudStudents);
       }
     });
