@@ -110,6 +110,24 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
               </button>
 
               <button
+                onClick={() => setActiveTab('certificates')}
+                className="px-3 py-2 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border border-amber-300/30 font-bold text-xs flex items-center gap-1.5 transition shrink-0"
+                title="Manage and issue merit certificates"
+              >
+                <FileCheck className="w-4 h-4 text-amber-300" />
+                <span>Certificates</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('settings')}
+                className="px-3 py-2 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-400/30 text-teal-200 font-bold text-xs flex items-center gap-1.5 transition shrink-0"
+                title="System settings, user permissions & audit logs"
+              >
+                <Shield className="w-4 h-4 text-teal-300" />
+                <span>Auditing</span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab('library')}
                 className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 transition border border-white/20 shrink-0"
               >
@@ -119,7 +137,7 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
 
               <button
                 onClick={() => setActiveTab('programs')}
-                className="px-3 py-2 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-400/30 text-white font-bold text-xs flex items-center gap-1.5 transition shrink-0"
+                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs flex items-center gap-1.5 transition shrink-0"
               >
                 <Layers className="w-4 h-4" />
                 <span>Matrix</span>

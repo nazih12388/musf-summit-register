@@ -775,14 +775,14 @@ export const ProgramManagement = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 w-full">
             <select
               value={selectedSummitId}
               onChange={(e) => setSelectedSummitId(e.target.value)}
-              className="text-lg font-bold text-[#0F2A4A] dark:text-white bg-transparent border-b-2 border-[#0E7C86] pb-0.5 focus:outline-none cursor-pointer"
+              className="w-full text-base sm:text-lg font-bold text-[#0F2A4A] dark:text-white bg-transparent border-b-2 border-[#0E7C86] pb-1 focus:outline-none cursor-pointer"
             >
               {summits.map(s => (
-                <option key={s.id} value={s.id} className="text-slate-900 dark:text-white bg-white dark:bg-slate-900 font-semibold text-sm">
+                <option key={s.id} value={s.id} className="text-slate-900 dark:text-white bg-white dark:bg-slate-900 font-semibold text-xs sm:text-sm">
                   {s.name} ({s.month})
                 </option>
               ))}
@@ -801,26 +801,26 @@ export const ProgramManagement = () => {
           </div>
         </div>
 
-        {/* Header Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Header Action Buttons: Responsive 2-col on mobile, flex on desktop */}
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto pt-2 sm:pt-0">
           <button
             onClick={() => toggleSummitRegistrationLock(activeSummit.id, !activeSummit.registrationLocked, currentUser?.username)}
-            className={`py-2 px-3.5 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition ${
+            className={`min-h-[44px] py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 ${
               activeSummit.registrationLocked
                 ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300'
                 : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
             }`}
           >
-            {activeSummit.registrationLocked ? <Lock className="w-4 h-4 text-rose-600" /> : <Unlock className="w-4 h-4 text-emerald-600" />}
-            <span>{activeSummit.registrationLocked ? 'Unlock Registrations' : 'Lock Registrations'}</span>
+            {activeSummit.registrationLocked ? <Lock className="w-4 h-4 text-rose-600 shrink-0" /> : <Unlock className="w-4 h-4 text-emerald-600 shrink-0" />}
+            <span className="truncate">{activeSummit.registrationLocked ? 'Unlock Registrations' : 'Lock Registrations'}</span>
           </button>
 
           <button
             onClick={() => setIsCopyModalOpen(true)}
-            className="py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition"
+            className="min-h-[44px] py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95"
             title="Copy program setup from another summit"
           >
-            <Copy className="w-4 h-4 text-[#0E7C86]" />
+            <Copy className="w-4 h-4 text-[#0E7C86] shrink-0" />
             <span>Copy Setup...</span>
           </button>
 
@@ -829,43 +829,43 @@ export const ProgramManagement = () => {
               setAddMode('library');
               setIsAddProgramOpen(true);
             }}
-            className="py-2 px-3.5 rounded-xl bg-[#0F2A4A] dark:bg-[#0E7C86] text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-xs"
+            className="col-span-2 sm:col-auto min-h-[44px] py-2.5 px-4 rounded-xl bg-[#0E7C86] hover:bg-teal-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm active:scale-95"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 shrink-0" />
             <span>Assign Program</span>
           </button>
         </div>
       </div>
 
       {/* 2. Section Tabs: Thamheediyya vs Aliya */}
-      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
           <button
             onClick={() => setActiveSection('thamheediyya')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition ${
+            className={`min-h-[44px] px-3 sm:px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 ${
               activeSection === 'thamheediyya'
-                ? 'bg-[#0F2A4A] text-white shadow-xs'
+                ? 'bg-[#0F2A4A] dark:bg-[#0E7C86] text-white shadow-xs'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
             }`}
           >
-            <Layers className="w-4 h-4 text-[#0E7C86]" />
-            <span>THAMHEEDIYYA (Class 1 &amp; 2)</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-mono">
+            <Layers className="w-4 h-4 text-[#0E7C86] dark:text-teal-200 shrink-0" />
+            <span className="truncate">Thamheediyya (1 &amp; 2)</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-mono shrink-0">
               {currentSummitPrograms.filter(p => p.sectionId === 'thamheediyya').length}
             </span>
           </button>
 
           <button
             onClick={() => setActiveSection('aliya')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition ${
+            className={`min-h-[44px] px-3 sm:px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 ${
               activeSection === 'aliya'
-                ? 'bg-[#0F2A4A] text-white shadow-xs'
+                ? 'bg-[#0F2A4A] dark:bg-[#0E7C86] text-white shadow-xs'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
             }`}
           >
-            <Layers className="w-4 h-4 text-[#C9A227]" />
-            <span>ALIYA (Class 3, 4 &amp; 5)</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-mono">
+            <Layers className="w-4 h-4 text-[#C9A227] shrink-0" />
+            <span className="truncate">Aliya (3, 4 &amp; 5)</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-mono shrink-0">
               {currentSummitPrograms.filter(p => p.sectionId === 'aliya').length}
             </span>
           </button>
@@ -873,28 +873,28 @@ export const ProgramManagement = () => {
 
         {/* If Aliya, show Toggle between Matrix view and Cards view */}
         {activeSection === 'aliya' && (
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs">
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs self-end sm:self-auto">
             <button
               onClick={() => setAliyaViewMode('matrix')}
-              className={`px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition ${
+              className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition ${
                 aliyaViewMode === 'matrix'
                   ? 'bg-white dark:bg-slate-900 text-[#0F2A4A] dark:text-white shadow-xs'
                   : 'text-slate-500'
               }`}
             >
               <Table className="w-3.5 h-3.5 text-[#0E7C86]" />
-              <span>Assignment Matrix</span>
+              <span>Matrix</span>
             </button>
             <button
               onClick={() => setAliyaViewMode('cards')}
-              className={`px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition ${
+              className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition ${
                 aliyaViewMode === 'cards'
                   ? 'bg-white dark:bg-slate-900 text-[#0F2A4A] dark:text-white shadow-xs'
                   : 'text-slate-500'
               }`}
             >
               <Layers className="w-3.5 h-3.5 text-[#C9A227]" />
-              <span>Cards List</span>
+              <span>Cards</span>
             </button>
           </div>
         )}
@@ -903,28 +903,28 @@ export const ProgramManagement = () => {
       {/* 3. SECTION A: THAMHEEDIYYA CONSOLE */}
       {activeSection === 'thamheediyya' && (
         <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-teal-50/70 dark:bg-teal-950/20 border border-teal-200/60 dark:border-teal-900/40 text-xs text-teal-900 dark:text-teal-300 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-[#0E7C86] shrink-0" />
+          <div className="p-3.5 sm:p-4 rounded-xl bg-teal-50/70 dark:bg-teal-950/20 border border-teal-200/60 dark:border-teal-900/40 text-xs text-teal-900 dark:text-teal-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#0E7C86] shrink-0 mt-0.5" />
               <span>
                 <strong>Thamheediyya Rule:</strong> All programs assigned to this summit are automatically applied to <strong>all teams</strong>. Admin can adjust slot limits per team if required.
               </span>
             </div>
-            <span className="font-mono font-bold text-xs">
+            <span className="font-mono font-bold text-xs shrink-0 self-end sm:self-auto px-2 py-0.5 rounded-md bg-teal-100/70 dark:bg-teal-900/40 text-[#0E7C86]">
               {sectionPrograms.length} Common Programs
             </span>
           </div>
 
           {sectionPrograms.length === 0 ? (
-            <div className="p-12 text-center bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 space-y-2">
-              <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
-              <p className="font-semibold text-sm">No programs assigned to Thamheediyya in this summit yet.</p>
+            <div className="p-6 sm:p-12 text-center bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 space-y-2.5">
+              <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-slate-300 mx-auto" />
+              <p className="font-semibold text-xs sm:text-sm text-slate-700 dark:text-slate-300">No programs assigned to Thamheediyya in this summit yet.</p>
               <button
                 onClick={() => {
                   setAddMode('library');
                   setIsAddProgramOpen(true);
                 }}
-                className="px-4 py-2 bg-[#0F2A4A] text-white rounded-xl text-xs font-semibold"
+                className="min-h-[44px] px-5 py-2.5 bg-[#0F2A4A] dark:bg-[#0E7C86] hover:bg-[#1E3A5F] text-white rounded-xl text-xs font-bold transition shadow-xs active:scale-95"
               >
                 Pick from Program Library
               </button>

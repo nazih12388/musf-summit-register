@@ -318,25 +318,25 @@ export const Navbar = ({
 
       {/* Mobile Navigation Drawer */}
       {mobileDrawerOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-50 md:hidden flex">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
             onClick={() => setMobileDrawerOpen(false)}
           />
 
-          {/* Drawer Content */}
-          <div className="fixed inset-y-0 left-0 max-w-xs w-full bg-white dark:bg-[#0B1522] shadow-2xl flex flex-col z-50">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          {/* Drawer Content - Fixed 100dvh with min-h-0 so navigation modules always scroll and never collapse */}
+          <div className="relative w-[85%] max-w-xs h-[100dvh] bg-white dark:bg-[#0B1522] shadow-2xl flex flex-col z-50 overflow-hidden">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-[#0B1522]">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg overflow-hidden border border-[#0E7C86]/50 shadow-xs shrink-0 bg-[#0F2A4A]">
                   <img src="/college-campus.jpg" alt="Logo" className="w-full h-full object-cover" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-xs text-[#0F2A4A] dark:text-white leading-tight">
+                <div className="min-w-0">
+                  <h3 className="font-bold text-xs text-[#0F2A4A] dark:text-white leading-tight truncate">
                     {settings.collegeName}
                   </h3>
-                  <span className="text-[10px] text-[#0E7C86] font-semibold">
+                  <span className="text-[10px] text-[#0E7C86] font-semibold block">
                     {currentUser?.role?.toUpperCase()} Console
                   </span>
                 </div>
@@ -345,62 +345,100 @@ export const Navbar = ({
               <button
                 onClick={() => setMobileDrawerOpen(false)}
                 className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-label="Close menu"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-1 text-xs font-semibold">
+            <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1 text-xs font-semibold">
               <div className="px-3 py-1.5 text-[10px] uppercase font-bold text-slate-400">
                 Navigation Modules
               </div>
 
-              {[
-                { id: 'dashboard', label: 'Overview Dashboard', icon: LayoutDashboard },
-                { id: 'students', label: 'Students & Bulk Import', icon: Users, badge: 'Key' },
-                { id: 'summits', label: 'Summits Calendar (48 Wks)', icon: Calendar },
-                { id: 'library', label: 'Program Library & Fields', icon: BookOpen },
-                { id: 'programs', label: 'Summit Program Matrix', icon: Layers },
-                { id: 'attendance', label: 'Attendance Tracker', icon: Clock },
-                { id: 'marks', label: 'Marks & Scoring Console', icon: Scale },
-                { id: 'teams', label: 'Sections, Classes & Teams', icon: Shield },
-                { id: 'leaders', label: 'Team Leaders (2/Team)', icon: Crown },
-                { id: 'judges', label: 'Judges & Evaluators', icon: Gavel },
-                { id: 'reports', label: 'Reports & Academic Audit', icon: BarChart3 },
-                { id: 'certificates', label: 'Academic Certificates', icon: FileCheck },
-                { id: 'notices', label: 'Notifications & Notices', icon: Bell },
-                { id: 'settings', label: 'System Settings & Audit', icon: Settings }
-              ].map(tab => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id);
-                      setMobileDrawerOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${
-                      isActive
-                        ? 'bg-[#0F2A4A] dark:bg-[#0E7C86] text-white shadow-xs'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-teal-300' : 'text-slate-400'}`} />
-                      <span>{tab.label}</span>
-                    </div>
-                    {tab.badge && (
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500 text-white">
-                        {tab.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+              {(() => {
+                const adminNav = [
+                  { id: 'dashboard', label: 'Overview Dashboard', icon: LayoutDashboard },
+                  { id: 'students', label: 'Students & Bulk Import', icon: Users, badge: 'Key' },
+                  { id: 'attendance', label: 'Attendance Tracker', icon: Clock },
+                  { id: 'programs', label: 'Summit Program Matrix', icon: Layers },
+                  { id: 'marks', label: 'Marks & Scoring Console', icon: Scale },
+                  { id: 'certificates', label: 'Academic Certificates (സർട്ടിഫിക്കറ്റ്)', icon: FileCheck, badge: 'Certificates' },
+                  { id: 'settings', label: 'System Settings & Audit Log (ഓഡിറ്റിംഗ്)', icon: Settings, badge: 'Auditing' },
+                  { id: 'reports', label: 'Reports & Academic Audit', icon: BarChart3 },
+                  { id: 'summits', label: 'Summits Calendar (48 Wks)', icon: Calendar },
+                  { id: 'library', label: 'Program Library & Fields', icon: BookOpen },
+                  { id: 'teams', label: 'Sections, Classes & Teams', icon: Shield },
+                  { id: 'leaders', label: 'Team Leaders (2/Team)', icon: Crown },
+                  { id: 'judges', label: 'Judges & Evaluators', icon: Gavel },
+                  { id: 'notices', label: 'Notifications & Notices', icon: Bell }
+                ];
+
+                const leaderNav = [
+                  { id: 'overview', label: 'House Overview', icon: LayoutDashboard },
+                  { id: 'nominations', label: 'Program Nominations', icon: Layers, badge: 'Action' },
+                  { id: 'members', label: 'House Members List', icon: Users },
+                  { id: 'attendance', label: 'Team Attendance', icon: Clock },
+                  { id: 'results', label: 'Results & Standings', icon: BarChart3 },
+                  { id: 'reports', label: 'Monthly Report PDF', icon: FileCheck },
+                  { id: 'notices', label: 'Notices & Broadcasts', icon: Bell }
+                ];
+
+                const judgeNav = [
+                  { id: 'evaluation', label: 'Evaluation Scoring Console', icon: Gavel, badge: 'Live' },
+                  { id: 'history', label: 'Scoring History & Audit', icon: Scale },
+                  { id: 'notices', label: 'Notices & Announcements', icon: Bell }
+                ];
+
+                const studentNav = [
+                  { id: 'overview', label: 'My Student Dashboard', icon: LayoutDashboard },
+                  { id: 'programs', label: 'My Programs & Schedule', icon: Layers },
+                  { id: 'attendance', label: 'My Attendance Record', icon: Clock },
+                  { id: 'certificates', label: 'Merit Certificates (സർട്ടിഫിക്കറ്റ്)', icon: FileCheck, badge: 'Awards' },
+                  { id: 'notices', label: 'Announcements & Notices', icon: Bell }
+                ];
+
+                const navItems = currentUser?.role === 'admin' ? adminNav :
+                  currentUser?.role === 'leader' ? leaderNav :
+                  currentUser?.role === 'judge' ? judgeNav : studentNav;
+
+                return navItems.map(tab => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setMobileDrawerOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${
+                        isActive
+                          ? 'bg-[#0F2A4A] dark:bg-[#0E7C86] text-white shadow-xs'
+                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-teal-300' : 'text-slate-400'}`} />
+                        <span className="truncate">{tab.label}</span>
+                      </div>
+                      {tab.badge && (
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold shrink-0 ml-1.5 ${
+                          tab.badge === 'Certificates' ? 'bg-amber-500 text-slate-950 font-black' :
+                          tab.badge === 'Auditing' ? 'bg-teal-600 text-white' :
+                          tab.badge === 'Key' ? 'bg-emerald-500 text-white' :
+                          'bg-indigo-500 text-white'
+                        }`}>
+                          {tab.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                });
+              })()}
             </div>
 
-            <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+            <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-[#0B1522] pb-[max(1rem,env(safe-area-inset-bottom))]">
               <div className="flex items-center justify-between px-1">
                 <span className="text-[11px] font-semibold text-slate-500">Theme Mode</span>
                 <button
