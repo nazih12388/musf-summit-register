@@ -85,100 +85,100 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
       {activeTab === 'dashboard' && (
         <div className="space-y-6">
           {/* Header Banner */}
-          <div className="p-6 rounded-2xl bg-gradient-to-r from-[#0F2A4A] via-[#1E3A5F] to-[#0E7C86] text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-[#0F2A4A] via-[#1E3A5F] to-[#0E7C86] text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-teal-200 text-[10px] font-bold uppercase tracking-wider mb-2">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-teal-200 text-[10px] font-bold uppercase tracking-wider mb-1.5">
                 <Building className="w-3.5 h-3.5" />
                 <span>Directorate Command Center</span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+              <h2 className="text-lg sm:text-2xl font-bold tracking-tight">
                 Academic &amp; Summit Governance
               </h2>
-              <p className="text-xs text-slate-200 mt-1 max-w-xl">
+              <p className="text-xs text-slate-200 mt-1 max-w-xl hidden sm:block">
                 Section-wise governance across <strong>Thamheediyya</strong> (Preparatory) and <strong>Aliya</strong> (Degree), multi-judge score averaging, and house team evaluations.
               </p>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 overflow-x-auto pb-0.5 sm:pb-0">
               <button
                 onClick={() => setActiveTab('students')}
-                className="px-3.5 py-2 rounded-xl bg-white text-[#0F2A4A] hover:bg-slate-100 font-bold text-xs flex items-center gap-1.5 transition shadow-xs"
+                className="px-3 py-2 rounded-xl bg-white text-[#0F2A4A] hover:bg-slate-100 font-bold text-xs flex items-center gap-1.5 transition shadow-xs shrink-0"
                 title="Manage students roster, section/field assignments and bulk import"
               >
                 <Users className="w-4 h-4 text-[#0E7C86]" />
-                <span>Students Directory</span>
+                <span>Students</span>
               </button>
 
               <button
                 onClick={() => setActiveTab('library')}
-                className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 transition border border-white/20"
+                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 transition border border-white/20 shrink-0"
               >
                 <BookOpen className="w-4 h-4 text-teal-300" />
-                <span>Program Library</span>
+                <span>Library</span>
               </button>
 
               <button
                 onClick={() => setActiveTab('programs')}
-                className="px-3.5 py-2 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-400/30 text-white font-bold text-xs flex items-center gap-1.5 transition"
+                className="px-3 py-2 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-400/30 text-white font-bold text-xs flex items-center gap-1.5 transition shrink-0"
               >
                 <Layers className="w-4 h-4" />
-                <span>Assignment Matrix</span>
+                <span>Matrix</span>
               </button>
             </div>
           </div>
 
           {/* 7 KPI Summary Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-3">
             <div
               onClick={() => setActiveTab('students')}
-              className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1 cursor-pointer hover:border-[#0E7C86] hover:shadow-md transition group"
+              className="p-3 sm:p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1 cursor-pointer hover:border-[#0E7C86] hover:shadow-md transition group"
               title="Click to view and manage students directory"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Enrolled Students</span>
-                <span className="text-[9px] font-bold text-[#0E7C86] opacity-0 group-hover:opacity-100 transition">Manage &rarr;</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block truncate">Students</span>
+                <span className="text-[9px] font-bold text-[#0E7C86] opacity-0 group-hover:opacity-100 transition hidden sm:inline">&rarr;</span>
               </div>
-              <div className="text-xl font-bold text-[#0F2A4A] dark:text-white flex items-center gap-1.5">
-                <Users className="w-5 h-5 text-[#0E7C86]" />
+              <div className="text-lg sm:text-xl font-bold text-[#0F2A4A] dark:text-white flex items-center gap-1.5">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-[#0E7C86]" />
                 <span>{totalStudents}</span>
               </div>
-              <span className="text-[10px] text-[#0E7C86] font-semibold">{thamheediyyaStudentsCount} Th. • {aliyaStudentsCount} Al.</span>
+              <span className="text-[10px] text-[#0E7C86] font-semibold block truncate">{thamheediyyaStudentsCount} Th • {aliyaStudentsCount} Al</span>
             </div>
 
-            <div className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">House Teams</span>
-              <div className="text-xl font-bold text-[#0F2A4A] dark:text-white">{totalTeams}</div>
-              <span className="text-[10px] text-slate-400">4 Appointed Leaders</span>
+            <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block truncate">House Teams</span>
+              <div className="text-lg sm:text-xl font-bold text-[#0F2A4A] dark:text-white">{totalTeams}</div>
+              <span className="text-[10px] text-slate-400 block truncate">4 Leaders</span>
             </div>
 
-            <div className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Master Library</span>
-              <div className="text-xl font-bold text-[#0E7C86] font-mono">{libraryProgramsCount}</div>
-              <span className="text-[10px] text-slate-400">Standard Programs</span>
+            <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block truncate">Master Library</span>
+              <div className="text-lg sm:text-xl font-bold text-[#0E7C86] font-mono">{libraryProgramsCount}</div>
+              <span className="text-[10px] text-slate-400 block truncate">Programs</span>
             </div>
 
-            <div className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Scheduled Events</span>
-              <div className="text-xl font-bold text-[#0F2A4A] dark:text-white">{totalPrograms}</div>
-              <span className="text-[10px] text-slate-400">Across 3 Summits</span>
+            <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block truncate">Scheduled</span>
+              <div className="text-lg sm:text-xl font-bold text-[#0F2A4A] dark:text-white">{totalPrograms}</div>
+              <span className="text-[10px] text-slate-400 block truncate">Across 3 Summits</span>
             </div>
 
-            <div className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Completed</span>
-              <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{completedPrograms}</div>
-              <span className="text-[10px] text-slate-400">Evaluated Events</span>
+            <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block truncate">Completed</span>
+              <div className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400">{completedPrograms}</div>
+              <span className="text-[10px] text-slate-400 block truncate">Evaluated Events</span>
             </div>
 
-            <div className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Average Attendance</span>
-              <div className="text-xl font-bold text-[#334E73] dark:text-slate-200 font-mono">{overallAvgAttendance.toFixed(0)}%</div>
-              <span className="text-[10px] text-slate-400">Start / Mid / End</span>
+            <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block truncate">Avg Attendance</span>
+              <div className="text-lg sm:text-xl font-bold text-[#334E73] dark:text-slate-200 font-mono">{overallAvgAttendance.toFixed(0)}%</div>
+              <span className="text-[10px] text-slate-400 block truncate">All Sessions</span>
             </div>
 
-            <div className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Average Mark</span>
-              <div className="text-xl font-bold text-[#0E7C86] font-mono">{overallAvgMark.toFixed(1)}/10</div>
-              <span className="text-[10px] text-slate-400">Standard Metric</span>
+            <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block truncate">Average Mark</span>
+              <div className="text-lg sm:text-xl font-bold text-[#0E7C86] font-mono">{overallAvgMark.toFixed(1)}/10</div>
+              <span className="text-[10px] text-slate-400 block truncate">Standard Metric</span>
             </div>
           </div>
 

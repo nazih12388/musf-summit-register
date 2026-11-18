@@ -139,30 +139,30 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
 
   return (
     <div className="space-y-6">
-      {/* Profile Card Banner */}
+      {/* Student Header Banner */}
       <div 
-        className="p-6 rounded-xl text-white shadow-md relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6"
+        className="p-4 sm:p-6 rounded-2xl text-white shadow-md relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4"
         style={{
           background: `linear-gradient(135deg, ${team?.color || '#0E7C86'} 0%, #0F2A4A 100%)`
         }}
       >
         <div className="space-y-1 relative z-10">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-teal-400/20 text-teal-200 border border-teal-300/30 text-[11px] font-bold uppercase tracking-wider">
+            <span className="px-2.5 py-0.5 rounded-full bg-teal-400/20 text-teal-200 border border-teal-300/30 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
               {sec?.name?.split(' ')[0] || (student?.sectionId === 'aliya' ? 'Aliya' : 'Thamheediyya')} Division
             </span>
           </div>
 
-          <h2 className="text-2xl font-bold tracking-tight">{student?.name}</h2>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{student?.name}</h2>
 
-          <div className="text-xs text-white/80 flex flex-wrap items-center gap-3 pt-1">
+          <div className="text-[11px] sm:text-xs text-white/80 flex flex-wrap items-center gap-2 sm:gap-3 pt-1">
             <span>CIC: <strong className="text-white font-mono">{student?.cicNo}</strong></span>
             <span>•</span>
             <span>Class: <strong className="text-white">{cl?.name}</strong></span>
             <span>•</span>
             <span>House: <strong className="text-white">{team?.name}</strong></span>
-            <span>•</span>
-            <span>House Leader: <strong className="text-white">{leader?.name || 'Assigned'}</strong></span>
+            <span className="hidden sm:inline">•</span>
+            <span className="hidden sm:inline">House Leader: <strong className="text-white">{leader?.name || 'Assigned'}</strong></span>
           </div>
         </div>
 
@@ -179,19 +179,19 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
           </button>
 
           <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
-            <div className="p-2.5 sm:p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[70px] sm:min-w-[90px]">
+            <div className="p-2 sm:p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[64px] sm:min-w-[90px]">
               <span className="text-[9px] sm:text-[10px] uppercase font-bold text-white/70 block">Section</span>
-              <div className="text-base sm:text-lg font-bold text-white font-mono">#{myStanding.sectionRank || 1}</div>
+              <div className="text-sm sm:text-lg font-bold text-white font-mono">#{myStanding.sectionRank || 1}</div>
             </div>
 
-            <div className="p-2.5 sm:p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[70px] sm:min-w-[90px]">
+            <div className="p-2 sm:p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[64px] sm:min-w-[90px]">
               <span className="text-[9px] sm:text-[10px] uppercase font-bold text-white/70 block">Class</span>
-              <div className="text-base sm:text-lg font-bold text-white font-mono">#{myStanding.classRank || 1}</div>
+              <div className="text-sm sm:text-lg font-bold text-white font-mono">#{myStanding.classRank || 1}</div>
             </div>
 
-            <div className="p-2.5 sm:p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[70px] sm:min-w-[90px]">
+            <div className="p-2 sm:p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[64px] sm:min-w-[90px]">
               <span className="text-[9px] sm:text-[10px] uppercase font-bold text-white/70 block">Overall</span>
-              <div className="text-base sm:text-lg font-bold text-amber-300 font-mono">#{myStanding.overallRank || myStanding.rank || 1}</div>
+              <div className="text-sm sm:text-lg font-bold text-amber-300 font-mono">#{myStanding.overallRank || myStanding.rank || 1}</div>
             </div>
           </div>
         </div>
@@ -241,8 +241,85 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
             </div>
           </div>
 
-          {/* Published Results Table */}
-          <div className="bg-white dark:bg-[#0F1B2B] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+          {/* MOBILE EVALUATIONS FEED (Screens < 768px): Zero Horizontal Scroll */}
+          <div className="md:hidden space-y-3">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 px-1">
+              <span>My Official Published Evaluations</span>
+              <span className="text-[11px] text-[#0E7C86] font-mono">
+                Division: {sec?.name?.split(' ')[0] || student?.sectionId}
+              </span>
+            </div>
+
+            {myProgramsList.length === 0 ? (
+              <div className="p-8 text-center bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 italic text-xs">
+                No evaluation records published yet.
+              </div>
+            ) : (
+              myProgramsList.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="p-3.5 bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3 transition"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
+                        {item.program.name}
+                      </h4>
+                      <div className="flex items-center gap-1.5 text-[11px] text-[#0E7C86] font-semibold mt-0.5">
+                        <span>{item.fieldName}</span>
+                        <span>•</span>
+                        <span className="text-slate-400">{item.summitName}</span>
+                      </div>
+                    </div>
+
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      item.isPublished
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                        : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                    }`}>
+                      {item.isPublished ? 'Declared' : 'Scheduled'}
+                    </span>
+                  </div>
+
+                  {item.isPublished ? (
+                    <div className="grid grid-cols-4 gap-1.5 p-2 bg-slate-50 dark:bg-slate-900 rounded-xl text-center text-xs">
+                      <div>
+                        <span className="text-[9px] uppercase font-bold text-slate-400 block">Score</span>
+                        <span className="font-mono font-bold text-[#0E7C86] text-xs">
+                          {item.obtainedMark != null ? `${item.obtainedMark.toFixed(1)}/${item.maxMarks}` : '-'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] uppercase font-bold text-slate-400 block">%</span>
+                        <span className="font-mono font-bold text-xs">
+                          {item.marksPercentage != null ? `${item.marksPercentage.toFixed(0)}%` : '-'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] uppercase font-bold text-slate-400 block">Grade</span>
+                        <span className="font-bold text-xs">
+                          {item.grade || '-'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] uppercase font-bold text-slate-400 block">Position</span>
+                        <span className="font-bold text-xs text-amber-600">
+                          {item.position || '-'}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-xl text-xs text-slate-400 italic">
+                      Scheduled for {item.program.date} at {item.program.stage}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* DESKTOP EVALUATIONS TABLE (Screens >= 768px) */}
+          <div className="hidden md:block bg-white dark:bg-[#0F1B2B] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 font-bold text-xs uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center justify-between">
               <span>My Official Published Evaluations</span>
               <span className="text-[11px] text-[#0E7C86] font-mono">

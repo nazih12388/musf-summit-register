@@ -449,8 +449,100 @@ export const StudentManagement = () => {
         </div>
       )}
 
-      {/* Students Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+      {/* MOBILE STUDENT FEED (Screens < 768px): Zero Horizontal Scroll, Fast Native Layout */}
+      <div className="md:hidden space-y-3">
+        {filteredStudents.length === 0 ? (
+          <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 italic text-xs">
+            No students match current search or filters.
+          </div>
+        ) : (
+          filteredStudents.map(student => {
+            const team = teamsMap[student.teamId];
+            const cl = classesMap[student.classId];
+            const isAliya = student.sectionId === 'aliya' || cl?.sectionId === 'aliya';
+            const field = fieldsMap[student.fieldId];
+
+            return (
+              <div
+                key={student.id}
+                className="p-3.5 bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3 transition"
+              >
+                {/* Header: Name + Leader Badge + House Badge */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                        {student.name}
+                      </h4>
+                      {student.isLeader && (
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                          Leader
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] font-mono text-emerald-700 dark:text-emerald-400 font-semibold mt-0.5">
+                      CIC: {student.cicNo}
+                    </div>
+                  </div>
+
+                  <span
+                    className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white shadow-xs shrink-0"
+                    style={{ backgroundColor: team?.color || '#059669' }}
+                  >
+                    {team?.name || student.teamId}
+                  </span>
+                </div>
+
+                {/* Details Row: Class, Section, Field */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
+                  <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 font-semibold text-slate-700 dark:text-slate-300">
+                    {cl?.name || student.classId}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${
+                    isAliya
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
+                      : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                  }`}>
+                    {isAliya ? 'Aliya' : 'Thamheediyya'}
+                  </span>
+                  {isAliya && field?.name && (
+                    <span className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                      {field.name}
+                    </span>
+                  )}
+                  {student.username && (
+                    <span className="text-[10px] font-mono text-slate-400 ml-auto">
+                      @{student.username}
+                    </span>
+                  )}
+                </div>
+
+                {/* Actions Row */}
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                  <button
+                    onClick={() => setEditingStudent({ ...student })}
+                    className="min-h-[38px] px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
+                  >
+                    <Edit className="w-3.5 h-3.5 text-[#0E7C86]" />
+                    <span>Edit</span>
+                  </button>
+
+                  <button
+                    onClick={() => setDeletingStudentId(student.id)}
+                    className="min-h-[38px] px-3 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 border border-rose-200 dark:border-rose-900/60 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Permanently</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* DESKTOP STUDENTS TABLE (Screens >= 768px) */}
+      <div className="hidden md:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
         <div className="overflow-x-auto max-w-full">
           <table className="w-full text-left text-xs min-w-[680px] sm:min-w-full">
             <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">

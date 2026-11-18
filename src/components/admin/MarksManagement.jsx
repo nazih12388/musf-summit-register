@@ -224,8 +224,116 @@ export const MarksManagement = () => {
         </div>
       )}
 
-      {/* Scoring Table */}
-      <div className="bg-white dark:bg-[#0F1B2B] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+      {/* MOBILE MARKS FEED (Screens < 768px): Zero Horizontal Scroll, Fast Native Layout */}
+      <div className="md:hidden space-y-3">
+        {currentEntries.length === 0 ? (
+          <div className="p-8 text-center bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 italic text-xs">
+            No participants assigned to this program yet.
+          </div>
+        ) : (
+          currentEntries.map(entry => {
+            let participantName = '';
+            let team = teams.find(t => t.id === entry.teamId);
+
+            if (currentProgram.type === 'individual') {
+              const st = students.find(s => s.id === entry.studentId);
+              participantName = st ? st.name : 'Unknown';
+              team = teams.find(t => t.id === st?.teamId) || team;
+            } else {
+              participantName = entry.groupName;
+            }
+
+            const res = currentResults.find(r => r.entryId === entry.id || r.studentId === entry.studentId);
+            const entryMarks = marks.filter(m => m.programId === currentProgram.id && (m.entryId === entry.id || m.studentId === entry.studentId));
+
+            return (
+              <div
+                key={entry.id}
+                className="p-3.5 bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3 transition"
+              >
+                {/* Header: Name + House + Position */}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                      {participantName}
+                    </h4>
+                    <span
+                      className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-xs"
+                      style={{ backgroundColor: team?.color || '#0E7C86' }}
+                    >
+                      {team?.name || 'House'}
+                    </span>
+                  </div>
+
+                  <div className="text-right">
+                    {res?.position ? (
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
+                        res.rank === 1 ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                        res.rank === 2 ? 'bg-slate-200 text-slate-800' :
+                        res.rank === 3 ? 'bg-amber-50 text-amber-900 border border-amber-200' :
+                        'text-slate-600 bg-slate-100 dark:bg-slate-800'
+                      }`}>
+                        {res.position}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 italic">Unranked</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Score Summary Row */}
+                <div className="grid grid-cols-3 gap-2 p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl text-center text-xs">
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Final Mark</span>
+                    <span className="font-mono font-black text-sm text-[#0F2A4A] dark:text-teal-400">
+                      {res ? `${res.finalMark.toFixed(2)}/10` : '-'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Marks %</span>
+                    <span className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200">
+                      {res ? `${res.percentage.toFixed(1)}%` : '-'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Grade</span>
+                    <span className="font-bold text-sm text-slate-800 dark:text-white">
+                      {res?.grade || '-'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Breakdown & Edit Action */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                  <div className="flex flex-wrap gap-1 items-center">
+                    {entryMarks.length === 0 ? (
+                      <span className="text-slate-400 text-[11px] italic">Pending Score Entry</span>
+                    ) : (
+                      entryMarks.map(em => (
+                        <span key={em.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-[#0E7C86] dark:text-teal-300 font-mono text-[11px] font-bold">
+                          <span>{em.marks}/10</span>
+                          <span className="text-[9px] opacity-70">({em.sourceRole || 'judge'})</span>
+                        </span>
+                      ))
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => handleOpenEdit(entryMarks[0], entry, participantName)}
+                    className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 text-[#0E7C86]" />
+                    <span>{entryMarks.length > 0 ? "Edit" : "Enter"}</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* DESKTOP SCORING TABLE (Screens >= 768px) */}
+      <div className="hidden md:block bg-white dark:bg-[#0F1B2B] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[640px] sm:min-w-full">
             <thead className="bg-slate-50 dark:bg-slate-900/60 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">

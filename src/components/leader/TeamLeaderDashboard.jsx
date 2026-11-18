@@ -248,34 +248,27 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
     <div className="space-y-6">
       {/* Team Header Banner */}
       <div 
-        className="p-6 rounded-xl text-white shadow-md relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        className="p-4 sm:p-6 rounded-2xl text-white shadow-md relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
         style={{
           background: `linear-gradient(135deg, #0F2A4A 0%, ${myTeam.color} 100%)`
         }}
       >
         <div className="space-y-1 relative z-10">
           <div className="flex flex-wrap items-center gap-1.5 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-xs font-bold uppercase tracking-wider">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
               <Shield className="w-3.5 h-3.5" />
-              <span>House Command Console</span>
+              <span>House Console</span>
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[11px] font-black uppercase tracking-wider">
+            <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] sm:text-[11px] font-black uppercase tracking-wider">
               {currentUser.leaderRole === 'leader2' ? 'Leader 2' : 'Leader 1'}
-            </span>
-            <span className="px-2 py-0.5 rounded-full bg-white/20 text-[11px] font-semibold text-slate-100">
-              Scope: {currentUser.sectionRestriction === 'all' || !currentUser.sectionRestriction ? 'Full House' : currentUser.sectionRestriction === 'aliya' ? 'Aliya Only' : 'Thamheediyya Only'}
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
             <span>{myTeam.name}</span>
           </h2>
-          <p className="text-xs text-slate-200">
-            Active Leader: <strong>{currentUser.name}</strong> • 
-            {(() => {
-              const coLeader = students.find(s => s.teamId === myTeam.id && s.isLeader && s.id !== currentUser.id);
-              return coLeader ? ` Co-Leader: ${coLeader.name} (${coLeader.leaderRole === 'leader2' ? 'Leader 2' : 'Leader 1'}) • ` : ' ';
-            })()}
-            Enrolled House Members: <strong>{myMembers.length} Students</strong>
+          <p className="text-[11px] sm:text-xs text-slate-200">
+            Leader: <strong>{currentUser.name}</strong> • 
+            Members: <strong>{myMembers.length} Students</strong>
           </p>
         </div>
 

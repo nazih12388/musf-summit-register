@@ -316,8 +316,135 @@ export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null })
         )}
       </div>
 
-      {/* Attendance Table */}
-      <div className="bg-white dark:bg-[#0F1B2B] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+      {/* MOBILE ATTENDANCE FEED (Screens < 768px): Zero Horizontal Scroll, Fast Native Touch Toggles */}
+      <div className="md:hidden space-y-3">
+        {targetStudents.length === 0 ? (
+          <div className="p-8 text-center bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 italic text-xs">
+            No students match your search or filter.
+          </div>
+        ) : (
+          targetStudents.map((student, idx) => {
+            const team = teams.find(t => t.id === student.teamId);
+            const cl = classes.find(c => c.id === student.classId);
+            const attData = studentAttendanceMap[student.id];
+            const summitAttPct = attData?.summitStats?.[selectedSummitId]?.percentage || 0;
+            const overallAttPct = attData?.percentage || 0;
+            const isLow = attData?.isLowAttendance;
+            const currentStatus = statusMap[student.id] || 'Present';
+
+            return (
+              <div
+                key={student.id}
+                className="p-3.5 bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3 transition"
+              >
+                {/* Header: Index + Avatar + Name + CIC + Class & House */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </span>
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-xs"
+                      style={{ backgroundColor: team?.color || '#0E7C86' }}
+                    >
+                      {student.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                        {student.name}
+                      </h4>
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
+                        <span className="font-mono text-emerald-700 dark:text-emerald-400 font-semibold">CIC: {student.cicNo}</span>
+                        <span>•</span>
+                        <span>{cl?.name || student.classId}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span
+                      className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-xs"
+                      style={{ backgroundColor: team?.color || '#0E7C86' }}
+                    >
+                      {team?.name || 'House'}
+                    </span>
+                    <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
+                      isLow ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                    }`}>
+                      {overallAttPct.toFixed(0)}% Att.
+                    </span>
+                  </div>
+                </div>
+
+                {/* Status Toggles Bar: Full width 4 buttons, min 44px tap target */}
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center justify-between">
+                    <span>Mark for {selectedSession} Session:</span>
+                    <span className="font-mono text-[#0E7C86]">Summit: {summitAttPct.toFixed(0)}%</span>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange(student.id, 'Present')}
+                      className={`min-h-[44px] py-2 px-1 rounded-xl text-xs font-black transition flex flex-col items-center justify-center shadow-xs cursor-pointer active:scale-95 ${
+                        currentStatus === 'Present'
+                          ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 dark:ring-emerald-800'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-emerald-50 hover:text-emerald-700'
+                      }`}
+                    >
+                      <span className="text-sm leading-none">P</span>
+                      <span className="text-[9px] font-medium leading-tight">Present</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange(student.id, 'Absent')}
+                      className={`min-h-[44px] py-2 px-1 rounded-xl text-xs font-black transition flex flex-col items-center justify-center shadow-xs cursor-pointer active:scale-95 ${
+                        currentStatus === 'Absent'
+                          ? 'bg-rose-600 text-white ring-2 ring-rose-300 dark:ring-rose-800'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-rose-50 hover:text-rose-700'
+                      }`}
+                    >
+                      <span className="text-sm leading-none">A</span>
+                      <span className="text-[9px] font-medium leading-tight">Absent</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange(student.id, 'Late')}
+                      className={`min-h-[44px] py-2 px-1 rounded-xl text-xs font-black transition flex flex-col items-center justify-center shadow-xs cursor-pointer active:scale-95 ${
+                        currentStatus === 'Late'
+                          ? 'bg-amber-600 text-white ring-2 ring-amber-300 dark:ring-amber-800'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-amber-50 hover:text-amber-700'
+                      }`}
+                    >
+                      <span className="text-sm leading-none">L</span>
+                      <span className="text-[9px] font-medium leading-tight">Late</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange(student.id, 'Excused')}
+                      className={`min-h-[44px] py-2 px-1 rounded-xl text-xs font-black transition flex flex-col items-center justify-center shadow-xs cursor-pointer active:scale-95 ${
+                        currentStatus === 'Excused'
+                          ? 'bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-800'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-blue-50 hover:text-blue-700'
+                      }`}
+                    >
+                      <span className="text-sm leading-none">E</span>
+                      <span className="text-[9px] font-medium leading-tight">Excused</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* DESKTOP ATTENDANCE TABLE (Screens >= 768px) */}
+      <div className="hidden md:block bg-white dark:bg-[#0F1B2B] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
         <div className="overflow-x-auto max-w-full">
           <table className="w-full text-left text-xs min-w-[620px] sm:min-w-full">
             <thead className="bg-slate-50 dark:bg-slate-900/60 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 text-[11px]">
