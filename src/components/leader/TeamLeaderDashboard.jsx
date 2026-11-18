@@ -443,14 +443,16 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${
-                activeNominationSummit.registrationLocked
-                  ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
-                  : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-              }`}>
-                {activeNominationSummit.registrationLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
-                <span>{activeNominationSummit.registrationLocked ? 'Registration Locked by Admin' : 'Nomination Window Open'}</span>
-              </span>
+              {activeNominationSummit && (
+                <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+                  activeNominationSummit.registrationLocked
+                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                    : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                }`}>
+                  {activeNominationSummit.registrationLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                  <span>{activeNominationSummit.registrationLocked ? 'Registration Locked by Admin' : 'Nomination Window Open'}</span>
+                </span>
+              )}
             </div>
           </div>
 

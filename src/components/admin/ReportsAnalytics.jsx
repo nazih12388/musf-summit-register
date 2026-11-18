@@ -823,25 +823,33 @@ export const ReportsAnalytics = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {comprehensiveData.summitBreakdown.map(sm => (
-                        <tr key={sm.summitId} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                          <td className="p-2.5 font-bold text-[#0F2A4A] dark:text-white">
-                            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-mono mr-1.5">
-                              Summit {sm.runningNumber}
-                            </span>
-                            {sm.name}
+                      {comprehensiveData.summitBreakdown.length === 0 ? (
+                        <tr>
+                          <td colSpan={5 + comprehensiveData.teamReports.length} className="p-8 text-center text-slate-400">
+                            No summits scheduled in this academic period.
                           </td>
-                          <td className="p-2.5 text-slate-500">{sm.date}</td>
-                          <td className="p-2.5 text-slate-500">{sm.venue}</td>
-                          <td className="p-2.5 font-semibold">{sm.programsCount}</td>
-                          <td className="p-2.5 font-semibold">{sm.participantsCount}</td>
-                          {comprehensiveData.teamReports.map(t => (
-                            <td key={t.teamId} className="p-2.5 text-center font-bold text-[#0E7C86]">
-                              {sm.teamTotals[t.teamId] ? sm.teamTotals[t.teamId].toFixed(1) : '-'}
-                            </td>
-                          ))}
                         </tr>
-                      ))}
+                      ) : (
+                        comprehensiveData.summitBreakdown.map(sm => (
+                          <tr key={sm.summitId} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                            <td className="p-2.5 font-bold text-[#0F2A4A] dark:text-white">
+                              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-mono mr-1.5">
+                                Summit {sm.runningNumber}
+                              </span>
+                              {sm.name}
+                            </td>
+                            <td className="p-2.5 text-slate-500">{sm.date}</td>
+                            <td className="p-2.5 text-slate-500">{sm.venue}</td>
+                            <td className="p-2.5 font-semibold">{sm.programsCount}</td>
+                            <td className="p-2.5 font-semibold">{sm.participantsCount}</td>
+                            {comprehensiveData.teamReports.map(t => (
+                              <td key={t.teamId} className="p-2.5 text-center font-bold text-[#0E7C86]">
+                                {sm.teamTotals[t.teamId] ? sm.teamTotals[t.teamId].toFixed(1) : '-'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>

@@ -759,6 +759,24 @@ export const ProgramManagement = () => {
     );
   }
 
+  if (!activeSummit) {
+    return (
+      <div className="p-8 sm:p-12 text-center rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-[#0E7C86] flex items-center justify-center mx-auto shadow-xs">
+          <Calendar className="w-8 h-8" />
+        </div>
+        <div className="space-y-1">
+          <h3 className="text-lg font-bold text-[#0F2A4A] dark:text-white">
+            No Active Summits Scheduled
+          </h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            There are currently no summits scheduled. Go to the Summits &amp; Sessions page to schedule a summit before assigning programs.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* 1. Summit Selector & Control Header */}

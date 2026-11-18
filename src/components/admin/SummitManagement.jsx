@@ -33,6 +33,7 @@ export const SummitManagement = () => {
     bulkCreateAcademicYearSummits,
     updateSummit,
     deleteSummit,
+    purgeEmptyPlannedSummits,
     toggleSummitRegistrationLock
   } = useApp();
   const { currentUser } = useAuth();
@@ -204,6 +205,22 @@ export const SummitManagement = () => {
             <span>Bulk Weekly Create</span>
           </button>
 
+          {summits.some(s => s.status === 'planned' && programs.filter(p => p.summitId === s.id).length === 0) && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm("Remove all planned summits that have no scheduled programs?")) {
+                  purgeEmptyPlannedSummits(currentUser?.username);
+                }
+              }}
+              className="min-h-[44px] py-2.5 px-3.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition border border-rose-200 dark:border-rose-800 active:scale-98"
+              title="Remove empty planned summits"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Remove Planned Summits</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setIsAddOpen(true)}
@@ -277,6 +294,24 @@ export const SummitManagement = () => {
 
       {/* Summits Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredSummits.length === 0 && (
+          <div className="col-span-full p-12 text-center rounded-2xl bg-white dark:bg-[#0F1B2B] border border-dashed border-slate-200 dark:border-slate-800 space-y-3">
+            <Calendar className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+            <h4 className="text-base font-bold text-slate-700 dark:text-slate-300">No Scheduled Summits</h4>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              Create a new summit gathering or generate a schedule to start assigning programs.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsAddOpen(true)}
+              className="py-2.5 px-4 rounded-xl bg-[#0E7C86] text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create Summit</span>
+            </button>
+          </div>
+        )}
+
         {filteredSummits.map(summit => {
           const summitPrograms = programs.filter(p => p.summitId === summit.id);
           const summitEntries = entries.filter(e => summitPrograms.some(p => p.id === e.programId));

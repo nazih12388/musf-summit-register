@@ -45,6 +45,15 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     try {
       const oldKeys = [
+        'musf_summit_programs_v4',
+        'musf_summit_summits_v4',
+        'musf_summit_students_v4',
+        'musf_summit_archived_students_v4',
+        'musf_summit_entries_v4',
+        'musf_summit_marks_v4',
+        'musf_summit_attendance_v4',
+        'musf_summit_certificates_v4',
+        'musf_summit_teams_v4',
         'musf_summit_programs_v3',
         'musf_summit_summits_v3',
         'musf_summit_students_v3',
@@ -157,8 +166,23 @@ export const AppProvider = ({ children }) => {
       }
     });
     const unsubSummits = subscribeToCloud('summits', (cloudSummits) => {
-      if (Array.isArray(cloudSummits) && cloudSummits.length > 0) {
-        setSummits(cloudSummits);
+      if (Array.isArray(cloudSummits)) {
+        const cleaned = cloudSummits.filter(s => {
+          const isDemo = s.id?.startsWith('summit_jun_') ||
+            s.id?.startsWith('summit_jul_') ||
+            s.id?.startsWith('summit_aug_') ||
+            s.id?.startsWith('summit_sep_') ||
+            s.id?.startsWith('summit_oct_') ||
+            s.id?.startsWith('summit_nov_') ||
+            s.id?.startsWith('summit_dec_') ||
+            s.id?.startsWith('summit_jan_') ||
+            s.id?.startsWith('summit_feb_') ||
+            s.id?.startsWith('summit_mar_') ||
+            s.id?.startsWith('summit_apr_') ||
+            s.id?.startsWith('summit_may_');
+          return !isDemo;
+        });
+        setSummits(cleaned);
       }
     });
     const unsubJudges = subscribeToCloud('judges', (cloudJudges) => {
@@ -297,12 +321,24 @@ export const AppProvider = ({ children }) => {
       return changed ? updated : prev;
     });
 
-    // 4. Migrate to Weekly Summits (12 Months Academic Year)
+    // 4. Remove any demo dummy planned summits
     setSummits(prev => {
-      if (!prev || prev.length === 0) {
-        return INITIAL_SUMMITS;
-      }
-      return prev;
+      if (!Array.isArray(prev)) return [];
+      return prev.filter(s => {
+        const isDemo = s.id?.startsWith('summit_jun_') ||
+          s.id?.startsWith('summit_jul_') ||
+          s.id?.startsWith('summit_aug_') ||
+          s.id?.startsWith('summit_sep_') ||
+          s.id?.startsWith('summit_oct_') ||
+          s.id?.startsWith('summit_nov_') ||
+          s.id?.startsWith('summit_dec_') ||
+          s.id?.startsWith('summit_jan_') ||
+          s.id?.startsWith('summit_feb_') ||
+          s.id?.startsWith('summit_mar_') ||
+          s.id?.startsWith('summit_apr_') ||
+          s.id?.startsWith('summit_may_');
+        return !isDemo;
+      });
     });
   }, []);
 
@@ -1943,6 +1979,29 @@ export const AppProvider = ({ children }) => {
     addAuditLog(actor, 'DELETE_SUMMIT', `Deleted summit: ${s?.name || id}`);
   };
 
+  const purgeEmptyPlannedSummits = (actor) => {
+    setSummits(prev => {
+      const remaining = prev.filter(s => {
+        const hasPrograms = programs.some(p => p.summitId === s.id);
+        const isDemo = s.id?.startsWith('summit_jun_') ||
+          s.id?.startsWith('summit_jul_') ||
+          s.id?.startsWith('summit_aug_') ||
+          s.id?.startsWith('summit_sep_') ||
+          s.id?.startsWith('summit_oct_') ||
+          s.id?.startsWith('summit_nov_') ||
+          s.id?.startsWith('summit_dec_') ||
+          s.id?.startsWith('summit_jan_') ||
+          s.id?.startsWith('summit_feb_') ||
+          s.id?.startsWith('summit_mar_') ||
+          s.id?.startsWith('summit_apr_') ||
+          s.id?.startsWith('summit_may_');
+        return hasPrograms && !isDemo;
+      });
+      return remaining;
+    });
+    addAuditLog(actor, 'PURGE_SUMMITS', 'Removed empty planned summits');
+  };
+
   const addCategory = (name, actor) => {
     if (!categories.includes(name)) {
       setCategories(prev => [...prev, name]);
@@ -2464,6 +2523,7 @@ export const AppProvider = ({ children }) => {
       bulkCreateAcademicYearSummits,
       updateSummit,
       deleteSummit,
+      purgeEmptyPlannedSummits,
       getSummitRunningInfo,
       formatMonthLabel,
       computeComprehensiveReport,
