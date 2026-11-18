@@ -284,81 +284,12 @@ export const INITIAL_MARKS = [];
 export const INITIAL_ATTENDANCE = [];
 
 // 12. NOTICES
-export const INITIAL_NOTICES = [
-  {
-    id: 'n1',
-    title: 'Announcement: Weekly Academic Summit Calendar (October & November 2026)',
-    message: 'The College Directorate announces weekly academic summits every Friday across October and November 2026 for Thamheediyya (Preparatory) and Aliya (Degree) sections.',
-    audience: 'all',
-    author: 'Prof. Abdurrahman Wafy',
-    date: '2026-10-01',
-    publishTime: '2026-10-01T09:00:00Z',
-    status: 'published',
-    pinned: true,
-    readBy: ['s1', 's2', 's3', 's6', 's11', 's16']
-  },
-  {
-    id: 'n2',
-    title: 'Aliya House Team Program Assignment Matrix Released',
-    message: 'The summit assignment matrix for Aliya Communicative and Creative programs has been finalized. Team leaders may nominate members up to the allocated slot limits.',
-    audience: 'leaders',
-    author: 'Academic Evaluation Cell',
-    date: '2026-10-15',
-    publishTime: '2026-10-15T08:30:00Z',
-    status: 'published',
-    pinned: false,
-    readBy: ['s1', 's6', 's11', 's16']
-  }
-];
+export const INITIAL_NOTICES = [];
 
-// 13. NOTIFICATIONS
-export const INITIAL_NOTIFICATIONS = [
-  {
-    id: 'notif-1',
-    userId: 's1',
-    title: 'Result Declared: October Summit 1 Calligraphy',
-    message: 'Results for Arabic Calligraphy & Orthography have been published. You secured 1st position with 9.6/10 (Grade A).',
-    type: 'result',
-    read: false,
-    timestamp: '2026-10-02T12:00:00Z'
-  },
-  {
-    id: 'notif-2',
-    userId: 's1',
-    title: 'Nomination Window Open for November Summit 4',
-    message: 'Registration window is open for November Summit 4 programs. Please ensure team member slots are filled.',
-    type: 'assignment',
-    read: true,
-    timestamp: '2026-11-20T09:00:00Z'
-  }
-];
+export const INITIAL_NOTIFICATIONS = [];
 
-// 14. AUDIT LOGS
-export const INITIAL_AUDIT_LOGS = [
-  {
-    id: 'al-1',
-    actor: 'admin (Prof. Abdurrahman)',
-    action: 'CONFIGURE_SECTIONS',
-    details: 'Configured Section divisions: Thamheediyya (Class 1-2) and Aliya (Class 3-5)',
-    timestamp: '2026-09-01T08:00:00Z'
-  },
-  {
-    id: 'al-2',
-    actor: 'admin (Prof. Abdurrahman)',
-    action: 'BULK_CREATE_SUMMITS',
-    details: 'Bulk-created 4 weekly summits for October 2026 and 4 weekly summits for November 2026',
-    timestamp: '2026-09-25T10:00:00Z'
-  },
-  {
-    id: 'al-3',
-    actor: 'admin (Prof. Abdurrahman)',
-    action: 'PUBLISH_RESULTS',
-    details: 'Published results for November Summit 3 Research Colloquium & Seminar',
-    timestamp: '2026-11-20T18:00:00Z'
-  }
-];
+export const INITIAL_AUDIT_LOGS = [];
 
-// 15. SETTINGS
 export const INITIAL_SETTINGS = {
   collegeName: 'Majlis Umariyya Wafy College',
   appTitle: 'MUSF Summit Register',

@@ -91,6 +91,29 @@ export const AppProvider = ({ children }) => {
         'musf_summit_current_user_v2'
       ];
       oldKeys.forEach(k => localStorage.removeItem(k));
+
+      // Clean fake notifications, notices & audit logs from storage
+      try {
+        const rawNotifs = JSON.parse(localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS) || '[]');
+        if (Array.isArray(rawNotifs)) {
+          const cleaned = rawNotifs.filter(n => n.id !== 'notif-1' && n.id !== 'notif-2' && !n.title?.includes('October Summit 1 Calligraphy'));
+          localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(cleaned));
+        }
+      } catch {}
+      try {
+        const rawNotices = JSON.parse(localStorage.getItem(STORAGE_KEYS.NOTICES) || '[]');
+        if (Array.isArray(rawNotices)) {
+          const cleaned = rawNotices.filter(n => n.id !== 'n1' && n.id !== 'n2');
+          localStorage.setItem(STORAGE_KEYS.NOTICES, JSON.stringify(cleaned));
+        }
+      } catch {}
+      try {
+        const rawAudit = JSON.parse(localStorage.getItem(STORAGE_KEYS.AUDIT_LOGS) || '[]');
+        if (Array.isArray(rawAudit)) {
+          const cleaned = rawAudit.filter(a => a.id !== 'al-1' && a.id !== 'al-2' && a.id !== 'al-3');
+          localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(cleaned));
+        }
+      } catch {}
     } catch {}
   }, []);
 
@@ -110,9 +133,9 @@ export const AppProvider = ({ children }) => {
   const [entries, setEntries] = useState(() => safeParseArray(STORAGE_KEYS.ENTRIES, INITIAL_ENTRIES));
   const [marks, setMarks] = useState(() => safeParseArray(STORAGE_KEYS.MARKS, INITIAL_MARKS));
   const [attendance, setAttendance] = useState(() => safeParseArray(STORAGE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE));
-  const [notices, setNotices] = useState(() => safeParseArray(STORAGE_KEYS.NOTICES, INITIAL_NOTICES));
-  const [notifications, setNotifications] = useState(() => safeParseArray(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS));
-  const [auditLogs, setAuditLogs] = useState(() => safeParseArray(STORAGE_KEYS.AUDIT_LOGS, INITIAL_AUDIT_LOGS));
+  const [notices, setNotices] = useState(() => safeParseArray(STORAGE_KEYS.NOTICES, INITIAL_NOTICES).filter(n => n.id !== 'n1' && n.id !== 'n2'));
+  const [notifications, setNotifications] = useState(() => safeParseArray(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS).filter(n => n.id !== 'notif-1' && n.id !== 'notif-2' && !n.title?.includes('October Summit 1 Calligraphy')));
+  const [auditLogs, setAuditLogs] = useState(() => safeParseArray(STORAGE_KEYS.AUDIT_LOGS, INITIAL_AUDIT_LOGS).filter(a => a.id !== 'al-1' && a.id !== 'al-2' && a.id !== 'al-3'));
 
   const [settings, setSettings] = useState(() => {
     try {
