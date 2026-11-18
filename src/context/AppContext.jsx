@@ -1547,6 +1547,9 @@ export const AppProvider = ({ children }) => {
 
   const updateTeam = (id, updates, actor) => {
     setTeams(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    if (updates.name) {
+      setStudents(prev => prev.map(s => s.teamId === id ? { ...s, teamName: updates.name } : s));
+    }
     addAuditLog(actor, 'UPDATE_TEAM', `Updated team ${id}: ${Object.keys(updates).join(', ')}`);
   };
 
