@@ -387,199 +387,20 @@ export const JudgeDashboard = ({ activeTab, setActiveTab }) => {
             </div>
           )}
 
-          {/* 1. MOBILE SCORING CARDS (Optimized for Phone Screens < 768px) */}
+          {/* UNIFIED SCORING TABLE (Single Compact View across Phone & Desktop - No Floating Cards) */}
           {currentProgram && (
-            <div className="md:hidden space-y-3">
-              {currentEntries.length === 0 ? (
-                <div className="p-8 text-center bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 italic">
-                  No student participants found matching your selection.
-                </div>
-              ) : (
-                currentEntries.map((entry, index) => {
-                  const st = (students || []).find(s => s.id === entry.studentId);
-                  const cl = classesMap?.[st?.classId] || (classes || []).find(c => c.id === st?.classId);
-                  const tm = teamsMap?.[entry.teamId || st?.teamId] || (teams || []).find(t => t.id === (entry.teamId || st?.teamId));
-                  const fld = fieldsMap?.[st?.fieldId] || (fields || []).find(f => f.id === st?.fieldId);
-                  const isGroup = Boolean(entry.groupName || (entry.memberIds && entry.memberIds.length > 0));
-
-                  const val = marksState[entry.id] || '';
-                  const gradeInfo = getGradeInfo(val);
-                  const hasSubmitted = (marks || []).some(
-                    m => m.programId === selectedProgramId &&
-                      (m.entryId === entry.id || m.studentId === entry.studentId) &&
-                      m.enteredBy === currentUser?.id
-                  );
-                  const isRowSaved = Boolean(savedRowIds[entry.id]);
-
-                  return (
-                    <div
-                      key={`mob_${entry.id}`}
-                      className="p-4 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3"
-                    >
-                      {/* Top Row: #, Avatar, Name & Status */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2.5">
-                          <span className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono font-bold text-xs flex items-center justify-center shrink-0">
-                            {index + 1}
-                          </span>
-                          {!isGroup && (
-                            <div
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-xs"
-                              style={{ backgroundColor: tm?.color || '#0E7C86' }}
-                            >
-                              {st?.name ? st.name.charAt(0).toUpperCase() : 'S'}
-                            </div>
-                          )}
-                          <div>
-                            <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-tight">
-                              {isGroup ? (entry.groupName || 'Group Performance') : (st?.name || 'Student Name')}
-                            </h4>
-                            <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-mono font-semibold flex items-center gap-1 mt-0.5">
-                              <GraduationCap className="w-3.5 h-3.5" />
-                              <span>CIC: {st?.cicNo || 'WAFY-ID'}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                          hasSubmitted
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                        }`}>
-                          {hasSubmitted ? `Evaluated (${val}/10)` : 'Pending'}
-                        </span>
-                      </div>
-
-                      {/* Group Members List if group */}
-                      {isGroup && entry.memberIds && entry.memberIds.length > 0 && (
-                        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs space-y-1">
-                          <div className="text-[10px] uppercase font-bold text-slate-400">Team Members:</div>
-                          {entry.memberIds.map(mId => {
-                            const mem = (students || []).find(s => s.id === mId);
-                            const memClass = classesMap?.[mem?.classId]?.name || mem?.classId;
-                            return (
-                              <div key={mId} className="flex items-center justify-between text-[11px]">
-                                <span className="font-semibold text-slate-800 dark:text-slate-200">{mem?.name}</span>
-                                <span className="font-mono text-emerald-700 dark:text-emerald-400">({mem?.cicNo})</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Class, House Team, and Field Chips */}
-                      <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                        <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold">
-                          {cl?.name || st?.classId || 'Class'}
-                        </span>
-                        <span
-                          className="px-2 py-0.5 rounded-md text-white font-bold"
-                          style={{ backgroundColor: tm?.color || '#0E7C86' }}
-                        >
-                          {tm?.name || 'House Team'}
-                        </span>
-                        {fld?.name && (
-                          <span className="px-2 py-0.5 rounded-md bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 font-semibold">
-                            {fld.name}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Score Input & Quick Presets Box */}
-                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-xs text-slate-700 dark:text-slate-300">
-                            Enter Score (0.0 to 10.0):
-                          </span>
-                          {gradeInfo && (
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${gradeInfo.color}`}>
-                              {gradeInfo.text}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            max="10"
-                            disabled={isLocked}
-                            value={val}
-                            onChange={(e) => handleMarkChange(entry.id, e.target.value)}
-                            placeholder="0.0 - 10.0"
-                            className="flex-1 p-2 font-mono font-bold text-center text-base rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white disabled:opacity-50 focus:ring-2 focus:ring-[#0E7C86]"
-                          />
-                          <span className="font-bold text-sm text-slate-400">/ 10</span>
-                        </div>
-
-                        {/* Quick Presets */}
-                        {!isLocked && (
-                          <div className="flex items-center gap-1.5 flex-wrap justify-center pt-1">
-                            {['7.0', '7.5', '8.0', '8.5', '9.0', '9.5', '10.0'].map(preset => (
-                              <button
-                                key={preset}
-                                type="button"
-                                onClick={() => handleMarkChange(entry.id, preset)}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ${
-                                  val === preset
-                                    ? 'bg-[#0E7C86] text-white shadow-xs'
-                                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
-                                }`}
-                              >
-                                {preset}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Save Action Button */}
-                      {!isLocked && (
-                        <button
-                          onClick={() => handleSaveIndividualMark(entry)}
-                          disabled={val === '' || val == null}
-                          className={`w-full py-2.5 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs ${
-                            isRowSaved
-                              ? 'bg-emerald-600 text-white'
-                              : val === '' || val == null
-                              ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
-                              : 'bg-[#0E7C86] hover:bg-teal-700 text-white'
-                          }`}
-                        >
-                          {isRowSaved ? (
-                            <>
-                              <Check className="w-4 h-4" />
-                              <span>Score Saved Successfully</span>
-                            </>
-                          ) : (
-                            <>
-                              <Save className="w-4 h-4" />
-                              <span>Save Mark for {st?.name?.split(' ')[0] || 'Student'}</span>
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
-
-          {/* 2. DESKTOP SCORING TABLE (Shown on screens md and up) */}
-          {currentProgram && (
-            <div className="hidden md:block bg-white dark:bg-[#0F1B2B] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+            <div className="bg-white dark:bg-[#0F1B2B] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-slate-900 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <thead className="bg-slate-50 dark:bg-slate-900 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 text-[11px]">
                   <tr>
-                    <th className="py-3 px-4 w-12 text-center">#</th>
-                    <th className="py-3 px-4">Student Participant (Name &amp; CIC No)</th>
-                    <th className="py-3 px-4">Class &amp; Section</th>
-                    <th className="py-3 px-4">House Team &amp; Field</th>
-                    <th className="py-3 px-4 text-center w-52">Score (0.0 to 10.0)</th>
-                    <th className="py-3 px-4 text-center">Grade &amp; Status</th>
-                    {!isLocked && <th className="py-3 px-4 text-right">Action</th>}
+                    <th className="py-2.5 px-3 w-10 text-center">#</th>
+                    <th className="py-2.5 px-3 sm:px-4">Student Participant (Name &amp; CIC No)</th>
+                    <th className="hidden sm:table-cell py-2.5 px-3">Class &amp; Section</th>
+                    <th className="hidden md:table-cell py-2.5 px-3">House Team &amp; Field</th>
+                    <th className="py-2.5 px-3 text-center min-w-[130px] sm:min-w-[190px]">Score (0.0 to 10.0)</th>
+                    <th className="py-2.5 px-3 text-center">Grade &amp; Status</th>
+                    {!isLocked && <th className="py-2.5 px-3 text-right">Action</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -613,10 +434,10 @@ export const JudgeDashboard = ({ activeTab, setActiveTab }) => {
                           </td>
 
                           {/* Student Name & CIC Number Details */}
-                          <td className="py-3 px-4">
+                          <td className="py-2.5 px-3 sm:px-4">
                             {isGroup ? (
                               <div className="space-y-1">
-                                <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 text-xs sm:text-sm">
                                   <Users className="w-4 h-4 text-[#0E7C86]" />
                                   <span>{entry.groupName || 'Group Performance'}</span>
                                 </div>
@@ -637,20 +458,31 @@ export const JudgeDashboard = ({ activeTab, setActiveTab }) => {
                                 )}
                               </div>
                             ) : (
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2.5 sm:gap-3">
                                 <div
-                                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-xs"
+                                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-xs"
                                   style={{ backgroundColor: tm?.color || '#0E7C86' }}
                                 >
                                   {st?.name ? st.name.charAt(0).toUpperCase() : 'S'}
                                 </div>
                                 <div>
-                                  <div className="font-bold text-sm text-slate-900 dark:text-white">
+                                  <div className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
                                     {st?.name || 'Student Name'}
                                   </div>
-                                  <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-mono font-semibold flex items-center gap-1 mt-0.5">
-                                    <GraduationCap className="w-3.5 h-3.5" />
-                                    <span>CIC: {st?.cicNo || 'WAFY-ID'}</span>
+                                  <div className="text-[10px] sm:text-[11px] text-emerald-700 dark:text-emerald-400 font-mono font-semibold flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                    <span className="flex items-center gap-1">
+                                      <GraduationCap className="w-3.5 h-3.5" />
+                                      <span>CIC: {st?.cicNo || 'WAFY-ID'}</span>
+                                    </span>
+                                    <span
+                                      className="sm:hidden font-sans font-bold text-white px-2 py-0.2 rounded-full text-[9px]"
+                                      style={{ backgroundColor: tm?.color || '#0E7C86' }}
+                                    >
+                                      {tm?.name || 'House'}
+                                    </span>
+                                    <span className="sm:hidden text-slate-400 font-sans text-[10px]">
+                                      • {cl?.name || st?.classId}
+                                    </span>
                                   </div>
                                 </div>
                               </div>
@@ -658,7 +490,7 @@ export const JudgeDashboard = ({ activeTab, setActiveTab }) => {
                           </td>
 
                           {/* Class & Academic Section */}
-                          <td className="py-3 px-4">
+                          <td className="hidden sm:table-cell py-2.5 px-3">
                             <div className="font-semibold text-slate-800 dark:text-slate-200">
                               {cl?.name || st?.classId || 'Wafy Class'}
                             </div>
@@ -668,7 +500,7 @@ export const JudgeDashboard = ({ activeTab, setActiveTab }) => {
                           </td>
 
                           {/* House Team & Field */}
-                          <td className="py-3 px-4">
+                          <td className="hidden md:table-cell py-2.5 px-3">
                             <div className="space-y-1">
                               <span
                                 className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-white shadow-xs"
@@ -778,6 +610,7 @@ export const JudgeDashboard = ({ activeTab, setActiveTab }) => {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </div>
