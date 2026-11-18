@@ -10,6 +10,7 @@ import { TeamLeaderDashboard } from './components/leader/TeamLeaderDashboard';
 import { JudgeDashboard } from './components/judge/JudgeDashboard';
 import { StudentDashboard } from './components/student/StudentDashboard';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { SplashScreen } from './components/common/SplashScreen';
 
 export function AppContent() {
   const { currentUser } = useAuth();
@@ -58,11 +59,16 @@ export function AppContent() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
+  // Opening Splash Animation State (plays on app launch)
+  const [showSplash, setShowSplash] = useState(true);
+
   // Mobile Drawer State
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   return (
     <>
+      {showSplash && <SplashScreen onFinished={() => setShowSplash(false)} />}
+
       {!currentUser ? (
         <LoginPage isDark={isDark} setIsDark={setIsDark} />
       ) : (

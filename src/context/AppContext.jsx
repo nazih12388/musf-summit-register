@@ -1439,8 +1439,8 @@ export const AppProvider = ({ children }) => {
 
   // STUDENTS CRUD
   const addStudent = async (studentData, actor) => {
-    const newId = 's' + (students.length + archivedStudents.length + 1);
-    const password = studentData.password || studentData.cicNo;
+    const newId = 's_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const password = studentData.password || studentData.cicNo || 'student123';
     const passwordHash = await hashPassword(password);
     const chestNo = studentData.chestNo || `C-${100 + students.length + 1}`;
 
@@ -1462,7 +1462,8 @@ export const AppProvider = ({ children }) => {
       isLeader: false
     };
 
-    setStudents(prev => [...prev, newStudent]);
+    // Prepend so newly added student immediately appears at the top of the list
+    setStudents(prev => [newStudent, ...prev]);
     addAuditLog(actor, 'ADD_STUDENT', `Added student ${newStudent.name} (${newStudent.cicNo})`);
     return newStudent;
   };
@@ -1508,7 +1509,7 @@ export const AppProvider = ({ children }) => {
     const imported = [];
     for (let i = 0; i < list.length; i++) {
       const item = list[i];
-      const newId = 's' + (students.length + archivedStudents.length + imported.length + 1);
+      const newId = 's_' + Date.now() + '_' + i + '_' + Math.floor(Math.random() * 1000);
       // Student password defaults directly to their CIC number as requested
       const studentPass = item.password || item.cicNo;
       const passwordHash = await hashPassword(studentPass);
@@ -1531,7 +1532,7 @@ export const AppProvider = ({ children }) => {
       });
     }
 
-    setStudents(prev => [...prev, ...imported]);
+    setStudents(prev => [...imported, ...prev]);
     addAuditLog(actor, 'BULK_IMPORT_STUDENTS', `Imported ${imported.length} students via sheet (passwords set to CIC Number)`);
     return imported;
   };

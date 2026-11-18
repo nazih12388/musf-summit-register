@@ -60,6 +60,8 @@ export const StudentManagement = () => {
   const [selectedTeam, setSelectedTeam] = useState('all');
   const [selectedField, setSelectedField] = useState('all');
   const [showArchived, setShowArchived] = useState(false);
+  const [recentlyAddedId, setRecentlyAddedId] = useState(null);
+  const [toastMsg, setToastMsg] = useState('');
 
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -131,8 +133,24 @@ export const StudentManagement = () => {
       ? (newStudent.fieldId || aliyaFields[0]?.id || '')
       : 'f_foundation';
 
-    await addStudent({ ...newStudent, fieldId: finalFieldId }, currentUser?.username);
+    const created = await addStudent({ ...newStudent, fieldId: finalFieldId }, currentUser?.username);
     setIsAddOpen(false);
+
+    // Auto-reset all filters so newly added student immediately appears at top
+    setSearch('');
+    setSelectedSection('all');
+    setSelectedClass('all');
+    setSelectedTeam('all');
+    setSelectedField('all');
+    setShowArchived(false);
+
+    if (created?.id) {
+      setRecentlyAddedId(created.id);
+      setTimeout(() => setRecentlyAddedId(null), 8000);
+    }
+    setToastMsg(`✅ Enrolled ${newStudent.name} (${newStudent.cicNo}) successfully!`);
+    setTimeout(() => setToastMsg(''), 5000);
+
     setNewStudent({
       name: '',
       cicNo: '',
@@ -282,8 +300,19 @@ export const StudentManagement = () => {
 
   const handleConfirmImport = async () => {
     if (previewList.length === 0) return;
+    const count = previewList.length;
     await bulkImportStudents(previewList, currentUser?.username);
-    setBulkSuccessMsg(`Successfully imported ${previewList.length} students with their Class, Group and Field!`);
+    // Reset filters so imported students appear at top immediately
+    setSearch('');
+    setSelectedSection('all');
+    setSelectedClass('all');
+    setSelectedTeam('all');
+    setSelectedField('all');
+    setShowArchived(false);
+
+    setBulkSuccessMsg(`Successfully imported ${count} students with their Class, Group and Field!`);
+    setToastMsg(`✅ Enrolled ${count} students successfully! Placed at top of list.`);
+    setTimeout(() => setToastMsg(''), 6000);
     setPreviewList([]);
     setPastedText('');
     setTimeout(() => {
@@ -359,6 +388,22 @@ export const StudentManagement = () => {
           )}
         </div>
       </div>
+
+      {/* Toast Alert for Added / Imported Student */}
+      {toastMsg && (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-xs flex items-center justify-between shadow-lg shadow-emerald-600/20 animate-fade-in border border-emerald-400/40">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🎉</span>
+            <span>{toastMsg}</span>
+          </div>
+          <button
+            onClick={() => setToastMsg('')}
+            className="text-white hover:text-emerald-200 text-sm font-bold ml-3 px-2 py-0.5 rounded-md hover:bg-white/10"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
@@ -461,11 +506,16 @@ export const StudentManagement = () => {
             const cl = classesMap[student.classId];
             const isAliya = student.sectionId === 'aliya' || cl?.sectionId === 'aliya';
             const field = fieldsMap[student.fieldId];
+            const isRecentlyAdded = student.id === recentlyAddedId;
 
             return (
               <div
                 key={student.id}
-                className="p-3.5 bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3 transition"
+                className={`p-3.5 rounded-2xl border shadow-xs space-y-3 transition duration-300 ${
+                  isRecentlyAdded
+                    ? 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500 shadow-md'
+                    : 'bg-white dark:bg-[#0F1B2B] border-slate-200 dark:border-slate-800'
+                }`}
               >
                 {/* Header: Name + Leader Badge + House Badge */}
                 <div className="flex items-start justify-between gap-2">
@@ -474,6 +524,11 @@ export const StudentManagement = () => {
                       <h4 className="font-bold text-sm text-slate-900 dark:text-white">
                         {student.name}
                       </h4>
+                      {isRecentlyAdded && (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-600 text-white animate-pulse shadow-xs">
+                          ✨ Just Added
+                        </span>
+                      )}
                       {student.isLeader && (
                         <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                           Leader
@@ -569,16 +624,35 @@ export const StudentManagement = () => {
                   const cl = classesMap[student.classId];
                   const isAliya = student.sectionId === 'aliya' || cl?.sectionId === 'aliya';
                   const field = fieldsMap[student.fieldId];
+                  const isRecentlyAdded = student.id === recentlyAddedId;
 
                   return (
-                    <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
-                      <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white sticky left-0 bg-white dark:bg-slate-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
-                        {student.name}
-                        {student.isLeader && (
-                          <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                            Leader
-                          </span>
-                        )}
+                    <tr
+                      key={student.id}
+                      className={`transition duration-200 ${
+                        isRecentlyAdded
+                          ? 'bg-emerald-50/80 dark:bg-emerald-950/40 ring-1 ring-emerald-500'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                      }`}
+                    >
+                      <td className={`py-3 px-3 font-semibold text-slate-900 dark:text-white sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)] ${
+                        isRecentlyAdded
+                          ? 'bg-emerald-100/80 dark:bg-emerald-950'
+                          : 'bg-white dark:bg-slate-900'
+                      }`}>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span>{student.name}</span>
+                          {isRecentlyAdded && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-600 text-white animate-pulse">
+                              ✨ Just Added
+                            </span>
+                          )}
+                          {student.isLeader && (
+                            <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                              Leader
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-3 font-mono text-[11px] text-slate-500">
                         {student.cicNo}

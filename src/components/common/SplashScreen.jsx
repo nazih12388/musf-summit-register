@@ -14,14 +14,14 @@ export const SplashScreen = ({ onFinished }) => {
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    // Phase 1 -> 2: Overlay starts after 350ms
-    const t1 = setTimeout(() => setPhase(2), 350);
+    // Phase 1 -> 2: Overlay starts after 200ms
+    const t1 = setTimeout(() => setPhase(2), 200);
 
-    // Phase 2 -> 3: Emblem appears after 700ms
-    const t2 = setTimeout(() => setPhase(3), 700);
+    // Phase 2 -> 3: Emblem appears after 450ms
+    const t2 = setTimeout(() => setPhase(3), 450);
 
-    // Phase 3 -> 4: Text branding appears after 1000ms
-    const t3 = setTimeout(() => setPhase(4), 1000);
+    // Phase 3 -> 4: Text branding appears after 700ms
+    const t3 = setTimeout(() => setPhase(4), 700);
 
     return () => {
       clearTimeout(t1);
@@ -40,7 +40,7 @@ export const SplashScreen = ({ onFinished }) => {
           clearInterval(interval);
           return 100;
         }
-        const step = Math.floor(Math.random() * 14 + 10);
+        const step = Math.floor(Math.random() * 18 + 14);
         const next = Math.min(prev + step, 100);
 
         if (next < 30) setStatusText('Connecting to Directorate Services...');
@@ -50,7 +50,7 @@ export const SplashScreen = ({ onFinished }) => {
 
         return next;
       });
-    }, 110);
+    }, 80);
 
     return () => clearInterval(interval);
   }, [phase]);
@@ -62,9 +62,9 @@ export const SplashScreen = ({ onFinished }) => {
         setIsFadingOut(true);
         const exitTimer = setTimeout(() => {
           if (onFinished) onFinished();
-        }, 700);
+        }, 500);
         return () => clearTimeout(exitTimer);
-      }, 500);
+      }, 350);
 
       return () => clearTimeout(timer);
     }
@@ -74,7 +74,7 @@ export const SplashScreen = ({ onFinished }) => {
     setIsFadingOut(true);
     setTimeout(() => {
       if (onFinished) onFinished();
-    }, 300);
+    }, 200);
   };
 
   return (
