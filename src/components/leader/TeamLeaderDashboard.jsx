@@ -68,10 +68,22 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
   const classesMap = useMemo(() => Object.fromEntries(classes.map(c => [c.id, c])), [classes]);
   const fieldsMap = useMemo(() => Object.fromEntries(fields.map(f => [f.id, f])), [fields]);
 
-  // Programs where leader upload is enabled
+  // Only published / active summits are visible to Team Leaders (planned summits are hidden)
+  const publishedSummits = useMemo(() => {
+    return (summits || []).filter(s => s.status && s.status !== 'planned' && s.status !== 'cancelled');
+  }, [summits]);
+
+  const publishedSummitIds = useMemo(() => new Set(publishedSummits.map(s => s.id)), [publishedSummits]);
+
+  // Programs where leader upload is enabled (excluding planned summits and draft programs)
   const leaderUploadPrograms = useMemo(() => {
-    return programs.filter(p => p.allowLeaderMarkEntry);
-  }, [programs]);
+    return programs.filter(p => {
+      if (!p.allowLeaderMarkEntry) return false;
+      if (p.status === 'draft' || p.status === 'planned') return false;
+      if (p.summitId && !publishedSummitIds.has(p.summitId)) return false;
+      return true;
+    });
+  }, [programs, publishedSummitIds]);
 
   const [selectedUploadProgramId, setSelectedUploadProgramId] = useState(leaderUploadPrograms[0]?.id || '');
   const [uploadMarksInput, setUploadMarksInput] = useState({});
@@ -89,7 +101,7 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
   }, [myEntriesInUploadProg, marks, selectedUploadProgramId, currentUser]);
 
   // --- NOMINATIONS STATE ---
-  const [nominationSummitId, setNominationSummitId] = useState(summits.find(s => s.status === 'open')?.id || summits[0]?.id);
+  const [nominationSummitId, setNominationSummitId] = useState(() => publishedSummits.find(s => s.status === 'open')?.id || publishedSummits[0]?.id || '');
   const [nominationSectionFilter, setNominationSectionFilter] = useState('all');
   const [nominatingProgram, setNominatingProgram] = useState(null);
   const [selectedNomineeId, setSelectedNomineeId] = useState('');
@@ -98,12 +110,25 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
   const [nominationError, setNominationError] = useState('');
   const [nominationSuccess, setNominationSuccess] = useState('');
 
-  const activeNominationSummit = summits.find(s => s.id === nominationSummitId) || summits[0];
+  // Keep nominationSummitId valid if publishedSummits changes
+  useEffect(() => {
+    if (publishedSummits.length > 0) {
+      if (!nominationSummitId || !publishedSummits.some(s => s.id === nominationSummitId)) {
+        setNominationSummitId(publishedSummits[0].id);
+      }
+    } else {
+      setNominationSummitId('');
+    }
+  }, [publishedSummits, nominationSummitId]);
 
-  // Programs assigned to leader's team in selected summit
+  const activeNominationSummit = publishedSummits.find(s => s.id === nominationSummitId) || publishedSummits[0];
+
+  // Programs assigned to leader's team in selected summit (excluding draft/planned programs)
   const myAssignedSummitPrograms = useMemo(() => {
+    if (!activeNominationSummit) return [];
     return programs.filter(p => {
       if (p.summitId !== nominationSummitId) return false;
+      if (p.status === 'draft' || p.status === 'planned') return false;
       if (nominationSectionFilter !== 'all' && p.sectionId !== nominationSectionFilter && p.sectionId !== 'both') return false;
 
       // In Thamheediyya, automatically assigned to all teams
@@ -113,7 +138,7 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
       const alloc = p.teamAllocations?.[myTeam.id];
       return alloc ? alloc.assigned : true;
     });
-  }, [programs, nominationSummitId, nominationSectionFilter, myTeam]);
+  }, [programs, nominationSummitId, nominationSectionFilter, myTeam, activeNominationSummit]);
 
   // Handle Mark Change
   const handleMarkChange = (entryId, val) => {
@@ -216,9 +241,9 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
   };
 
   const handleDownloadTeamMonthlyReport = () => {
-    const activeMonth = summits.find(s => s.status === 'completed' || s.status === 'published')?.month || '2026-10';
+    const activeMonth = publishedSummits.find(s => s.status === 'completed' || s.status === 'published')?.month || publishedSummits[0]?.month || '2026-10';
     const repData = computeComprehensiveReport({
-      summits,
+      summits: publishedSummits,
       programs,
       entries,
       marks,
@@ -420,9 +445,13 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
                   onChange={(e) => setNominationSummitId(e.target.value)}
                   className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-[#0F2A4A] dark:text-white"
                 >
-                  {summits.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.month})</option>
-                  ))}
+                  {publishedSummits.length === 0 ? (
+                    <option value="">-- No Published Summits Available --</option>
+                  ) : (
+                    publishedSummits.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.date || s.month})</option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -581,6 +610,8 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {myMembers.map(m => {
               const enrolledProgs = programs.filter(p => {
+                if (p.status === 'draft' || p.status === 'planned') return false;
+                if (p.summitId && !publishedSummitIds.has(p.summitId)) return false;
                 const pEntries = entries.filter(e => e.programId === p.id);
                 return pEntries.some(e => e.studentId === m.id || (e.memberIds && e.memberIds.includes(m.id)));
               });

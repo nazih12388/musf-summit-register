@@ -338,9 +338,11 @@ export const SummitManagement = () => {
                         ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
                         : statusText === 'completed'
                         ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                        : statusText === 'planned'
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
                         : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                     }`}>
-                      {statusText}
+                      {statusText === 'planned' ? 'Planned (Hidden from Students & Leaders)' : statusText}
                     </span>
                     <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
                       isLocked
@@ -410,14 +412,40 @@ export const SummitManagement = () => {
                 </div>
               </div>
 
-              {/* Footer Metrics */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
-                <span className="font-semibold text-[#0F2A4A] dark:text-slate-200">
-                  {summitPrograms.length} Programs &bull; {summitEntries.length} Nominees
-                </span>
-                <span className="text-[11px] font-mono text-slate-400">
-                  3 Sessions (S/M/E)
-                </span>
+              {/* Footer Metrics & Publish Action */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-[#0F2A4A] dark:text-slate-200">
+                    {summitPrograms.length} Programs &bull; {summitEntries.length} Nominees
+                  </span>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    3 Sessions (S/M/E)
+                  </span>
+                </div>
+
+                {statusText === 'planned' ? (
+                  <button
+                    type="button"
+                    onClick={() => updateSummit(summit.id, { status: 'open' }, currentUser?.username)}
+                    className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#0E7C86] to-teal-600 hover:from-[#0B636B] hover:to-teal-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition"
+                  >
+                    <span>🚀 Publish Summit (Make Visible to Leaders &amp; Students)</span>
+                  </button>
+                ) : (
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                      ✓ Published &amp; Visible
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => updateSummit(summit.id, { status: 'planned' }, currentUser?.username)}
+                      className="py-1 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[11px] font-medium transition"
+                      title="Hide from students and leaders back into planned state"
+                    >
+                      Hide to Planned (Draft)
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           );

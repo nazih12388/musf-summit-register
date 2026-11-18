@@ -64,10 +64,15 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
 
   const attData = studentAttendanceMap[student?.id] || { percentage: 0, isLowAttendance: false, summitStats: {} };
 
-  // My registered programs & published results
+  // My registered programs & published results (Excluding 'planned' / 'draft' summits and programs)
   const myProgramsList = useMemo(() => {
     const list = [];
     programs.forEach(prog => {
+      const sm = summitsMap[prog.summitId];
+      // Hide if program is planned or draft, or if parent summit is planned
+      if (prog.status === 'draft' || prog.status === 'planned') return;
+      if (sm && sm.status === 'planned') return;
+
       const progEntries = entries.filter(e => e.programId === prog.id);
       const isEnrolled = progEntries.some(e => e.studentId === student?.id || (e.memberIds && e.memberIds.includes(student?.id)));
 
@@ -76,7 +81,6 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
         const res = results.find(r => r.studentId === student?.id || (r.memberIds && r.memberIds.includes(student?.id)));
         const isPublished = prog.status === 'published';
         const fld = fieldsMap[prog.fieldId];
-        const sm = summitsMap[prog.summitId];
 
         list.push({
           program: prog,
@@ -415,25 +419,38 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {summits.map(s => {
-                  const sAtt = attendance.filter(a => a.summitId === s.id && a.studentId === student.id);
-                  const startRec = sAtt.find(a => a.session === 'START');
-                  const midRec = sAtt.find(a => a.session === 'MID');
-                  const endRec = sAtt.find(a => a.session === 'END');
-                  const stat = attData.summitStats?.[s.id];
+                {(() => {
+                  const visibleSummits = summits.filter(s => s.status && s.status !== 'planned' && s.status !== 'cancelled');
+                  if (visibleSummits.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-slate-400">
+                          No published summits available yet.
+                        </td>
+                      </tr>
+                    );
+                  }
 
-                  return (
-                    <tr key={s.id}>
-                      <td className="p-3 font-bold text-slate-900 dark:text-white">{s.name}</td>
-                      <td className="p-3 text-center font-semibold">{startRec?.status || '-'}</td>
-                      <td className="p-3 text-center font-semibold">{midRec?.status || '-'}</td>
-                      <td className="p-3 text-center font-semibold">{endRec?.status || '-'}</td>
-                      <td className="p-3 text-center font-mono font-bold text-[#0E7C86]">
-                        {stat ? stat.percentage.toFixed(0) : 0}%
-                      </td>
-                    </tr>
-                  );
-                })}
+                  return visibleSummits.map(s => {
+                    const sAtt = attendance.filter(a => a.summitId === s.id && a.studentId === student.id);
+                    const startRec = sAtt.find(a => a.session === 'START');
+                    const midRec = sAtt.find(a => a.session === 'MID');
+                    const endRec = sAtt.find(a => a.session === 'END');
+                    const stat = attData.summitStats?.[s.id];
+
+                    return (
+                      <tr key={s.id}>
+                        <td className="p-3 font-bold text-slate-900 dark:text-white">{s.name}</td>
+                        <td className="p-3 text-center font-semibold">{startRec?.status || '-'}</td>
+                        <td className="p-3 text-center font-semibold">{midRec?.status || '-'}</td>
+                        <td className="p-3 text-center font-semibold">{endRec?.status || '-'}</td>
+                        <td className="p-3 text-center font-mono font-bold text-[#0E7C86]">
+                          {stat ? stat.percentage.toFixed(0) : 0}%
+                        </td>
+                      </tr>
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           </div>

@@ -51,6 +51,13 @@ export const JudgeDashboard = ({ activeTab, setActiveTab }) => {
   const [searchFilter, setSearchFilter] = useState('');
   const [participantSearch, setParticipantSearch] = useState('');
 
+  // Only summits that have been published / opened by Admin (planned summits are hidden from judges)
+  const publishedSummits = useMemo(() => {
+    return (summits || []).filter(s => s.status && s.status !== 'planned' && s.status !== 'cancelled');
+  }, [summits]);
+
+  const publishedSummitIds = useMemo(() => new Set(publishedSummits.map(s => s.id)), [publishedSummits]);
+
   // Programs available to this judge
   const assignedPrograms = useMemo(() => {
     let pool = [];
@@ -62,6 +69,13 @@ export const JudgeDashboard = ({ activeTab, setActiveTab }) => {
         currentJudge?.assignedPrograms?.includes(p.id)
       );
     }
+
+    // Exclude any programs in 'planned' or 'draft' status, or belonging to a 'planned' summit
+    pool = pool.filter(p => {
+      if (p.status === 'draft' || p.status === 'planned') return false;
+      if (p.summitId && !publishedSummitIds.has(p.summitId)) return false;
+      return true;
+    });
 
     if (selectedSummitFilter !== 'all') {
       pool = pool.filter(p => p.summitId === selectedSummitFilter);
@@ -76,7 +90,7 @@ export const JudgeDashboard = ({ activeTab, setActiveTab }) => {
     }
 
     return pool;
-  }, [programs, currentUser, currentJudge, isUnrestricted, selectedSummitFilter, searchFilter]);
+  }, [programs, currentUser, currentJudge, isUnrestricted, publishedSummitIds, selectedSummitFilter, searchFilter]);
 
   const [selectedProgramId, setSelectedProgramId] = useState('');
   const [toastMsg, setToastMsg] = useState('');
@@ -260,10 +274,10 @@ export const JudgeDashboard = ({ activeTab, setActiveTab }) => {
                 onChange={(e) => setSelectedSummitFilter(e.target.value)}
                 className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-semibold text-slate-900 dark:text-white"
               >
-                <option value="all">All Summits ({programs?.length || 0} Events)</option>
-                {(summits || []).map(s => (
+                <option value="all">All Published Summits ({assignedPrograms.length} Events)</option>
+                {publishedSummits.map(s => (
                   <option key={s.id} value={s.id}>
-                    {s.name} ({s.date})
+                    {s.name} ({s.date || 'Scheduled'})
                   </option>
                 ))}
               </select>
