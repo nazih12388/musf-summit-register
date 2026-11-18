@@ -844,7 +844,7 @@ export const ProgramManagement = () => {
 
           <button
             onClick={() => {
-              setAddMode('library');
+              setAddMode(programLibrary.length > 0 ? 'library' : 'custom');
               setIsAddProgramOpen(true);
             }}
             className="col-span-2 sm:col-auto min-h-[44px] py-2.5 px-4 rounded-xl bg-[#0E7C86] hover:bg-teal-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm active:scale-95"
@@ -939,12 +939,12 @@ export const ProgramManagement = () => {
               <p className="font-semibold text-xs sm:text-sm text-slate-700 dark:text-slate-300">No programs assigned to Thamheediyya in this summit yet.</p>
               <button
                 onClick={() => {
-                  setAddMode('library');
+                  setAddMode(programLibrary.length > 0 ? 'library' : 'custom');
                   setIsAddProgramOpen(true);
                 }}
                 className="min-h-[44px] px-5 py-2.5 bg-[#0F2A4A] dark:bg-[#0E7C86] hover:bg-[#1E3A5F] text-white rounded-xl text-xs font-bold transition shadow-xs active:scale-95"
               >
-                Pick from Program Library
+                {programLibrary.length > 0 ? 'Pick from Program Library' : 'Create & Assign Program'}
               </button>
             </div>
           ) : (

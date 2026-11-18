@@ -29,13 +29,27 @@ import { getSummitRunningInfo, formatMonthLabel, computeComprehensiveReport } fr
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  // Safe helper to parse stored arrays with fallback
+  // Safe helper to parse stored arrays with fallback and seamless migration from legacy keys
   const safeParseArray = (key, fallback) => {
     try {
       const raw = localStorage.getItem(key);
-      if (raw === null) return fallback;
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : fallback;
+      if (raw !== null) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+      // Check legacy v5 key before falling back to initial defaults so entered data is NEVER lost
+      const legacyKeyV5 = key.replace('_v6', '_v5');
+      const rawV5 = localStorage.getItem(legacyKeyV5);
+      if (rawV5 !== null) {
+        try {
+          const parsedV5 = JSON.parse(rawV5);
+          if (Array.isArray(parsedV5) && parsedV5.length > 0) {
+            localStorage.setItem(key, rawV5);
+            return parsedV5;
+          }
+        } catch {}
+      }
+      return fallback;
     } catch {
       return fallback;
     }
@@ -45,24 +59,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     try {
       const oldKeys = [
-        'musf_summit_programs_v5',
-        'musf_summit_summits_v5',
-        'musf_summit_students_v5',
-        'musf_summit_archived_students_v5',
-        'musf_summit_entries_v5',
-        'musf_summit_marks_v5',
-        'musf_summit_attendance_v5',
-        'musf_summit_certificates_v5',
-        'musf_summit_teams_v5',
-        'musf_summit_sections_v5',
-        'musf_summit_fields_v5',
-        'musf_summit_program_library_v5',
-        'musf_summit_classes_v5',
-        'musf_summit_judges_v5',
-        'musf_summit_notices_v5',
-        'musf_summit_notifications_v5',
-        'musf_summit_audit_logs_v5',
-        'musf_summit_settings_v5',
+        
         'musf_summit_programs_v4',
         'musf_summit_summits_v4',
         'musf_summit_students_v4',
@@ -206,6 +203,11 @@ export const AppProvider = ({ children }) => {
         setStudents(cloudStudents);
       }
     });
+    const unsubProgramLibrary = subscribeToCloud('programLibrary', (cloudLib) => {
+      if (Array.isArray(cloudLib) && cloudLib.length > 0) {
+        setProgramLibrary(cloudLib);
+      }
+    });
     const unsubSummits = subscribeToCloud('summits', (cloudSummits) => {
       if (Array.isArray(cloudSummits)) {
         const cleaned = cloudSummits.filter(s => {
@@ -223,7 +225,9 @@ export const AppProvider = ({ children }) => {
             s.id?.startsWith('summit_may_');
           return !isDemo;
         });
-        setSummits(cleaned);
+        if (cleaned.length > 0) {
+          setSummits(cleaned);
+        }
       }
     });
     const unsubJudges = subscribeToCloud('judges', (cloudJudges) => {
@@ -264,6 +268,7 @@ export const AppProvider = ({ children }) => {
       unsubEntries();
       unsubStudents();
       unsubSummits();
+      unsubProgramLibrary();
       unsubJudges();
       unsubTeams();
       unsubClasses();

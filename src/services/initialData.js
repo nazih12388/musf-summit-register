@@ -40,134 +40,8 @@ export const INITIAL_FIELDS = [
   { id: 'f_creative', name: 'Creative', sectionId: 'aliya', order: 3, description: 'Research papers, essays, literary creations and colloquia' }
 ];
 
-// 5. MASTER PROGRAM LIBRARY
-export const INITIAL_PROGRAM_LIBRARY = [
-  // Thamheediyya Library (4 Common Programs)
-  {
-    id: 'lib_th_1',
-    name: 'Arabic Calligraphy & Orthography',
-    fieldId: 'f_foundation',
-    sectionId: 'thamheediyya',
-    type: 'individual',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    description: 'Mastery in Thuluth, Naskh and Diwani scripts with grammatical diacritics.',
-    rules: '30 minutes time limit. Bring own pens.',
-    active: true
-  },
-  {
-    id: 'lib_th_2',
-    name: "Qur'anic Memorization & Tajweed",
-    fieldId: 'f_foundation',
-    sectionId: 'thamheediyya',
-    type: 'individual',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    description: 'Hafs an Asim recitation with advanced Tajweed rules and vocal melodics.',
-    rules: 'Selected Surahs from Juz Amma.',
-    active: true
-  },
-  {
-    id: 'lib_th_3',
-    name: 'English Elocution & Reading',
-    fieldId: 'f_foundation',
-    sectionId: 'thamheediyya',
-    type: 'individual',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    description: 'Fluency, pronunciation, cadence, and thematic articulation.',
-    rules: '5 minutes allocated per speaker.',
-    active: true
-  },
-  {
-    id: 'lib_th_4',
-    name: 'Islamic History Foundation Quiz',
-    fieldId: 'f_foundation',
-    sectionId: 'thamheediyya',
-    type: 'group',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 2,
-    description: 'Early Islamic history, prophetic biography, and early civilization.',
-    rules: '2 members per team group.',
-    active: true
-  },
-
-  // Aliya Communicative Library (3 Programs)
-  {
-    id: 'lib_al_1',
-    name: 'Parliamentary Debate Championship',
-    fieldId: 'f_communicative',
-    sectionId: 'aliya',
-    type: 'group',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 2,
-    description: 'Oxford & Parliamentary style debate on contemporary socio-theological topics.',
-    rules: '2 members per team group. 6 minutes substantive speech.',
-    active: true
-  },
-  {
-    id: 'lib_al_2',
-    name: 'Public Discourse & Rhetoric',
-    fieldId: 'f_communicative',
-    sectionId: 'aliya',
-    type: 'individual',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    description: 'Extempore discourse in Arabic and English on assigned academic questions.',
-    rules: '5 minutes prep, 4 minutes delivery.',
-    active: true
-  },
-  {
-    id: 'lib_al_3',
-    name: 'Media Critique & Analytical Journalism',
-    fieldId: 'f_communicative',
-    sectionId: 'aliya',
-    type: 'individual',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    description: 'Analytical deconstruction of international editorial columns.',
-    rules: 'Delegated leader mark entry with admin review.',
-    active: true
-  },
-
-  // Aliya Creative Library (3 Programs)
-  {
-    id: 'lib_al_4',
-    name: 'Research Paper Presentation',
-    fieldId: 'f_creative',
-    sectionId: 'aliya',
-    type: 'individual',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    description: 'Peer-reviewed scholarly paper defense with slide deck presentation.',
-    rules: '8 minutes defense + 2 minutes Q&A.',
-    active: true
-  },
-  {
-    id: 'lib_al_5',
-    name: 'Academic Essay Colloquium',
-    fieldId: 'f_creative',
-    sectionId: 'aliya',
-    type: 'individual',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    description: 'In-depth philosophical essay on epistemic foundations and modern epistemology.',
-    rules: 'Structured essay with verified citations.',
-    active: true
-  },
-  {
-    id: 'lib_al_6',
-    name: 'Creative Literary Composition',
-    fieldId: 'f_creative',
-    sectionId: 'aliya',
-    type: 'individual',
-    maxMarks: 10,
-    defaultAllowedPerTeam: 1,
-    description: 'Classical Arabic & English poetry or narrative composition.',
-    rules: 'Original unassisted composition on assigned thematic motif.',
-    active: true
-  }
-];
+// 5. MASTER PROGRAM LIBRARY (Fresh start - empty by default, managed by Admin)
+export const INITIAL_PROGRAM_LIBRARY = [];
 
 // Helper to build team allocations
 const buildThamheediyyaAllocations = (allowedCount = 1) => ({
@@ -241,7 +115,7 @@ export const INITIAL_JUDGES = [
     role: 'judge',
     unrestricted: false,
     allowMarkEditing: true,
-    assignedSummits: ['summit_oct_1', 'summit_oct_2'],
+    assignedSummits: [],
     assignedPrograms: []
   },
   {
@@ -252,7 +126,7 @@ export const INITIAL_JUDGES = [
     role: 'judge',
     unrestricted: false,
     allowMarkEditing: true,
-    assignedSummits: ['summit_oct_1', 'summit_oct_3'],
+    assignedSummits: [],
     assignedPrograms: []
   },
   {
@@ -263,7 +137,7 @@ export const INITIAL_JUDGES = [
     role: 'judge',
     unrestricted: false,
     allowMarkEditing: true,
-    assignedSummits: ['summit_oct_2', 'summit_oct_4'],
+    assignedSummits: [],
     assignedPrograms: []
   },
   {
@@ -274,7 +148,7 @@ export const INITIAL_JUDGES = [
     role: 'judge',
     unrestricted: false,
     allowMarkEditing: false,
-    assignedSummits: ['summit_oct_3'],
+    assignedSummits: [],
     assignedPrograms: []
   }
 ];
