@@ -27,6 +27,7 @@ export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null })
     attendance,
     settings,
     studentAttendanceMap,
+    recordAttendance,
     bulkRecordAttendance,
     toggleAttendanceSessionLock,
     sendNotification,
@@ -66,34 +67,67 @@ export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null })
   // Load existing statuses for this summit & session
   React.useEffect(() => {
     const initial = {};
-    targetStudents.forEach(st => {
+    students.forEach(st => {
       const rec = attendance.find(a => a.summitId === selectedSummitId && a.session === selectedSession && a.studentId === st.id);
       initial[st.id] = rec ? rec.status : 'Present';
     });
     setStatusMap(initial);
-  }, [selectedSummitId, selectedSession, targetStudents, attendance]);
+  }, [selectedSummitId, selectedSession, attendance, students]);
 
+  // Real-time status toggle (Present, Absent, Late, Excused)
   const handleStatusChange = (studentId, status) => {
-    if (isLeaderView && isSessionLocked) return;
+    if (isLeaderView && isSessionLocked && currentUser?.role !== 'admin') return;
     setStatusMap(prev => ({ ...prev, [studentId]: status }));
+    recordAttendance(
+      selectedSummitId,
+      selectedSession,
+      studentId,
+      status,
+      currentUser?.username || `${currentUser?.role}:${currentUser?.name}`
+    );
   };
 
   const handleMarkAllPresent = () => {
-    if (isLeaderView && isSessionLocked) return;
+    if (isLeaderView && isSessionLocked && currentUser?.role !== 'admin') return;
     const updated = {};
     targetStudents.forEach(st => {
       updated[st.id] = 'Present';
     });
     setStatusMap(prev => ({ ...prev, ...updated }));
+    bulkRecordAttendance(
+      selectedSummitId,
+      selectedSession,
+      updated,
+      currentUser?.username || `${currentUser?.role}:${currentUser?.name}`
+    );
+    setToastMsg(`Marked all ${targetStudents.length} students as Present!`);
+    setTimeout(() => setToastMsg(''), 2000);
+  };
+
+  const handleMarkAllAbsent = () => {
+    if (isLeaderView && isSessionLocked && currentUser?.role !== 'admin') return;
+    const updated = {};
+    targetStudents.forEach(st => {
+      updated[st.id] = 'Absent';
+    });
+    setStatusMap(prev => ({ ...prev, ...updated }));
+    bulkRecordAttendance(
+      selectedSummitId,
+      selectedSession,
+      updated,
+      currentUser?.username || `${currentUser?.role}:${currentUser?.name}`
+    );
+    setToastMsg(`Marked all ${targetStudents.length} students as Absent!`);
+    setTimeout(() => setToastMsg(''), 2000);
   };
 
   const handleSaveAttendance = () => {
-    if (isLeaderView && isSessionLocked) return;
+    if (isLeaderView && isSessionLocked && currentUser?.role !== 'admin') return;
     bulkRecordAttendance(
       selectedSummitId,
       selectedSession,
       statusMap,
-      `${currentUser?.role}:${currentUser?.name}`
+      currentUser?.username || `${currentUser?.role}:${currentUser?.name}`
     );
     setToastMsg(`Saved ${selectedSession} session attendance successfully!`);
     setTimeout(() => setToastMsg(''), 2500);
@@ -153,23 +187,36 @@ export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null })
           )}
 
           {(!isSessionLocked || currentUser?.role === 'admin') && (
-            <>
+            <div className="flex items-center gap-2 flex-wrap">
               <button
+                type="button"
                 onClick={handleMarkAllPresent}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1"
+                className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-bold hover:bg-emerald-100 transition flex items-center gap-1 shadow-xs"
+                title="Mark all filtered students as Present"
               >
                 <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>{t.attendance.markAllPresent}</span>
+                <span>Mark All Present</span>
               </button>
 
               <button
+                type="button"
+                onClick={handleMarkAllAbsent}
+                className="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-xs font-bold hover:bg-rose-100 transition flex items-center gap-1 shadow-xs"
+                title="Mark all filtered students as Absent"
+              >
+                <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                <span>Mark All Absent</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleSaveAttendance}
-                className="px-4 py-1.5 rounded-lg bg-[#0F2A4A] dark:bg-[#0E7C86] text-white text-xs font-semibold hover:opacity-90 transition flex items-center gap-1.5 shadow-sm"
+                className="px-4 py-1.5 rounded-lg bg-[#0F2A4A] dark:bg-[#0E7C86] text-white text-xs font-bold hover:opacity-90 transition flex items-center gap-1.5 shadow-sm"
               >
                 <Save className="w-3.5 h-3.5" />
                 <span>{t.common.save}</span>
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -271,21 +318,21 @@ export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null })
       <div className="bg-white dark:bg-[#0F1B2B] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 dark:bg-slate-900/60 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+            <thead className="bg-slate-50 dark:bg-slate-900/60 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 text-[11px]">
               <tr>
-                <th className="py-3 px-4">Chest #</th>
-                <th className="py-3 px-4">Student Name</th>
-                <th className="py-3 px-4">CIC No</th>
-                <th className="py-3 px-4">House Team</th>
-                <th className="py-3 px-4 text-center">Status for {selectedSession}</th>
-                <th className="py-3 px-4 text-center">Summit Att %</th>
-                <th className="py-3 px-4 text-center">Overall Att %</th>
-                <th className="py-3 px-4 text-right">Alert</th>
+                <th className="py-2.5 px-3 w-10 text-center">#</th>
+                <th className="py-2.5 px-3 sm:px-4">Student Participant (Name &amp; CIC No)</th>
+                <th className="py-2.5 px-3">Class &amp; House Team</th>
+                <th className="py-2.5 px-3 text-center min-w-[150px]">Status for {selectedSession}</th>
+                <th className="py-2.5 px-3 text-center">Summit Att %</th>
+                <th className="py-2.5 px-3 text-center">Overall Att %</th>
+                <th className="py-2.5 px-3 text-right">Alert</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-              {targetStudents.map(student => {
+              {targetStudents.map((student, idx) => {
                 const team = teams.find(t => t.id === student.teamId);
+                const cl = classes.find(c => c.id === student.classId);
                 const attData = studentAttendanceMap[student.id];
                 const summitAttPct = attData?.summitStats?.[selectedSummitId]?.percentage || 0;
                 const overallAttPct = attData?.percentage || 0;
@@ -293,62 +340,87 @@ export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null })
                 const currentStatus = statusMap[student.id] || 'Present';
 
                 return (
-                  <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                    <td className="py-2.5 px-4 font-mono font-bold text-[#0F2A4A] dark:text-[#0E7C86]">
-                      {student.chestNo}
+                  <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                    <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-400">
+                      {idx + 1}
                     </td>
-                    <td className="py-2.5 px-4 font-semibold text-slate-900 dark:text-white">
-                      {student.name}
+                    <td className="py-2.5 px-3 sm:px-4">
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-xs"
+                          style={{ backgroundColor: team?.color || '#0E7C86' }}
+                        >
+                          {student.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                            {student.name}
+                          </div>
+                          <div className="text-[10px] sm:text-[11px] font-mono text-emerald-700 dark:text-emerald-400 font-semibold">
+                            CIC: {student.cicNo}
+                          </div>
+                        </div>
+                      </div>
                     </td>
-                    <td className="py-2.5 px-4 font-mono text-[11px] text-slate-400">
-                      {student.cicNo}
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold text-white" style={{ backgroundColor: team?.color }}>
-                        {team?.name}
-                      </span>
+                    <td className="py-2.5 px-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-xs" style={{ backgroundColor: team?.color }}>
+                          {team?.name || 'House'}
+                        </span>
+                        <span className="text-[11px] text-slate-500 font-medium">
+                          • {cl?.name || student.classId}
+                        </span>
+                      </div>
                     </td>
 
                     {/* Status Toggles: Present, Absent, Late, Excused */}
-                    <td className="py-2.5 px-4">
-                      <div className="flex items-center justify-center gap-1">
+                    <td className="py-2.5 px-3 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
                         <button
+                          type="button"
                           onClick={() => handleStatusChange(student.id, 'Present')}
-                          className={`px-2 py-1 rounded text-[11px] font-semibold transition ${
+                          className={`w-8 h-8 rounded-lg text-xs font-bold transition flex items-center justify-center shadow-xs cursor-pointer ${
                             currentStatus === 'Present'
-                              ? 'bg-emerald-600 text-white font-bold'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 hover:bg-slate-200'
+                              ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 dark:ring-emerald-800 scale-105'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-emerald-50 hover:text-emerald-700'
                           }`}
+                          title="Mark Present (P)"
                         >
                           P
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleStatusChange(student.id, 'Absent')}
-                          className={`px-2 py-1 rounded text-[11px] font-semibold transition ${
+                          className={`w-8 h-8 rounded-lg text-xs font-bold transition flex items-center justify-center shadow-xs cursor-pointer ${
                             currentStatus === 'Absent'
-                              ? 'bg-rose-600 text-white font-bold'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 hover:bg-slate-200'
+                              ? 'bg-rose-600 text-white ring-2 ring-rose-300 dark:ring-rose-800 scale-105'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-rose-50 hover:text-rose-700'
                           }`}
+                          title="Mark Absent (A)"
                         >
                           A
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleStatusChange(student.id, 'Late')}
-                          className={`px-2 py-1 rounded text-[11px] font-semibold transition ${
+                          className={`w-8 h-8 rounded-lg text-xs font-bold transition flex items-center justify-center shadow-xs cursor-pointer ${
                             currentStatus === 'Late'
-                              ? 'bg-amber-600 text-white font-bold'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 hover:bg-slate-200'
+                              ? 'bg-amber-600 text-white ring-2 ring-amber-300 dark:ring-amber-800 scale-105'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-amber-50 hover:text-amber-700'
                           }`}
+                          title="Mark Late (L)"
                         >
                           L
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleStatusChange(student.id, 'Excused')}
-                          className={`px-2 py-1 rounded text-[11px] font-semibold transition ${
+                          className={`w-8 h-8 rounded-lg text-xs font-bold transition flex items-center justify-center shadow-xs cursor-pointer ${
                             currentStatus === 'Excused'
-                              ? 'bg-blue-600 text-white font-bold'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 hover:bg-slate-200'
+                              ? 'bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-800 scale-105'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-blue-50 hover:text-blue-700'
                           }`}
+                          title="Mark Excused (E)"
                         >
                           E
                         </button>
