@@ -15,7 +15,8 @@ import {
   Filter,
   GraduationCap,
   Lock,
-  Unlock
+  Unlock,
+  Trash2
 } from 'lucide-react';
 
 export const SettingsAuditLog = () => {
@@ -23,6 +24,8 @@ export const SettingsAuditLog = () => {
     settings,
     updateSettings,
     auditLogs,
+    deleteAuditLog,
+    clearAuditLogs,
     students,
     studentAttendanceMap
   } = useApp();
@@ -573,13 +576,30 @@ export const SettingsAuditLog = () => {
               </select>
             </div>
 
-            <button
-              onClick={exportAuditCSV}
-              className="py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition self-start sm:self-auto"
-            >
-              <Download className="w-4 h-4 text-[#0E7C86]" />
-              <span>Export Audit Trail (CSV)</span>
-            </button>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {auditLogs.length > 0 && (
+                <button
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to permanently clear all audit trail records?')) {
+                      clearAuditLogs();
+                    }
+                  }}
+                  className="py-2 px-3.5 rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/50 font-semibold text-xs flex items-center gap-1.5 transition"
+                  title="Clear all audit logs"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-500" />
+                  <span>Clear Audit Trail</span>
+                </button>
+              )}
+
+              <button
+                onClick={exportAuditCSV}
+                className="py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition"
+              >
+                <Download className="w-4 h-4 text-[#0E7C86]" />
+                <span>Export Audit Trail (CSV)</span>
+              </button>
+            </div>
           </div>
 
           <div className="bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
@@ -591,12 +611,13 @@ export const SettingsAuditLog = () => {
                     <th className="py-3 px-4">Actor</th>
                     <th className="py-3 px-4">Action</th>
                     <th className="py-3 px-4">Change Details</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
                   {filteredLogs.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="py-8 text-center text-slate-400">
+                      <td colSpan={5} className="py-8 text-center text-slate-400">
                         No audit log entries matching current criteria.
                       </td>
                     </tr>
@@ -616,6 +637,19 @@ export const SettingsAuditLog = () => {
                         </td>
                         <td className="py-2.5 px-4 text-slate-600 dark:text-slate-300">
                           {log.details}
+                        </td>
+                        <td className="py-2.5 px-4 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Delete this audit log entry?')) {
+                                deleteAuditLog(log.id);
+                              }
+                            }}
+                            className="p-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 rounded-lg transition"
+                            title="Delete Log"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </td>
                       </tr>
                     ))

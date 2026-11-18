@@ -406,6 +406,28 @@ export const AppProvider = ({ children }) => {
     }));
   };
 
+  const deleteNotification = (notifId, actor = 'admin') => {
+    setNotifications(prev => prev.filter(n => n.id !== notifId));
+    addAuditLog(actor, 'DELETE_NOTIFICATION', `Deleted notification ID: ${notifId}`);
+  };
+
+  const clearAllNotifications = (userId = null, actor = 'admin') => {
+    if (userId && userId !== 'all') {
+      setNotifications(prev => prev.filter(n => n.userId !== userId && n.userId !== 'all'));
+    } else {
+      setNotifications([]);
+    }
+    addAuditLog(actor, 'CLEAR_NOTIFICATIONS', `Cleared ${userId ? `notifications for ${userId}` : 'all notifications'}`);
+  };
+
+  const deleteAuditLog = (logId) => {
+    setAuditLogs(prev => prev.filter(l => l.id !== logId));
+  };
+
+  const clearAuditLogs = () => {
+    setAuditLogs([]);
+  };
+
   // Grade Calculator
   const calculateGrade = (finalMark) => {
     if (finalMark == null || isNaN(finalMark)) return '-';
@@ -2509,6 +2531,10 @@ export const AppProvider = ({ children }) => {
       sendNotification,
       markNotificationRead,
       markAllNotificationsRead,
+      deleteNotification,
+      clearAllNotifications,
+      deleteAuditLog,
+      clearAuditLogs,
       certificates,
       addCertificate,
       updateCertificate,

@@ -27,13 +27,21 @@ import {
   BarChart3,
   FileCheck,
   Settings,
-  LayoutDashboard
+  LayoutDashboard,
+  Trash2
 } from 'lucide-react';
 
 export const Navbar = ({ isDark, setIsDark, activeTab, setActiveTab }) => {
   const { currentUser, logout } = useAuth();
   const { lang, toggleLanguage, t } = useLanguage();
-  const { notifications, markNotificationRead, markAllNotificationsRead, settings } = useApp();
+  const {
+    notifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+    deleteNotification,
+    clearAllNotifications,
+    settings
+  } = useApp();
 
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -107,15 +115,33 @@ export const Navbar = ({ isDark, setIsDark, activeTab, setActiveTab }) => {
                       <Bell className="w-3.5 h-3.5 text-[#0E7C86]" />
                       <span>Notifications ({unreadCount} new)</span>
                     </span>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={() => markAllNotificationsRead(currentUser?.id)}
-                        className="text-[11px] text-[#0E7C86] hover:underline flex items-center gap-1 font-semibold"
-                      >
-                        <CheckCheck className="w-3 h-3" />
-                        <span>Mark all read</span>
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={() => markAllNotificationsRead(currentUser?.id)}
+                          className="text-[11px] text-[#0E7C86] hover:underline flex items-center gap-1 font-semibold"
+                          title="Mark all as read"
+                        >
+                          <CheckCheck className="w-3 h-3" />
+                          <span>Mark read</span>
+                        </button>
+                      )}
+                      {myNotifications.length > 0 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm('Clear all notifications?')) {
+                              clearAllNotifications(currentUser?.role === 'admin' ? null : currentUser?.id);
+                            }
+                          }}
+                          className="text-[11px] text-rose-500 hover:text-rose-700 hover:underline flex items-center gap-1 font-semibold"
+                          title="Clear all notifications"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Clear</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
@@ -128,22 +154,34 @@ export const Navbar = ({ isDark, setIsDark, activeTab, setActiveTab }) => {
                         <div
                           key={n.id}
                           onClick={() => markNotificationRead(n.id)}
-                          className={`p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition flex items-start gap-2.5 ${
+                          className={`p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition flex items-start justify-between gap-2.5 group ${
                             !n.read ? 'bg-teal-50/50 dark:bg-teal-950/20' : ''
                           }`}
                         >
-                          <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.read ? 'bg-[#0E7C86]' : 'bg-transparent'}`} />
-                          <div className="space-y-0.5 flex-1">
-                            <div className="font-semibold text-slate-900 dark:text-white leading-tight">
-                              {n.title}
+                          <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                            <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.read ? 'bg-[#0E7C86]' : 'bg-transparent'}`} />
+                            <div className="space-y-0.5 flex-1 min-w-0">
+                              <div className="font-semibold text-slate-900 dark:text-white leading-tight truncate">
+                                {n.title}
+                              </div>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug break-words">
+                                {n.message}
+                              </p>
+                              <span className="text-[10px] text-slate-400 block pt-0.5 font-mono">
+                                {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
                             </div>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
-                              {n.message}
-                            </p>
-                            <span className="text-[10px] text-slate-400 block pt-0.5 font-mono">
-                              {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
                           </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNotification(n.id);
+                            }}
+                            className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0"
+                            title="Delete notification"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       ))
                     )}
