@@ -18,6 +18,7 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_AUDIT_LOGS,
   INITIAL_SETTINGS,
+  INITIAL_CERTIFICATES,
   HASHED_PASSWORDS
 } from '../services/initialData';
 import { STORAGE_KEYS } from '../services/firebase';
@@ -110,6 +111,15 @@ export const AppProvider = ({ children }) => {
     }
   });
 
+  const [certificates, setCertificates] = useState(() => {
+    try {
+      const s = localStorage.getItem(STORAGE_KEYS.CERTIFICATES);
+      return s ? JSON.parse(s) : INITIAL_CERTIFICATES;
+    } catch {
+      return INITIAL_CERTIFICATES;
+    }
+  });
+
   // Sync state to LocalStorage & Cloud Firestore
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.SECTIONS, JSON.stringify(sections)); syncToCloud('sections', sections); }, [sections]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(classes)); syncToCloud('classes', classes); }, [classes]);
@@ -130,6 +140,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs)); syncToCloud('auditLogs', auditLogs); }, [auditLogs]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings)); syncToCloud('settings', settings); }, [settings]);
   useEffect(() => { localStorage.setItem('musf_report_history', JSON.stringify(reportHistory)); syncToCloud('reportHistory', reportHistory); }, [reportHistory]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CERTIFICATES, JSON.stringify(certificates)); syncToCloud('certificates', certificates); }, [certificates]);
 
   // Real-time Cloud Firestore Subscriptions across devices
   useEffect(() => {
@@ -188,6 +199,11 @@ export const AppProvider = ({ children }) => {
         setNotices(cloudNotices);
       }
     });
+    const unsubCertificates = subscribeToCloud('certificates', (cloudCerts) => {
+      if (Array.isArray(cloudCerts) && cloudCerts.length > 0) {
+        setCertificates(cloudCerts);
+      }
+    });
 
     return () => {
       unsubMarks();
@@ -201,6 +217,7 @@ export const AppProvider = ({ children }) => {
       unsubClasses();
       unsubSettings();
       unsubNotices();
+      unsubCertificates();
     };
   }, []);
 
@@ -2185,6 +2202,179 @@ export const AppProvider = ({ children }) => {
     }));
   };
 
+  // CERTIFICATES CRUD & AUTO-ALLOCATION (Top Performers of Month and Class-wise Toppers)
+  const addCertificate = (certData, actor = 'admin') => {
+    const newCert = {
+      id: 'cert_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      createdAt: new Date().toISOString(),
+      isPublished: Boolean(certData.isPublished),
+      publishedAt: certData.isPublished ? new Date().toISOString() : null,
+      ...certData
+    };
+    setCertificates(prev => [newCert, ...prev]);
+    addAuditLog(actor, 'ADD_CERTIFICATE', `Allocated certificate to ${newCert.studentName}: ${newCert.awardTitle}`);
+    return newCert;
+  };
+
+  const updateCertificate = (id, updates, actor = 'admin') => {
+    setCertificates(prev => prev.map(c => {
+      if (c.id === id) {
+        const next = { ...c, ...updates };
+        if (updates.isPublished === true && !c.isPublished) {
+          next.publishedAt = new Date().toISOString();
+        }
+        return next;
+      }
+      return c;
+    }));
+    addAuditLog(actor, 'UPDATE_CERTIFICATE', `Updated certificate ${id}`);
+  };
+
+  const deleteCertificate = (id, actor = 'admin') => {
+    const cert = certificates.find(c => c.id === id);
+    setCertificates(prev => prev.filter(c => c.id !== id));
+    addAuditLog(actor, 'DELETE_CERTIFICATE', `Deleted certificate of ${cert?.studentName || id}`);
+  };
+
+  const togglePublishCertificate = (id, actor = 'admin') => {
+    const cert = certificates.find(c => c.id === id);
+    if (!cert) return;
+    const nextVal = !cert.isPublished;
+    updateCertificate(id, {
+      isPublished: nextVal,
+      publishedAt: nextVal ? new Date().toISOString() : null
+    }, actor);
+    addAuditLog(actor, nextVal ? 'PUBLISH_CERTIFICATE' : 'UNPUBLISH_CERTIFICATE', `${nextVal ? 'Published' : 'Unpublished'} certificate for ${cert.studentName}`);
+  };
+
+  const publishAllMonthCertificates = (month, actor = 'admin') => {
+    const nowIso = new Date().toISOString();
+    let count = 0;
+    setCertificates(prev => prev.map(c => {
+      if ((!month || month === 'all' || c.month === month) && !c.isPublished) {
+        count++;
+        return { ...c, isPublished: true, publishedAt: nowIso };
+      }
+      return c;
+    }));
+    addAuditLog(actor, 'PUBLISH_ALL_CERTIFICATES', `Published ${count} certificates${month ? ` for ${month}` : ''}`);
+    return count;
+  };
+
+  const autoAllocateTopPerformerCertificates = ({ month, topMonthCount = 3, classTopperCount = 1 }, actor = 'admin') => {
+    const report = computeComprehensiveReport({
+      summits,
+      programs,
+      entries,
+      marks,
+      attendance,
+      students,
+      classes,
+      teams,
+      fields,
+      settings,
+      periodMonths: month && month !== 'all' ? [month] : [],
+      sectionFilter: 'all',
+      classFilter: 'all',
+      teamFilter: 'all'
+    });
+
+    const mLabel = month && month !== 'all' ? formatMonthLabel(month) : 'Academic Year 2026';
+    const newAllocated = [];
+
+    // 1. Top Performers of the Month (Overall Top 3)
+    const topPerformers = (report.top10Overall || []).slice(0, topMonthCount);
+    topPerformers.forEach((st, idx) => {
+      const rankNum = idx + 1;
+      const rankSuffix = rankNum === 1 ? '1st Rank' : rankNum === 2 ? '2nd Rank' : `${rankNum}rd Rank`;
+      const title = `Top Performer of the Month (${rankSuffix} - Overall)`;
+
+      newAllocated.push({
+        id: `cert_${month || 'all'}_top_${st.id}_${rankNum}`,
+        month: month || '2026-11',
+        monthLabel: mLabel,
+        studentId: st.id,
+        studentName: st.name,
+        cicNo: st.cicNo,
+        classId: st.classId,
+        className: st.className,
+        teamId: st.teamId,
+        teamName: st.teamName,
+        sectionId: st.sectionId,
+        category: 'TOP_PERFORMER_MONTH',
+        rank: rankNum,
+        awardTitle: title,
+        citation: `Conferred with apex distinction for securing ${rankSuffix} among all collegiate participants in the ${mLabel} summits.`,
+        marksObtained: st.totalMarksObtained,
+        maxMarks: st.totalMaxMarks,
+        marksPercentage: st.overallMarksPercentage,
+        attendancePercentage: st.overallAttendancePercentage,
+        grade: st.overallGrade,
+        issueDate: new Date().toISOString().slice(0, 10),
+        isPublished: false,
+        publishedAt: null
+      });
+    });
+
+    // 2. Class-Wise Top Performers (Top 1 or Top N for each of the 5 classes)
+    classes.forEach(cl => {
+      const clReport = (report.classReports || []).find(cr => cr.classId === cl.id);
+      const clToppers = (clReport?.top3 || []).slice(0, classTopperCount);
+
+      clToppers.forEach((topper, tIdx) => {
+        const topperRank = tIdx + 1;
+        const rankSuffix = topperRank === 1 ? '1st Rank' : topperRank === 2 ? '2nd Rank' : `${topperRank}rd Rank`;
+        const title = `Class Topper (${rankSuffix} - ${cl.name})`;
+
+        const existingId = `cert_${month || 'all'}_class_${cl.id}_${topper.id}_${topperRank}`;
+        newAllocated.push({
+          id: existingId,
+          month: month || '2026-11',
+          monthLabel: mLabel,
+          studentId: topper.id,
+          studentName: topper.name,
+          cicNo: topper.cicNo,
+          classId: cl.id,
+          className: cl.name,
+          teamId: topper.teamId,
+          teamName: topper.teamName,
+          sectionId: topper.sectionId || cl.sectionId || 'thamheediyya',
+          category: 'CLASS_TOPPER',
+          rank: topperRank,
+          awardTitle: title,
+          citation: `Awarded for scholastic distinction and attaining ${rankSuffix} in ${cl.name} during the ${mLabel} academic summits.`,
+          marksObtained: topper.totalMarksObtained,
+          maxMarks: topper.totalMaxMarks,
+          marksPercentage: topper.overallMarksPercentage,
+          attendancePercentage: topper.overallAttendancePercentage,
+          grade: topper.overallGrade,
+          issueDate: new Date().toISOString().slice(0, 10),
+          isPublished: false,
+          publishedAt: null
+        });
+      });
+    });
+
+    // Merge into existing certificates: replace if existing by ID, or append
+    setCertificates(prev => {
+      const map = new Map(prev.map(c => [c.id, c]));
+      newAllocated.forEach(newC => {
+        if (!map.has(newC.id)) {
+          map.set(newC.id, newC);
+        } else {
+          const current = map.get(newC.id);
+          if (!current.isPublished) {
+            map.set(newC.id, { ...current, ...newC, awardTitle: current.awardTitle, citation: current.citation });
+          }
+        }
+      });
+      return Array.from(map.values());
+    });
+
+    addAuditLog(actor, 'AUTO_ALLOCATE_CERTIFICATES', `Auto-allocated ${newAllocated.length} certificates for ${mLabel}`);
+    return newAllocated.length;
+  };
+
   // SETTINGS
   const updateSettings = (updates, actor) => {
     setSettings(prev => ({ ...prev, ...updates }));
@@ -2295,6 +2485,13 @@ export const AppProvider = ({ children }) => {
       sendNotification,
       markNotificationRead,
       markAllNotificationsRead,
+      certificates,
+      addCertificate,
+      updateCertificate,
+      deleteCertificate,
+      togglePublishCertificate,
+      publishAllMonthCertificates,
+      autoAllocateTopPerformerCertificates,
       updateSettings,
       addAuditLog,
       resetAllDataToDefault

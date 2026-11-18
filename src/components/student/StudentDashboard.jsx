@@ -38,7 +38,8 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
     studentStandings,
     teamStandings,
     studentAttendanceMap,
-    settings
+    settings,
+    certificates
   } = useApp();
   const { currentUser } = useAuth();
 
@@ -101,24 +102,13 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
     return myProgramsList.find(p => !p.isPublished) || null;
   }, [myProgramsList]);
 
-  // Eligible Certificates (Top 3 in published events)
+  // Official Merit Certificates: Top Performers of the Month & Class-wise Toppers (Published only)
   const myCertificates = useMemo(() => {
-    return myProgramsList.filter(p => p.isPublished && p.rank <= 3);
-  }, [myProgramsList]);
+    return (certificates || []).filter(c => c.studentId === student?.id && c.isPublished);
+  }, [certificates, student]);
 
-  const handleDownloadCert = (item) => {
-    generateCertificatePDF({
-      studentName: student.name,
-      chestNo: student.chestNo,
-      cicNo: student.cicNo,
-      teamName: team?.name || '-',
-      programName: item.program.name,
-      position: item.position,
-      grade: item.grade,
-      date: item.program.date,
-      collegeName: settings.collegeName,
-      summitName: settings.appTitle
-    });
+  const handleDownloadCert = (cert) => {
+    generateCertificatePDF(cert);
   };
 
   const handleDownloadMyReportCard = () => {
@@ -271,7 +261,7 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
                     <th className="py-2.5 px-4 text-center">Percentage</th>
                     <th className="py-2.5 px-4 text-center">Grade</th>
                     <th className="py-2.5 px-4 text-center">Position</th>
-                    <th className="py-2.5 px-4 text-right">Certificate</th>
+                    <th className="py-2.5 px-4 text-right">Result Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -298,16 +288,13 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
                         {item.isPublished ? item.position : '-'}
                       </td>
                       <td className="py-2.5 px-4 text-right">
-                        {item.isPublished && item.rank <= 3 ? (
-                          <button
-                            onClick={() => handleDownloadCert(item)}
-                            className="px-2.5 py-1 rounded bg-[#0F2A4A] dark:bg-[#0E7C86] text-white text-[11px] font-semibold inline-flex items-center gap-1 shadow-xs"
-                          >
-                            <Download className="w-3 h-3" />
-                            <span>PDF</span>
-                          </button>
+                        {item.isPublished ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Declared</span>
+                          </span>
                         ) : (
-                          <span className="text-slate-400 text-[10px]">-</span>
+                          <span className="text-slate-400 text-[11px] font-medium">Scheduled</span>
                         )}
                       </td>
                     </tr>
@@ -408,42 +395,77 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
       {/* VIEW 4: Certificates */}
       {activeTab === 'certificates' && (
         <div className="space-y-4">
-          <h3 className="text-base font-bold text-[#0F2A4A] dark:text-white">
-            My Distinction &amp; Merit Certificates
-          </h3>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div>
+              <h3 className="text-base font-bold text-[#0F2A4A] dark:text-white flex items-center gap-2">
+                <Award className="w-5 h-5 text-amber-500" />
+                <span>Official Merit &amp; Distinction Certificates</span>
+              </h3>
+              <p className="text-xs text-slate-500">
+                Collegiate certificates awarded exclusively to Top Performers of the Month and Class-Wise Toppers.
+              </p>
+            </div>
+          </div>
 
           {myCertificates.length === 0 ? (
-            <div className="p-12 text-center bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400">
-              <Award className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-              <p className="font-semibold text-sm">No merit certificates earned yet.</p>
-              <p className="text-xs">Certificates are automatically generated when you place 1st, 2nd, or 3rd in collegiate events.</p>
+            <div className="p-12 text-center bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 space-y-2">
+              <Award className="w-12 h-12 text-slate-300 mx-auto" />
+              <p className="font-bold text-slate-700 dark:text-slate-300 text-sm">No Merit Certificates Released Yet</p>
+              <p className="text-xs max-w-md mx-auto text-slate-500">
+                Certificates are awarded exclusively to <strong>Top Performers of the Month</strong> and <strong>Class-Wise Toppers</strong>. Once allocated and published by college administration, your certificate will be available here for download.
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {myCertificates.map((item, idx) => (
-                <div key={idx} className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border-2 border-amber-500/40 shadow-xs space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-amber-100 text-amber-800">
-                      {item.position}
+              {myCertificates.map((cert) => (
+                <div key={cert.id} className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border-2 border-amber-500/40 shadow-xs space-y-3 relative overflow-hidden">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                      cert.category === 'TOP_PERFORMER_MONTH'
+                        ? 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-300'
+                        : 'bg-indigo-100 text-indigo-900 dark:bg-indigo-950 dark:text-indigo-200 border border-indigo-300'
+                    }`}>
+                      {cert.category === 'TOP_PERFORMER_MONTH' ? '🌟 Top Performer of Month' : '🎓 Class-Wise Academic Topper'}
                     </span>
-                    <span className="text-xs font-mono text-slate-400">{item.program.date}</span>
+                    <span className="text-xs font-mono font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                      {cert.monthLabel || cert.month}
+                    </span>
                   </div>
 
-                  <h4 className="font-extrabold text-base text-slate-900 dark:text-white">
-                    {item.program.name}
-                  </h4>
+                  <div>
+                    <h4 className="font-extrabold text-base text-[#0F2A4A] dark:text-white">
+                      {cert.awardTitle}
+                    </h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 italic leading-relaxed">
+                      "{cert.citation}"
+                    </p>
+                  </div>
 
-                  <p className="text-xs text-slate-500">
-                    Field: <strong>{item.fieldName}</strong> • Grade: <strong className="text-emerald-700">{item.grade}</strong>
-                  </p>
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-center text-xs">
+                    <div className="bg-slate-50 dark:bg-slate-900/60 p-2 rounded-lg">
+                      <div className="text-[10px] text-slate-400 uppercase font-bold">Class</div>
+                      <div className="font-bold text-[#0F2A4A] dark:text-white truncate">{cert.className || '-'}</div>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-900/60 p-2 rounded-lg">
+                      <div className="text-[10px] text-slate-400 uppercase font-bold">Marks %</div>
+                      <div className="font-bold font-mono text-[#0E7C86]">{cert.marksPercentage}% ({cert.grade})</div>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-900/60 p-2 rounded-lg">
+                      <div className="text-[10px] text-slate-400 uppercase font-bold">Attendance</div>
+                      <div className="font-bold font-mono text-emerald-600">{cert.attendancePercentage}%</div>
+                    </div>
+                  </div>
 
-                  <div className="pt-3 border-t flex justify-end">
+                  <div className="pt-2 flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-xs border-t border-slate-100 dark:border-slate-800">
+                    <span className="text-slate-400 text-[11px]">
+                      Issued: {cert.issueDate}
+                    </span>
                     <button
-                      onClick={() => handleDownloadCert(item)}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#0F2A4A] text-white text-xs font-semibold flex items-center gap-1.5"
+                      onClick={() => handleDownloadCert(cert)}
+                      className="px-4 py-2 rounded-xl bg-[#0F2A4A] hover:bg-[#1a3a60] dark:bg-[#0E7C86] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      <span>Download PDF Certificate</span>
+                      <span>Download Official PDF</span>
                     </button>
                   </div>
                 </div>

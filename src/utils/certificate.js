@@ -2,26 +2,32 @@ import { jsPDF } from 'jspdf';
 
 /**
  * Renders an official Academic Merit Certificate on A4 Landscape
+ * Exclusively for:
+ * 1. Top Performers of the Month (Overall & Section-wise Apex Distinction)
+ * 2. Class-Wise Top Performers (Class Topper & Scholastic Excellence)
  */
 function drawAcademicCertificatePage(doc, certData) {
   const {
-    studentName,
-    chestNo,
-    cicNo,
-    teamName,
-    programName,
-    position,
-    grade,
-    date,
-    collegeName = "MAJLIS UMARIYYA WAFY COLLEGE",
-    festName = "MUSF SUMMIT REGISTER"
+    studentName = "Student Participant",
+    cicNo = "WAFY-ID",
+    className = "Wafy Academic Class",
+    teamName = "House Team",
+    category = "TOP_PERFORMER_MONTH",
+    awardTitle = "Top Performer of the Month",
+    citation = "For outstanding scholastic distinction, eloquent summit presentations, and academic leadership.",
+    monthLabel = "Academic Month",
+    marksPercentage = 95,
+    attendancePercentage = 100,
+    grade = "A",
+    issueDate = new Date().toISOString().slice(0, 10),
+    collegeName = "MAJLIS UMARIYYA WAFY COLLEGE"
   } = certData;
 
   const width = doc.internal.pageSize.getWidth();
   const height = doc.internal.pageSize.getHeight();
 
-  // Background subtle off-white
-  doc.setFillColor(248, 250, 252);
+  // Background subtle ivory / off-white
+  doc.setFillColor(252, 252, 250);
   doc.rect(0, 0, width, height, 'F');
 
   // Outer Deep Navy Border
@@ -46,74 +52,94 @@ function drawAcademicCertificatePage(doc, certData) {
   doc.setFont('times', 'bold');
   doc.setFontSize(22);
   doc.setTextColor(15, 42, 74);
-  doc.text(collegeName.toUpperCase(), width / 2, 30, { align: 'center' });
+  doc.text(collegeName.toUpperCase(), width / 2, 28, { align: 'center' });
 
   // Summit Register Subtitle
   doc.setFont('times', 'normal');
-  doc.setFontSize(13);
+  doc.setFontSize(11);
   doc.setTextColor(14, 124, 134); // Teal #0E7C86
-  doc.text("DIRECTORATE OF ACADEMIC & TALENT SUMMITS", width / 2, 38, { align: 'center' });
+  doc.text("DIRECTORATE OF ACADEMIC & TALENT SUMMITS • MUSF REGISTER", width / 2, 35, { align: 'center' });
 
-  // Certificate Title
+  // Certificate Title based on Category
   doc.setFont('times', 'bold');
-  doc.setFontSize(24);
+  doc.setFontSize(23);
   doc.setTextColor(15, 23, 42);
-  doc.text("CERTIFICATE OF MERIT & DISTINCTION", width / 2, 56, { align: 'center' });
+
+  const mainCertHeading = category === 'CLASS_TOPPER'
+    ? "CERTIFICATE OF CLASS-WISE SCHOLASTIC EXCELLENCE"
+    : "CERTIFICATE OF APEX ACADEMIC DISTINCTION";
+
+  doc.text(mainCertHeading, width / 2, 49, { align: 'center' });
+
+  // Sub-badge: Category Name
+  doc.setFont('times', 'bolditalic');
+  doc.setFontSize(13);
+  doc.setTextColor(201, 162, 39); // Gold
+  const categorySub = category === 'CLASS_TOPPER'
+    ? "CLASS TOPPER & ACADEMIC MERIT DISTINCTION"
+    : "TOP PERFORMER OF THE MONTH";
+  doc.text(categorySub, width / 2, 56, { align: 'center' });
 
   // Gold Divider Line
   doc.setDrawColor(201, 162, 39);
   doc.setLineWidth(1);
-  doc.line(width / 2 - 50, 60, width / 2 + 50, 60);
+  doc.line(width / 2 - 55, 60, width / 2 + 55, 60);
 
   // Body Prose
   doc.setFont('times', 'normal');
-  doc.setFontSize(13);
+  doc.setFontSize(12.5);
   doc.setTextColor(51, 65, 85);
-  doc.text("This official credential is awarded to", width / 2, 74, { align: 'center' });
+  doc.text("This prestigious credential of collegiate honor is conferred upon", width / 2, 71, { align: 'center' });
 
   // Recipient Student Name
   doc.setFont('times', 'bold');
-  doc.setFontSize(22);
+  doc.setFontSize(24);
   doc.setTextColor(15, 42, 74);
-  doc.text(studentName || "Participant", width / 2, 87, { align: 'center' });
+  doc.text(studentName || "Participant", width / 2, 84, { align: 'center' });
 
   // Student Identity Line
   doc.setFont('times', 'italic');
   doc.setFontSize(11);
   doc.setTextColor(100, 116, 139);
-  doc.text(`Chest Number: ${chestNo || '-'}   |   CIC: ${cicNo || '-'}   |   House Team: ${teamName || '-'}`, width / 2, 95, { align: 'center' });
+  doc.text(`CIC No: ${cicNo || '-'}   •   Class: ${className || '-'}   •   House: ${teamName || '-'}`, width / 2, 92, { align: 'center' });
 
-  // Position Achievement Text
-  doc.setFont('times', 'normal');
-  doc.setFontSize(13);
-  doc.setTextColor(51, 65, 85);
-  doc.text("for outstanding performance and securing", width / 2, 108, { align: 'center' });
-
-  // Position Badge
+  // Award Title
   doc.setFont('times', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(201, 162, 39); // Soft Gold
-  doc.text(`${position.toUpperCase()} (GRADE: ${grade || 'A'})`, width / 2, 120, { align: 'center' });
+  doc.setFontSize(19);
+  doc.setTextColor(201, 162, 39); // Gold
+  doc.text(awardTitle.toUpperCase(), width / 2, 107, { align: 'center' });
 
-  // Program Name
+  // Citation text (wrapped if long)
   doc.setFont('times', 'normal');
-  doc.setFontSize(13);
+  doc.setFontSize(12);
   doc.setTextColor(51, 65, 85);
-  doc.text("in the collegiate competition event", width / 2, 130, { align: 'center' });
 
-  doc.setFont('times', 'bolditalic');
-  doc.setFontSize(18);
-  doc.setTextColor(15, 42, 74);
-  doc.text(`"${programName}"`, width / 2, 142, { align: 'center' });
+  const cleanCitation = citation || "For exemplary performance, summit eloquence, and intellectual distinction.";
+  const splitCitation = doc.splitTextToSize(cleanCitation, width - 80);
+  doc.text(splitCitation, width / 2, 118, { align: 'center' });
 
-  // Date and Venue
-  doc.setFont('times', 'normal');
+  // Month & Metrics Details
+  const metricsY = 136;
+  doc.setFillColor(241, 245, 249);
+  doc.roundedRect(width / 2 - 80, metricsY - 5, 160, 14, 2, 2, 'F');
+  doc.setDrawColor(203, 213, 225);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(width / 2 - 80, metricsY - 5, 160, 14, 2, 2, 'D');
+
+  doc.setFont('times', 'bold');
   doc.setFontSize(10.5);
+  doc.setTextColor(15, 42, 74);
+  const metricsText = `Period: ${monthLabel}   •   Score: ${Number(marksPercentage).toFixed(1)}% (Grade: ${grade || 'A'})   •   Attendance: ${Number(attendancePercentage).toFixed(1)}%`;
+  doc.text(metricsText, width / 2, metricsY + 4, { align: 'center' });
+
+  // Date and Accreditation
+  doc.setFont('times', 'normal');
+  doc.setFontSize(10);
   doc.setTextColor(100, 116, 139);
-  doc.text(`Held under the auspices of Majlis Umariyya Wafy College  •  Date: ${date || '2026'}`, width / 2, 154, { align: 'center' });
+  doc.text(`Authenticated by Directorate of Summits, Majlis Umariyya Wafy College  •  Issue Date: ${issueDate}`, width / 2, 155, { align: 'center' });
 
   // Signatures Line
-  const sigY = 180;
+  const sigY = 178;
   doc.setDrawColor(148, 163, 184);
   doc.setLineWidth(0.5);
 
@@ -160,7 +186,9 @@ export function generateCertificatePDF(certData) {
 
   drawAcademicCertificatePage(doc, certData);
 
-  const filename = `Certificate_${certData.studentName.replace(/\s+/g, '_')}_${certData.position.replace(/\s+/g, '')}.pdf`;
+  const cleanName = (certData.studentName || 'Student').replace(/\s+/g, '_');
+  const cleanTitle = (certData.awardTitle || certData.category || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_');
+  const filename = `Certificate_${cleanName}_${cleanTitle}.pdf`;
   doc.save(filename);
 }
 
@@ -181,5 +209,5 @@ export function bulkGenerateCertificatesPDF(certificatesList) {
     drawAcademicCertificatePage(doc, certData);
   });
 
-  doc.save(`MUSF_Summit_Certificates_Batch_${new Date().toISOString().slice(0, 10)}.pdf`);
+  doc.save(`MUSF_Merit_Certificates_Batch_${new Date().toISOString().slice(0, 10)}.pdf`);
 }

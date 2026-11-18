@@ -40,5 +40,6 @@ export const STORAGE_KEYS = {
   NOTIFICATIONS: 'musf_summit_notifications_v2',
   AUDIT_LOGS: 'musf_summit_audit_logs_v2',
   SETTINGS: 'musf_summit_settings_v2',
+  CERTIFICATES: 'musf_summit_certificates_v2',
   CURRENT_USER: 'musf_summit_current_user_v2'
 };
