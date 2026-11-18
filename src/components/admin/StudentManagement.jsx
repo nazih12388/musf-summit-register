@@ -334,15 +334,6 @@ export const StudentManagement = () => {
               </button>
 
               <button
-                onClick={() => autoGenerateChestNumbers(currentUser?.username)}
-                className="py-2 px-3.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-semibold text-xs flex items-center gap-1.5 transition border border-amber-500/30"
-                title="Regenerate unique Chest Numbers C-101..."
-              >
-                <Hash className="w-4 h-4" />
-                <span>Auto Chest #</span>
-              </button>
-
-              <button
                 onClick={() => {
                   autoGenerateAllCredentials(currentUser?.username);
                   setIsCredentialsModalOpen(true);
@@ -352,15 +343,6 @@ export const StudentManagement = () => {
               >
                 <Key className="w-4 h-4" />
                 <span>Credentials Sheet</span>
-              </button>
-
-              <button
-                onClick={() => setShowArchived(true)}
-                className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs flex items-center gap-1 transition"
-                title="View Archive"
-              >
-                <Archive className="w-3.5 h-3.5" />
-                <span>Archive ({archivedStudents.length})</span>
               </button>
             </>
           ) : (
@@ -469,7 +451,6 @@ export const StudentManagement = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">
               <tr>
-                <th className="py-3 px-3">Chest #</th>
                 <th className="py-3 px-3">Student Name</th>
                 <th className="py-3 px-3">CIC Number</th>
                 <th className="py-3 px-3">Class & Section</th>
@@ -482,7 +463,7 @@ export const StudentManagement = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="text-center py-8 text-slate-400">
+                  <td colSpan="7" className="text-center py-8 text-slate-400">
                     No students match current search or filters.
                   </td>
                 </tr>
@@ -495,9 +476,6 @@ export const StudentManagement = () => {
 
                   return (
                     <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
-                      <td className="py-3 px-3 font-black text-emerald-800 dark:text-amber-400">
-                        {student.chestNo || '-'}
-                      </td>
                       <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white">
                         {student.name}
                         {student.isLeader && (
@@ -544,33 +522,23 @@ export const StudentManagement = () => {
                         {student.username || '-'}
                       </td>
                       <td className="py-3 px-3 text-right">
-                        {!showArchived ? (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => setEditingStudent({ ...student })}
-                              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition"
-                              title="Edit Student"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => setDeletingStudentId(student.id)}
-                              className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 text-rose-600 transition"
-                              title="Move to Archive"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ) : (
+                        <div className="flex items-center justify-end gap-1.5 flex-wrap">
                           <button
-                            onClick={() => restoreStudent(student.id, currentUser?.username)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200 font-semibold text-xs flex items-center gap-1 transition"
-                            title="Restore student back to active directory"
+                            onClick={() => setEditingStudent({ ...student })}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition"
+                            title="Edit Student"
                           >
-                            <RotateCcw className="w-3 h-3" />
-                            <span>Restore</span>
+                            <Edit className="w-3.5 h-3.5" />
                           </button>
-                        )}
+                          <button
+                            onClick={() => setDeletingStudentId(student.id)}
+                            className="px-2 py-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 text-rose-600 border border-rose-200/80 dark:border-rose-900/60 transition text-xs font-semibold inline-flex items-center gap-1"
+                            title="Delete Student Permanently"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete Permanently</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -675,17 +643,6 @@ export const StudentManagement = () => {
             </div>
           )}
 
-          <div>
-            <label className="block font-semibold mb-1">Chest Number (Optional)</label>
-            <input
-              type="text"
-              value={newStudent.chestNo}
-              onChange={(e) => setNewStudent(prev => ({ ...prev, chestNo: e.target.value }))}
-              placeholder="Leave blank for auto C-101..."
-              className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
-            />
-          </div>
-
           <button
             type="submit"
             className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition mt-4"
@@ -784,16 +741,6 @@ export const StudentManagement = () => {
                 <span>Thamheediyya section: Foundational Curriculum</span>
               </div>
             )}
-
-            <div>
-              <label className="block font-semibold mb-1">Chest Number</label>
-              <input
-                type="text"
-                value={editingStudent.chestNo || ''}
-                onChange={(e) => setEditingStudent(prev => ({ ...prev, chestNo: e.target.value }))}
-                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
-              />
-            </div>
 
             <button
               type="submit"
@@ -1012,8 +959,8 @@ export const StudentManagement = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-100 dark:bg-slate-800 font-bold sticky top-0">
                 <tr>
-                  <th className="p-2">Chest #</th>
                   <th className="p-2">Name</th>
+                  <th className="p-2">CIC Number</th>
                   <th className="p-2">Class</th>
                   <th className="p-2">Team</th>
                   <th className="p-2">Username</th>
@@ -1023,8 +970,8 @@ export const StudentManagement = () => {
               <tbody className="divide-y">
                 {(students || []).map(s => (
                   <tr key={s.id}>
-                    <td className="p-2 font-mono font-bold">{s.chestNo || '-'}</td>
                     <td className="p-2 font-semibold">{s.name}</td>
+                    <td className="p-2 font-mono text-slate-500">{s.cicNo}</td>
                     <td className="p-2">{classesMap[s.classId]?.name || s.classId}</td>
                     <td className="p-2">{teamsMap[s.teamId]?.name || s.teamId}</td>
                     <td className="p-2 font-mono text-emerald-700 dark:text-emerald-400 font-bold">{s.username || s.cicNo}</td>
@@ -1037,7 +984,7 @@ export const StudentManagement = () => {
         </div>
       </Modal>
 
-      {/* Delete/Archive Confirmation Dialog */}
+      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={Boolean(deletingStudentId)}
         onClose={() => setDeletingStudentId(null)}
@@ -1047,9 +994,10 @@ export const StudentManagement = () => {
             setDeletingStudentId(null);
           }
         }}
-        title="Remove Student to Archive"
-        message="Are you sure you want to remove this student? They will be safely moved to the Archive and can be restored at any time."
-        confirmLabel="Move to Archive"
+        title="Delete Student Permanently"
+        message="Are you sure you want to permanently delete this student? All their registrations, marks, and profile details will be completely removed from the institution."
+        confirmLabel="Delete Permanently"
+        isDestructive={true}
       />
     </div>
   );

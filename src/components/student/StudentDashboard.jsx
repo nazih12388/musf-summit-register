@@ -148,9 +148,6 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
       >
         <div className="space-y-1 relative z-10">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[11px] font-bold uppercase tracking-wider font-mono">
-              CHEST: {student?.chestNo}
-            </span>
             <span className="px-2.5 py-0.5 rounded-full bg-teal-400/20 text-teal-200 border border-teal-300/30 text-[11px] font-bold uppercase tracking-wider">
               {sec?.name?.split(' ')[0] || (student?.sectionId === 'aliya' ? 'Aliya' : 'Thamheediyya')} Division
             </span>

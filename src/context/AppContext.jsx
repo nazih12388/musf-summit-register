@@ -1463,11 +1463,14 @@ export const AppProvider = ({ children }) => {
   };
 
   const removeStudent = (id, actor) => {
-    const st = students.find(s => s.id === id);
+    const st = students.find(s => s.id === id) || archivedStudents.find(s => s.id === id);
     if (!st) return;
     setStudents(prev => prev.filter(s => s.id !== id));
-    setArchivedStudents(prev => [...prev, { ...st, archivedAt: new Date().toISOString() }]);
-    addAuditLog(actor, 'ARCHIVE_STUDENT', `Archived student ${st.name} (${st.cicNo})`);
+    setArchivedStudents(prev => prev.filter(s => s.id !== id));
+    setEntries(prev => prev.filter(e => e.studentId !== id && (!e.memberIds || !e.memberIds.includes(id))));
+    setMarks(prev => prev.filter(m => m.studentId !== id));
+    setCertificates(prev => prev.filter(c => c.studentId !== id));
+    addAuditLog(actor, 'DELETE_STUDENT_PERMANENTLY', `Permanently deleted student ${st.name} (${st.cicNo})`);
   };
 
   const restoreStudent = (id, actor) => {
