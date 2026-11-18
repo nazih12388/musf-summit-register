@@ -112,8 +112,8 @@ export const SplashScreen = ({ onFinished }) => {
         }`}>
           {/* Institution Summit Portal Pill */}
           <div className="flex items-center justify-center">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-[#C9A227]/40 shadow-xl">
-              <Sparkles className="w-3.5 h-3.5 text-[#C9A227] animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 shadow-xl">
+              <Sparkles className="w-3.5 h-3.5 text-teal-400 animate-pulse" />
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-white">
                 MUSF SUMMIT REGISTER
               </span>
@@ -125,14 +125,14 @@ export const SplashScreen = ({ onFinished }) => {
 
           {/* Status Text & Percentage */}
           <div className="flex items-center justify-between text-xs font-mono text-slate-200 px-1">
-            <span className="truncate pr-2 drop-shadow-sm font-semibold">{statusText}</span>
-            <span className="font-bold text-[#C9A227] drop-shadow-sm">{progress}%</span>
+            <span className="truncate pr-2 drop-shadow-sm font-semibold text-white">{statusText}</span>
+            <span className="font-bold text-white drop-shadow-sm font-mono">{progress}%</span>
           </div>
 
           {/* Progress Bar Track */}
           <div className="w-full h-2.5 bg-black/75 backdrop-blur-md rounded-full overflow-hidden border border-slate-700/80 p-0.5 shadow-inner">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#0E7C86] via-[#14919D] to-[#C9A227] transition-all duration-150 relative overflow-hidden"
+              className="h-full rounded-full bg-gradient-to-r from-[#0E7C86] via-[#14B8A6] to-[#38BDF8] transition-all duration-150 relative overflow-hidden"
               style={{ width: `${progress}%` }}
             >
               <div className="absolute inset-0 bg-white/40 animate-shimmer" />

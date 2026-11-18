@@ -166,7 +166,9 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
             <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
               <span className="text-[10px] uppercase font-bold text-slate-400 block truncate">House Teams</span>
               <div className="text-lg sm:text-xl font-bold text-[#0F2A4A] dark:text-white">{totalTeams}</div>
-              <span className="text-[10px] text-slate-400 block truncate">4 Leaders</span>
+              <span className="text-[10px] text-slate-400 block truncate">
+                {teams.reduce((acc, t) => acc + (t.leader1Id || t.leaderId ? 1 : 0) + (t.leader2Id ? 1 : 0), 0)} Leaders Appointed
+              </span>
             </div>
 
             <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
@@ -178,7 +180,9 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
             <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
               <span className="text-[10px] uppercase font-bold text-slate-400 block truncate">Scheduled</span>
               <div className="text-lg sm:text-xl font-bold text-[#0F2A4A] dark:text-white">{totalPrograms}</div>
-              <span className="text-[10px] text-slate-400 block truncate">Across 3 Summits</span>
+              <span className="text-[10px] text-slate-400 block truncate">
+                {summits.length === 0 ? 'No Summits' : summits.length === 1 ? '1 Summit' : `Across ${summits.length} Summits`}
+              </span>
             </div>
 
             <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">

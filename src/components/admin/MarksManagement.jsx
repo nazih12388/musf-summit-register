@@ -15,7 +15,8 @@ import {
   Trash2,
   AlertCircle,
   Clock,
-  UserCheck
+  UserCheck,
+  Award
 } from 'lucide-react';
 
 export const MarksManagement = () => {
@@ -224,8 +225,18 @@ export const MarksManagement = () => {
         </div>
       )}
 
-      {/* MOBILE MARKS FEED (Screens < 768px): Zero Horizontal Scroll, Fast Native Layout */}
-      <div className="md:hidden space-y-3">
+      {!currentProgram ? (
+        <div className="p-12 text-center bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+          <Award className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+          <h4 className="font-bold text-base text-slate-700 dark:text-slate-300">No Programs Available for Mark Evaluation</h4>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            Assign programs to a summit in the Summit Program Matrix to begin recording and publishing scores.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* MOBILE MARKS FEED (Screens < 768px): Zero Horizontal Scroll, Fast Native Layout */}
+          <div className="md:hidden space-y-3">
         {currentEntries.length === 0 ? (
           <div className="p-8 text-center bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 italic text-xs">
             No participants assigned to this program yet.
@@ -452,6 +463,8 @@ export const MarksManagement = () => {
           </table>
         </div>
       </div>
+    </>
+  )}
 
       {/* Edit / Approve Mark Modal */}
       {editMarkModal && (
