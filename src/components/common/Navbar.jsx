@@ -31,7 +31,14 @@ import {
   Trash2
 } from 'lucide-react';
 
-export const Navbar = ({ isDark, setIsDark, activeTab, setActiveTab }) => {
+export const Navbar = ({
+  isDark,
+  setIsDark,
+  activeTab,
+  setActiveTab,
+  mobileDrawerOpen: externalDrawerOpen,
+  setMobileDrawerOpen: setExternalDrawerOpen
+}) => {
   const { currentUser, logout } = useAuth();
   const { lang, toggleLanguage, t } = useLanguage();
   const {
@@ -46,7 +53,10 @@ export const Navbar = ({ isDark, setIsDark, activeTab, setActiveTab }) => {
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [internalDrawerOpen, setInternalDrawerOpen] = useState(false);
+
+  const mobileDrawerOpen = externalDrawerOpen !== undefined ? externalDrawerOpen : internalDrawerOpen;
+  const setMobileDrawerOpen = setExternalDrawerOpen || setInternalDrawerOpen;
 
   // Filter notifications for current user (or general/all)
   const myNotifications = notifications.filter(
@@ -55,26 +65,28 @@ export const Navbar = ({ isDark, setIsDark, activeTab, setActiveTab }) => {
   const unreadCount = myNotifications.filter(n => !n.read).length;
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0B1522]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-16">
+    <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0B1522]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 pt-[env(safe-area-inset-top,0px)]">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Left: Mobile Menu Trigger & Brand */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
             {currentUser && setActiveTab && (
               <button
+                type="button"
                 onClick={() => setMobileDrawerOpen(true)}
-                className="lg:hidden p-1.5 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-95"
                 title="Open All Navigation Sections"
+                aria-label="Navigation Menu"
               >
                 <Menu className="w-5 h-5 text-[#0F2A4A] dark:text-white" />
               </button>
             )}
 
-            <div className="w-9 h-9 rounded-xl overflow-hidden border border-[#0E7C86]/50 shadow-xs shrink-0 bg-[#0F2A4A] relative">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden border border-[#0E7C86]/50 shadow-xs shrink-0 bg-[#0F2A4A] relative">
               <img src="/college-campus.jpg" alt="Logo" className="w-full h-full object-cover" />
             </div>
 
-            <div className="min-w-0 max-w-[130px] xs:max-w-[200px] sm:max-w-none">
+            <div className="min-w-0 flex-1">
               <h1 className="text-xs sm:text-sm font-bold text-[#0F2A4A] dark:text-white leading-tight truncate">
                 {settings.collegeName}
               </h1>
@@ -85,20 +97,22 @@ export const Navbar = ({ isDark, setIsDark, activeTab, setActiveTab }) => {
           </div>
 
           {/* Right Action Icons: Notification Bell, Language, Dark Mode, User Profile */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* Notification Bell with Dropdown */}
             <div className="relative">
               <button
+                type="button"
                 onClick={() => {
                   setNotifDropdownOpen(prev => !prev);
                   setUserDropdownOpen(false);
                 }}
-                className="relative p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-95"
                 title="Notifications"
+                aria-label="Notifications"
               >
-                <Bell className="w-4 h-4" />
+                <Bell className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center">
+                  <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -107,7 +121,7 @@ export const Navbar = ({ isDark, setIsDark, activeTab, setActiveTab }) => {
               {/* Notification Center Dropdown */}
               {notifDropdownOpen && (
                 <div 
-                  className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-[#0F1B2B] rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 py-2 text-xs z-50 animate-in fade-in"
+                  className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-96 max-w-sm bg-white dark:bg-[#0F1B2B] rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 py-2 text-xs z-50 animate-in fade-in"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 dark:border-slate-800">
@@ -192,18 +206,21 @@ export const Navbar = ({ isDark, setIsDark, activeTab, setActiveTab }) => {
 
             {/* Language Toggle */}
             <button
+              type="button"
               onClick={toggleLanguage}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 transition flex items-center gap-1.5"
+              className="min-w-[44px] min-h-[44px] px-2 sm:px-2.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 transition flex items-center justify-center gap-1.5 active:scale-95"
               title="Toggle Language / ഭാഷ മാറ്റുക"
+              aria-label="Toggle Language"
             >
-              <Globe className="w-3.5 h-3.5 text-[#0E7C86]" />
+              <Globe className="w-4 h-4 text-[#0E7C86]" />
               <span className="hidden sm:inline">{lang === 'en' ? 'മലയാളം' : 'English'}</span>
             </button>
 
             {/* Dark Mode Toggle */}
             <button
+              type="button"
               onClick={() => setIsDark(prev => !prev)}
-              className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shadow-xs"
+              className="min-w-[44px] min-h-[44px] p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shadow-xs flex items-center justify-center active:scale-95"
               title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
               aria-label="Toggle Theme"
             >
@@ -214,19 +231,21 @@ export const Navbar = ({ isDark, setIsDark, activeTab, setActiveTab }) => {
             {currentUser && (
               <div className="relative">
                 <button
+                  type="button"
                   onClick={() => {
                     setUserDropdownOpen(prev => !prev);
                     setNotifDropdownOpen(false);
                   }}
-                  className="flex items-center gap-2 py-1.5 px-2.5 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-semibold hover:bg-slate-100 transition"
+                  className="min-h-[44px] flex items-center gap-1.5 sm:gap-2 py-1.5 px-2 sm:px-2.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-semibold hover:bg-slate-100 transition active:scale-95"
+                  aria-label="User Profile Menu"
                 >
-                  <div className="w-6 h-6 rounded bg-[#0F2A4A] dark:bg-[#0E7C86] text-white flex items-center justify-center font-bold text-[10px]">
+                  <div className="w-6 h-6 rounded-lg bg-[#0F2A4A] dark:bg-[#0E7C86] text-white flex items-center justify-center font-bold text-[10px]">
                     {currentUser.name.charAt(0)}
                   </div>
                   <span className="hidden md:inline font-bold text-slate-900 dark:text-slate-100 max-w-[120px] truncate">
                     {currentUser.name}
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded font-bold uppercase bg-[#334E73] text-white">
+                  <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded font-bold uppercase bg-[#334E73] text-white">
                     {currentUser.role}
                   </span>
                 </button>
@@ -244,17 +263,17 @@ export const Navbar = ({ isDark, setIsDark, activeTab, setActiveTab }) => {
 
                     <button
                       onClick={() => setIsChangePasswordOpen(true)}
-                      className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                      className="w-full text-left px-4 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold flex items-center gap-2 text-slate-700 dark:text-slate-300 min-h-[44px]"
                     >
-                      <KeyRound className="w-3.5 h-3.5 text-[#0E7C86]" />
+                      <KeyRound className="w-4 h-4 text-[#0E7C86]" />
                       <span>{t.nav.changePassword}</span>
                     </button>
 
                     <button
                       onClick={logout}
-                      className="w-full text-left px-4 py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold flex items-center gap-2 border-t border-slate-100 dark:border-slate-800"
+                      className="w-full text-left px-4 py-2.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold flex items-center gap-2 border-t border-slate-100 dark:border-slate-800 min-h-[44px]"
                     >
-                      <LogOut className="w-3.5 h-3.5" />
+                      <LogOut className="w-4 h-4" />
                       <span>{t.nav.logout}</span>
                     </button>
                   </div>
@@ -272,7 +291,7 @@ export const Navbar = ({ isDark, setIsDark, activeTab, setActiveTab }) => {
 
       {/* Mobile Navigation Drawer */}
       {mobileDrawerOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-50 md:hidden">
           {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"

@@ -167,10 +167,11 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
         </div>
 
         {/* Badges / Quick Stats */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 relative z-10 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 relative z-10 w-full md:w-auto">
           <button
+            type="button"
             onClick={handleDownloadMyReportCard}
-            className="p-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm w-full sm:w-auto"
+            className="min-h-[44px] p-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm w-full sm:w-auto active:scale-98"
             title="Download My Official Monthly / Multi-Month Progress Report Card (PDF)"
           >
             <Download className="w-4 h-4" />
@@ -460,10 +461,11 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
                       Issued: {cert.issueDate}
                     </span>
                     <button
+                      type="button"
                       onClick={() => handleDownloadCert(cert)}
-                      className="px-4 py-2 rounded-xl bg-[#0F2A4A] hover:bg-[#1a3a60] dark:bg-[#0E7C86] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition"
+                      className="min-h-[44px] px-4 py-2.5 rounded-xl bg-[#0F2A4A] hover:bg-[#1a3a60] dark:bg-[#0E7C86] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition active:scale-98 w-full sm:w-auto"
                     >
-                      <Download className="w-3.5 h-3.5" />
+                      <Download className="w-4 h-4" />
                       <span>Download Official PDF</span>
                     </button>
                   </div>

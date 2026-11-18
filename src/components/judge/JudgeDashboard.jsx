@@ -395,7 +395,7 @@ export const JudgeDashboard = ({ activeTab, setActiveTab }) => {
                 <thead className="bg-slate-50 dark:bg-slate-900 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 text-[11px]">
                   <tr>
                     <th className="py-2.5 px-3 w-10 text-center">#</th>
-                    <th className="py-2.5 px-3 sm:px-4">Student Participant (Name &amp; CIC No)</th>
+                    <th className="py-2.5 px-3 sm:px-4 sticky left-0 bg-slate-50 dark:bg-slate-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">Student Participant (Name &amp; CIC No)</th>
                     <th className="hidden sm:table-cell py-2.5 px-3">Class &amp; Section</th>
                     <th className="hidden md:table-cell py-2.5 px-3">House Team &amp; Field</th>
                     <th className="py-2.5 px-3 text-center min-w-[130px] sm:min-w-[190px]">Score (0.0 to 10.0)</th>
@@ -434,7 +434,7 @@ export const JudgeDashboard = ({ activeTab, setActiveTab }) => {
                           </td>
 
                           {/* Student Name & CIC Number Details */}
-                          <td className="py-2.5 px-3 sm:px-4">
+                          <td className="py-2.5 px-3 sm:px-4 sticky left-0 bg-white dark:bg-[#0F1B2B] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
                             {isGroup ? (
                               <div className="space-y-1">
                                 <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 text-xs sm:text-sm">
@@ -525,25 +525,26 @@ export const JudgeDashboard = ({ activeTab, setActiveTab }) => {
                                   step="0.1"
                                   min="0"
                                   max="10"
+                                  inputMode="decimal"
                                   disabled={isLocked}
                                   value={val}
                                   onChange={(e) => handleMarkChange(entry.id, e.target.value)}
                                   placeholder="0.0 - 10.0"
-                                  className="w-24 p-1.5 font-mono font-bold text-center text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white disabled:opacity-50 focus:ring-2 focus:ring-[#0E7C86] focus:border-[#0E7C86]"
+                                  className="w-28 p-2 font-mono font-bold text-center text-base sm:text-sm min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white disabled:opacity-50 focus:ring-2 focus:ring-[#0E7C86] focus:border-[#0E7C86] shadow-xs"
                                 />
                                 <span className="font-bold text-xs text-slate-400">/ 10</span>
                               </div>
 
                               {/* Quick Mark Suggestion Chips */}
                               {!isLocked && (
-                                <div className="flex items-center gap-1 flex-wrap justify-center">
+                                <div className="flex items-center gap-1.5 flex-wrap justify-center pt-0.5">
                                   {['7.0', '8.0', '8.5', '9.0', '9.5', '10.0'].map(preset => (
                                     <button
                                       key={preset}
                                       type="button"
                                       onClick={() => handleMarkChange(entry.id, preset)}
-                                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold transition ${val === preset
-                                          ? 'bg-[#0E7C86] text-white'
+                                      className={`min-h-[34px] min-w-[34px] px-2 py-1 rounded-lg text-xs font-mono font-bold transition active:scale-95 ${val === preset
+                                          ? 'bg-[#0E7C86] text-white shadow-xs'
                                           : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
                                         }`}
                                     >

@@ -9,21 +9,23 @@ import {
   Award,
   Users,
   Gavel,
-  Trophy
+  Trophy,
+  Menu,
+  FileCheck
 } from 'lucide-react';
 
-export const MobileTabBar = ({ activeTab, setActiveTab }) => {
+export const MobileTabBar = ({ activeTab, setActiveTab, onOpenMore }) => {
   const { currentUser } = useAuth();
 
   if (!currentUser) return null;
 
-  // Primary tabs for mobile bottom bar
+  // Primary tabs for mobile bottom bar (4-5 key items)
   const adminMobile = [
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
     { id: 'students', label: 'Students', icon: Users },
+    { id: 'attendance', label: 'Attendance', icon: Clock },
     { id: 'programs', label: 'Events', icon: Layers },
-    { id: 'marks', label: 'Marks', icon: Scale },
-    { id: 'reports', label: 'Reports', icon: Award }
+    { id: 'marks', label: 'Marks', icon: Scale }
   ];
 
   const leaderMobile = [
@@ -43,7 +45,7 @@ export const MobileTabBar = ({ activeTab, setActiveTab }) => {
     { id: 'overview', label: 'Home', icon: LayoutDashboard },
     { id: 'programs', label: 'Programs', icon: Layers },
     { id: 'attendance', label: 'Attendance', icon: Clock },
-    { id: 'certificates', label: 'Certificates', icon: Award }
+    { id: 'certificates', label: 'Awards', icon: FileCheck }
   ];
 
   const tabs = currentUser.role === 'admin' ? adminMobile
@@ -52,7 +54,10 @@ export const MobileTabBar = ({ activeTab, setActiveTab }) => {
     : studentMobile;
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#0B1522]/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex items-center justify-around py-2 px-1 pb-[calc(env(safe-area-inset-bottom)+0.4rem)] text-[10px] shadow-lg">
+    <nav 
+      aria-label="Mobile Navigation"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#0B1522]/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex items-center justify-around px-1 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-[10px] shadow-lg"
+    >
       {tabs.map(tab => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -60,18 +65,32 @@ export const MobileTabBar = ({ activeTab, setActiveTab }) => {
         return (
           <button
             key={tab.id}
+            type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg font-semibold transition ${
+            className={`flex flex-col items-center justify-center min-w-[48px] min-h-[44px] py-1 px-2 rounded-xl font-semibold transition active:scale-95 ${
               isActive
-                ? 'text-[#0E7C86] dark:text-teal-400 font-bold'
-                : 'text-slate-500 dark:text-slate-400'
+                ? 'text-[#0E7C86] dark:text-teal-400 font-bold bg-teal-50/60 dark:bg-teal-950/40'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
-            <Icon className="w-4 h-4" />
-            <span>{tab.label}</span>
+            <Icon className="w-5 h-5 mb-0.5 shrink-0" />
+            <span className="leading-tight truncate max-w-[64px]">{tab.label}</span>
           </button>
         );
       })}
+
+      {/* "More" Drawer Trigger for Admin and Roles with extended modules */}
+      {onOpenMore && (
+        <button
+          type="button"
+          onClick={onOpenMore}
+          className="flex flex-col items-center justify-center min-w-[48px] min-h-[44px] py-1 px-2 rounded-xl font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition active:scale-95"
+          title="More Sections"
+        >
+          <Menu className="w-5 h-5 mb-0.5 shrink-0" />
+          <span className="leading-tight">More</span>
+        </button>
+      )}
     </nav>
   );
 };

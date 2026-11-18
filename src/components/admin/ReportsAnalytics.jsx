@@ -452,10 +452,11 @@ export const ReportsAnalytics = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+        <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
           <button
+            type="button"
             onClick={handlePrint}
-            className="py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition border border-slate-300 dark:border-slate-700 shadow-xs"
+            className="min-h-[44px] py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition border border-slate-300 dark:border-slate-700 shadow-xs active:scale-98"
             title="Preview and print official academic audit matching active filters"
           >
             <Printer className="w-4 h-4 text-[#C9A227]" />
@@ -463,6 +464,7 @@ export const ReportsAnalytics = () => {
           </button>
 
           <button
+            type="button"
             onClick={() => {
               if (reportType === 'monthly' || reportType === 'selected_months') handleDownloadExcel();
               else if (reportType === 'summit_progs') exportSummitProgramListExcel(summitProgramListRows, exportMeta);
@@ -471,18 +473,19 @@ export const ReportsAnalytics = () => {
               else if (reportType === 'assignment_matrix') exportAssignmentMatrixExcel(assignmentMatrixRows, exportMeta);
               else if (reportType === 'registration_status') exportTeamRegistrationStatusExcel(teamRegistrationStatusRows, exportMeta);
             }}
-            className="py-2.5 px-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-xs"
+            className="min-h-[44px] py-2.5 px-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs active:scale-98"
           >
             <FileSpreadsheet className="w-4 h-4" />
             <span>Download Excel</span>
           </button>
 
           <button
+            type="button"
             onClick={() => {
               if (reportType === 'monthly' || reportType === 'selected_months') handleDownloadPDF();
               else handleDownloadPDF();
             }}
-            className="py-2.5 px-4 rounded-xl bg-[#0F2A4A] hover:bg-[#1E3A5F] dark:bg-[#0E7C86] text-white font-semibold text-xs flex items-center gap-2 transition shadow-xs"
+            className="min-h-[44px] py-2.5 px-4 rounded-xl bg-[#0F2A4A] hover:bg-[#1E3A5F] dark:bg-[#0E7C86] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-xs active:scale-98"
           >
             <Download className="w-4 h-4" />
             <span>Generate Official PDF</span>
@@ -1801,43 +1804,59 @@ export const ReportsAnalytics = () => {
       {/* OFFICIAL PRINTABLE ACADEMIC REPORT (PREVIEW MODAL & PRINT) */}
       {/* ======================================================== */}
       {isPrintModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto no-print">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto no-print">
+          <div className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl max-w-5xl w-full max-h-[92dvh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Control Bar */}
-            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 rounded-t-2xl">
-              <div className="flex items-center gap-2">
-                <Printer className="w-5 h-5 text-[#0E7C86]" />
-                <div>
-                  <h3 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
-                    Official Filtered Academic Report &mdash; Print Preview
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Previewing exact institutional audit document formatted for paper printing and PDF archive.
-                  </p>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 sm:p-4 gap-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 rounded-t-2xl">
+              <div className="flex items-center justify-between sm:justify-start gap-2">
+                <div className="flex items-center gap-2">
+                  <Printer className="w-5 h-5 text-[#0E7C86] shrink-0" />
+                  <div>
+                    <h3 className="font-bold text-xs sm:text-sm text-[#0F2A4A] dark:text-white leading-tight">
+                      Official Report &mdash; Print Preview
+                    </h3>
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 hidden sm:block">
+                      Formatted for paper printing and PDF archive.
+                    </p>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPrintModalOpen(false)}
+                  className="sm:hidden min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-200 transition"
+                  title="Close preview"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => window.print()}
-                  className="px-4 py-2 rounded-xl bg-[#0F2A4A] hover:bg-[#1E3A5F] text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
+                  className="flex-1 sm:flex-none min-h-[44px] px-4 py-2 rounded-xl bg-[#0F2A4A] hover:bg-[#1E3A5F] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm active:scale-98"
                 >
                   <Printer className="w-4 h-4 text-[#C9A227]" />
-                  <span>Print Document (Ctrl+P)</span>
+                  <span>Print (Ctrl+P)</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={handleDownloadPDF}
-                  className="px-3.5 py-2 rounded-xl bg-[#0E7C86] hover:bg-[#14919D] text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
+                  className="flex-1 sm:flex-none min-h-[44px] px-3.5 py-2 rounded-xl bg-[#0E7C86] hover:bg-[#14919D] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm active:scale-98"
                 >
                   <Download className="w-4 h-4" />
                   <span>Download PDF</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setIsPrintModalOpen(false)}
-                  className="p-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-200 transition"
+                  className="hidden sm:flex min-w-[44px] min-h-[44px] items-center justify-center p-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-200 transition"
                   title="Close preview"
+                  aria-label="Close"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1845,8 +1864,8 @@ export const ReportsAnalytics = () => {
             </div>
 
             {/* Scrollable Printable Document Sheet */}
-            <div className="overflow-y-auto p-4 sm:p-8 bg-slate-100 dark:bg-slate-950 flex justify-center">
-              <div className="bg-white text-slate-900 w-full max-w-4xl p-8 rounded-xl shadow-lg border border-slate-300 font-sans space-y-6">
+            <div className="overflow-x-auto overflow-y-auto p-2 sm:p-8 bg-slate-100 dark:bg-slate-950 flex justify-start sm:justify-center">
+              <div className="bg-white text-slate-900 w-full max-w-4xl p-4 sm:p-8 rounded-xl shadow-lg border border-slate-300 font-sans space-y-6 min-w-[620px] sm:min-w-0">
                 {/* 1. Header */}
                 <div className="text-center border-b-2 border-[#0F2A4A] pb-4 space-y-1">
                   <div className="text-[11px] font-bold tracking-widest text-[#0E7C86] uppercase">

@@ -202,13 +202,13 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
               <div className="space-y-3 pt-1">
                 {teamStandings.map(t => (
                   <div key={t.id} className="space-y-1">
-                    <div className="flex justify-between text-xs font-semibold">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-semibold gap-0.5">
                       <span className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.color }} />
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
                         <span>{t.name}</span>
                       </span>
-                      <span className="font-mono text-slate-600 dark:text-slate-300">
-                        {t.totalPoints.toFixed(1)} pts (Th: {t.thamheediyyaPoints?.toFixed(1) || '0.0'} • Al: {t.aliyaPoints?.toFixed(1) || '0.0'})
+                      <span className="font-mono text-slate-600 dark:text-slate-300 text-[11px] sm:text-xs">
+                        {t.totalPoints.toFixed(1)} pts <span className="text-slate-400 font-normal">(Th: {t.thamheediyyaPoints?.toFixed(1) || '0.0'} • Al: {t.aliyaPoints?.toFixed(1) || '0.0'})</span>
                       </span>
                     </div>
                     <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -240,11 +240,11 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
               <div className="space-y-3 pt-1">
                 {classEvaluations.map(c => (
                   <div key={c.id} className="space-y-1">
-                    <div className="flex justify-between text-xs font-semibold">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-semibold gap-0.5">
                       <span className="truncate max-w-[200px]">
                         {c.name} <span className="text-[10px] text-slate-400">({c.sectionName})</span>
                       </span>
-                      <span className="font-mono text-slate-600 dark:text-slate-400">
+                      <span className="font-mono text-slate-600 dark:text-slate-400 text-[11px] sm:text-xs">
                         {c.totalMarks.toFixed(1)} pts ({c.avgAttendance.toFixed(0)}% Att)
                       </span>
                     </div>

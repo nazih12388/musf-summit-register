@@ -279,26 +279,29 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 relative z-10">
+        <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 relative z-10 w-full sm:w-auto">
           <button
+            type="button"
             onClick={handleDownloadTeamMonthlyReport}
-            className="px-3.5 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition"
+            className="min-h-[44px] px-3.5 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-98"
           >
             <Download className="w-4 h-4" />
             <span>Monthly Team PDF</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('nominations')}
-            className="px-3.5 py-2 rounded-xl bg-white text-[#0F2A4A] font-bold text-xs flex items-center gap-1.5 shadow-xs transition hover:bg-slate-100"
+            className="min-h-[44px] px-3.5 py-2.5 rounded-xl bg-white text-[#0F2A4A] font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition hover:bg-slate-100 active:scale-98"
           >
             <UserPlus className="w-4 h-4 text-[#0E7C86]" />
             <span>Summit Nominations</span>
           </button>
 
           <button
+            type="button"
             onClick={handleExportTeamReport}
-            className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold flex items-center gap-1.5 transition"
+            className="min-h-[44px] px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-98"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export Roster</span>
@@ -354,12 +357,11 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
               </h4>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <div className="overflow-x-auto max-w-full">
+              <table className="w-full text-left text-xs min-w-[580px] sm:min-w-full">
                 <thead className="bg-slate-50 dark:bg-slate-800/60 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b">
                   <tr>
-                    <th className="py-2.5 px-4">Chest #</th>
-                    <th className="py-2.5 px-4">Member Name</th>
+                    <th className="py-2.5 px-4 sticky left-0 bg-slate-50 dark:bg-slate-800 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">Member Name</th>
                     <th className="py-2.5 px-4">CIC Number</th>
                     <th className="py-2.5 px-4">Section &amp; Class</th>
                     <th className="py-2.5 px-4 text-center">Marks (Obt / Max)</th>
@@ -389,8 +391,7 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
 
                     return (
                       <tr key={member.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                        <td className="py-2.5 px-4 font-mono font-bold text-[#0F2A4A] dark:text-[#0E7C86]">{member.chestNo}</td>
-                        <td className="py-2.5 px-4 font-semibold text-slate-900 dark:text-white">
+                        <td className="py-2.5 px-4 font-semibold text-slate-900 dark:text-white sticky left-0 bg-white dark:bg-[#0F1B2B] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
                           {member.name} {member.id === currentUser.id && '(You)'}
                         </td>
                         <td className="py-2.5 px-4 font-mono text-[11px] text-slate-400">{member.cicNo}</td>
@@ -524,7 +525,6 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
                                   <div className="flex items-center justify-between">
                                     <div>
                                       <strong className="text-slate-900 dark:text-white font-semibold">{e.groupName || st?.name}</strong>
-                                      <span className="text-slate-400 text-[11px] ml-1.5 font-mono">({e.chestNo})</span>
                                     </div>
                                     {!activeNominationSummit.registrationLocked && (
                                       <button
@@ -595,7 +595,7 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
                   <div className="flex justify-between items-start">
                     <div>
                       <h4 className="font-bold text-sm text-slate-900 dark:text-white">{m.name}</h4>
-                      <p className="text-xs text-slate-400">Chest: {m.chestNo} • CIC: {m.cicNo}</p>
+                      <p className="text-xs text-slate-400">CIC: {m.cicNo}</p>
                     </div>
                     <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
                       {classesMap[m.classId]?.name}
@@ -673,7 +673,6 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 dark:bg-slate-900 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                     <tr>
-                      <th className="p-2.5">Chest #</th>
                       <th className="p-2.5">Member Name</th>
                       <th className="p-2.5 w-40 text-center">Score (0.0 to 10.0)</th>
                       <th className="p-2.5 text-center">Status</th>
@@ -684,7 +683,6 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
                       const st = students.find(s => s.id === entry.studentId);
                       return (
                         <tr key={entry.id}>
-                          <td className="p-2.5 font-mono font-bold text-[#0E7C86]">{entry.chestNo}</td>
                           <td className="p-2.5 font-semibold text-slate-900 dark:text-white">{st?.name}</td>
                           <td className="p-2.5 text-center">
                             <input
@@ -692,10 +690,11 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
                               step="0.1"
                               min="0"
                               max="10"
+                              inputMode="decimal"
                               disabled={alreadySubmitted}
                               value={uploadMarksInput[entry.id] || ''}
                               onChange={(e) => handleMarkChange(entry.id, e.target.value)}
-                              className="w-24 p-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-center font-bold"
+                              className="w-28 p-2 min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-700 text-center text-base sm:text-sm font-bold bg-white dark:bg-slate-900"
                             />
                           </td>
                           <td className="p-2.5 text-center">
@@ -749,7 +748,7 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
                   return results.map(r => (
                     <tr key={r.entryId}>
                       <td className="py-2.5 px-4 font-bold text-[#0F2A4A] dark:text-white">{prog.name}</td>
-                      <td className="py-2.5 px-4 font-semibold">{r.participantName} ({r.chestNo})</td>
+                      <td className="py-2.5 px-4 font-semibold">{r.participantName}</td>
                       <td className="py-2.5 px-4 text-slate-400">{prog.date}</td>
                       <td className="py-2.5 px-4 text-center font-mono font-bold">{r.finalMark.toFixed(1)} / {r.maxMarks}</td>
                       <td className="py-2.5 px-4 text-center font-mono font-bold text-[#0E7C86]">{r.percentage.toFixed(0)}%</td>
@@ -853,9 +852,9 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
                       .map(m => {
                         const isChecked = selectedGroupNominees.includes(m.id);
                         return (
-                          <label key={m.id} className="p-2 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
+                          <label key={m.id} className="p-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer min-h-[44px]">
                             <span className="font-semibold text-slate-800 dark:text-slate-200">
-                              {m.name} ({m.chestNo} • {classesMap[m.classId]?.name})
+                              {m.name} ({classesMap[m.classId]?.name})
                             </span>
                             <input
                               type="checkbox"
@@ -887,7 +886,7 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
                     .filter(m => nominatingProgram.sectionId === 'both' || m.sectionId === nominatingProgram.sectionId)
                     .map(m => (
                       <option key={m.id} value={m.id}>
-                        {m.name} ({m.chestNo} • {classesMap[m.classId]?.name})
+                        {m.name} ({classesMap[m.classId]?.name})
                       </option>
                     ))}
                 </select>

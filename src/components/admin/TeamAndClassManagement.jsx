@@ -767,7 +767,7 @@ export const TeamAndClassManagement = () => {
                       className="rounded text-[#0E7C86] focus:ring-[#0E7C86]"
                     />
                     <div>
-                      <div className="font-semibold text-slate-900 dark:text-white">{s.name} ({s.chestNo})</div>
+                      <div className="font-semibold text-slate-900 dark:text-white">{s.name}</div>
                       <div className="text-[11px] text-slate-400">{s.cicNo} • {s.sectionId === 'aliya' ? 'Aliya' : 'Thamheediyya'}</div>
                     </div>
                   </div>
@@ -859,7 +859,7 @@ export const TeamAndClassManagement = () => {
                   .filter(s => s.teamId === leaderModalTeam.id)
                   .map(s => (
                     <option key={s.id} value={s.id}>
-                      {s.name} ({s.cicNo}) - {s.chestNo}
+                      {s.name} ({s.cicNo})
                     </option>
                   ))}
               </select>

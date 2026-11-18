@@ -135,10 +135,11 @@ export const SettingsAuditLog = () => {
       {/* Tab Switcher */}
       <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
         <button
+          type="button"
           onClick={() => setActiveTab('settings')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+          className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-98 ${
             activeTab === 'settings'
-              ? 'bg-[#0F2A4A] text-white shadow-xs'
+              ? 'bg-[#0F2A4A] text-white shadow-xs font-bold'
               : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
           }`}
         >
@@ -147,10 +148,11 @@ export const SettingsAuditLog = () => {
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveTab('attendance')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+          className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-98 ${
             activeTab === 'attendance'
-              ? 'bg-[#0F2A4A] text-white shadow-xs'
+              ? 'bg-[#0F2A4A] text-white shadow-xs font-bold'
               : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
           }`}
         >
@@ -159,10 +161,11 @@ export const SettingsAuditLog = () => {
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveTab('ops')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+          className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-98 ${
             activeTab === 'ops'
-              ? 'bg-[#0F2A4A] text-white shadow-xs'
+              ? 'bg-[#0F2A4A] text-white shadow-xs font-bold'
               : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
           }`}
         >
@@ -171,10 +174,11 @@ export const SettingsAuditLog = () => {
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveTab('audit')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+          className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-98 ${
             activeTab === 'audit'
-              ? 'bg-[#0F2A4A] text-white shadow-xs'
+              ? 'bg-[#0F2A4A] text-white shadow-xs font-bold'
               : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
           }`}
         >
@@ -603,11 +607,11 @@ export const SettingsAuditLog = () => {
           </div>
 
           <div className="bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <div className="overflow-x-auto max-w-full">
+              <table className="w-full text-left text-xs min-w-[620px] sm:min-w-full">
                 <thead className="bg-slate-50 dark:bg-slate-800/60 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                   <tr>
-                    <th className="py-3 px-4">Timestamp</th>
+                    <th className="py-3 px-4 sticky left-0 bg-slate-50 dark:bg-[#0B1522] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">Timestamp</th>
                     <th className="py-3 px-4">Actor</th>
                     <th className="py-3 px-4">Action</th>
                     <th className="py-3 px-4">Change Details</th>
@@ -624,7 +628,7 @@ export const SettingsAuditLog = () => {
                   ) : (
                     filteredLogs.map(log => (
                       <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                        <td className="py-2.5 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                        <td className="py-2.5 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap sticky left-0 bg-white dark:bg-[#0F1B2B] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
                           {new Date(log.timestamp).toLocaleString()}
                         </td>
                         <td className="py-2.5 px-4 font-semibold text-slate-900 dark:text-white">

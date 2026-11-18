@@ -314,31 +314,34 @@ export const StudentManagement = () => {
         </div>
 
         {/* Buttons row */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
           {!showArchived ? (
             <>
               <button
+                type="button"
                 onClick={() => setIsAddOpen(true)}
-                className="py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-xs"
+                className="min-h-[44px] py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs active:scale-98"
               >
                 <UserPlus className="w-4 h-4" />
                 <span>{t.common?.add || "Add"} Student</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setIsBulkOpen(true)}
-                className="py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition border border-slate-300 dark:border-slate-700"
+                className="min-h-[44px] py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition border border-slate-300 dark:border-slate-700 active:scale-98"
               >
                 <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                 <span>Bulk Import</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => {
                   autoGenerateAllCredentials(currentUser?.username);
                   setIsCredentialsModalOpen(true);
                 }}
-                className="py-2 px-3.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold text-xs flex items-center gap-1.5 transition border border-indigo-200 dark:border-indigo-800"
+                className="min-h-[44px] py-2 px-3.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition border border-indigo-200 dark:border-indigo-800 active:scale-98"
                 title="Generate Usernames/Passwords and print sheet"
               >
                 <Key className="w-4 h-4" />
@@ -347,8 +350,9 @@ export const StudentManagement = () => {
             </>
           ) : (
             <button
+              type="button"
               onClick={() => setShowArchived(false)}
-              className="py-2 px-3.5 rounded-xl bg-emerald-600 text-white font-semibold text-xs flex items-center gap-1.5 transition"
+              className="min-h-[44px] py-2 px-3.5 rounded-xl bg-emerald-600 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-98"
             >
               <span>Back to Active Directory</span>
             </button>
@@ -447,11 +451,11 @@ export const StudentManagement = () => {
 
       {/* Students Table */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto max-w-full">
+          <table className="w-full text-left text-xs min-w-[680px] sm:min-w-full">
             <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">
               <tr>
-                <th className="py-3 px-3">Student Name</th>
+                <th className="py-3 px-3 sticky left-0 bg-slate-50 dark:bg-[#0B1522] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">Student Name</th>
                 <th className="py-3 px-3">CIC Number</th>
                 <th className="py-3 px-3">Class & Section</th>
                 <th className="py-3 px-3">House / Group</th>
@@ -476,7 +480,7 @@ export const StudentManagement = () => {
 
                   return (
                     <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
-                      <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white">
+                      <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white sticky left-0 bg-white dark:bg-slate-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
                         {student.name}
                         {student.isLeader && (
                           <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">

@@ -62,6 +62,9 @@ export function AppContent() {
   // Splash Screen Opening Animation State (Disabled by default so phone opens immediately in one view)
   const [showSplash, setShowSplash] = useState(false);
 
+  // Mobile Drawer State
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
   return (
     <>
       {showSplash && <SplashScreen onFinished={() => setShowSplash(false)} />}
@@ -69,34 +72,48 @@ export function AppContent() {
       {!currentUser ? (
         <LoginPage isDark={isDark} setIsDark={setIsDark} />
       ) : (
-        <div className="min-h-screen flex flex-col bg-[#F6F8FB] dark:bg-[#080E18] text-slate-800 dark:text-slate-100 font-sans transition-colors duration-200">
+        <div className="min-h-[100dvh] flex flex-col bg-[#F6F8FB] dark:bg-[#080E18] text-slate-800 dark:text-slate-100 font-sans transition-colors duration-200">
           {/* Top Navbar */}
-          <Navbar isDark={isDark} setIsDark={setIsDark} activeTab={activeTab} setActiveTab={setActiveTab} />
+          <Navbar
+            isDark={isDark}
+            setIsDark={setIsDark}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            mobileDrawerOpen={mobileDrawerOpen}
+            setMobileDrawerOpen={setMobileDrawerOpen}
+          />
 
-      <div className="flex-1 flex max-w-7xl w-full mx-auto">
-        {/* Desktop Left Sidebar */}
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+          <div className="flex-1 flex max-w-7xl w-full mx-auto">
+            {/* Desktop Left Sidebar */}
+            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-        {/* Main Content Viewport with ErrorBoundary */}
-        <main className="flex-1 p-3 sm:p-6 lg:p-8 pb-8 overflow-y-auto">
-          <ErrorBoundary onReset={() => setActiveTab('dashboard')}>
-            {currentUser.role === 'admin' && (
-              <AdminDashboard activeTab={activeTab} setActiveTab={setActiveTab} />
-            )}
-            {currentUser.role === 'leader' && (
-              <TeamLeaderDashboard activeTab={activeTab} setActiveTab={setActiveTab} />
-            )}
-            {currentUser.role === 'judge' && (
-              <JudgeDashboard activeTab={activeTab} setActiveTab={setActiveTab} />
-            )}
-            {currentUser.role === 'student' && (
-              <StudentDashboard activeTab={activeTab} setActiveTab={setActiveTab} />
-            )}
-          </ErrorBoundary>
-        </main>
-      </div>
-    </div>
-    )}
+            {/* Main Content Viewport with ErrorBoundary */}
+            <main className="flex-1 p-3 sm:p-6 lg:p-8 pb-24 md:pb-8 overflow-y-auto max-w-full min-w-0">
+              <ErrorBoundary onReset={() => setActiveTab('dashboard')}>
+                {currentUser.role === 'admin' && (
+                  <AdminDashboard activeTab={activeTab} setActiveTab={setActiveTab} />
+                )}
+                {currentUser.role === 'leader' && (
+                  <TeamLeaderDashboard activeTab={activeTab} setActiveTab={setActiveTab} />
+                )}
+                {currentUser.role === 'judge' && (
+                  <JudgeDashboard activeTab={activeTab} setActiveTab={setActiveTab} />
+                )}
+                {currentUser.role === 'student' && (
+                  <StudentDashboard activeTab={activeTab} setActiveTab={setActiveTab} />
+                )}
+              </ErrorBoundary>
+            </main>
+          </div>
+
+          {/* Persistent Mobile Bottom Navigation Bar (< 1024px) */}
+          <MobileTabBar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            onOpenMore={() => setMobileDrawerOpen(true)}
+          />
+        </div>
+      )}
     </>
   );
 }

@@ -75,7 +75,7 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
     : studentTabs;
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 bg-white dark:bg-[#0B1522] border-r border-slate-200 dark:border-slate-800 shrink-0 min-h-[calc(100vh-4rem)]">
+    <aside className="hidden md:flex flex-col w-60 lg:w-64 bg-white dark:bg-[#0B1522] border-r border-slate-200 dark:border-slate-800 shrink-0 min-h-[calc(100dvh-4rem)]">
       <div className="p-4 space-y-1 overflow-y-auto">
         <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
           Navigation ({currentUser.role})

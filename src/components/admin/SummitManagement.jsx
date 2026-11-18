@@ -185,26 +185,29 @@ export const SummitManagement = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+        <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
           <button
+            type="button"
             onClick={() => setIs12MonthOpen(true)}
-            className="py-2.5 px-3.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 font-semibold text-xs flex items-center gap-1.5 transition border border-purple-200 dark:border-purple-800"
+            className="min-h-[44px] py-2.5 px-3.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition border border-purple-200 dark:border-purple-800 active:scale-98"
           >
             <Calendar className="w-4 h-4 text-purple-600" />
-            <span>12-Month Academic Schedule</span>
+            <span>12-Month Schedule</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setIsBulkOpen(true)}
-            className="py-2.5 px-3.5 rounded-xl bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-[#0E7C86] font-semibold text-xs flex items-center gap-1.5 transition border border-teal-200 dark:border-teal-800"
+            className="min-h-[44px] py-2.5 px-3.5 rounded-xl bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-[#0E7C86] font-semibold text-xs flex items-center justify-center gap-1.5 transition border border-teal-200 dark:border-teal-800 active:scale-98"
           >
             <Sparkles className="w-4 h-4" />
             <span>Bulk Weekly Create</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setIsAddOpen(true)}
-            className="py-2.5 px-4 rounded-xl bg-[#0F2A4A] hover:bg-[#1E3A5F] dark:bg-[#0E7C86] text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-xs"
+            className="min-h-[44px] py-2.5 px-4 rounded-xl bg-[#0F2A4A] hover:bg-[#1E3A5F] dark:bg-[#0E7C86] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs active:scale-98"
           >
             <Plus className="w-4 h-4" />
             <span>Create Summit</span>

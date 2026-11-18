@@ -171,49 +171,49 @@ export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null })
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           {currentUser?.role === 'admin' && (
             <button
               onClick={handleToggleLock}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+              className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-98 ${
                 isSessionLocked
                   ? 'bg-rose-100 text-rose-700 dark:bg-rose-950'
                   : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950'
               }`}
             >
-              {isSessionLocked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+              {isSessionLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
               <span>{isSessionLocked ? t.attendance.unlockSession : t.attendance.lockSession}</span>
             </button>
           )}
 
           {(!isSessionLocked || currentUser?.role === 'admin') && (
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={handleMarkAllPresent}
-                className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-bold hover:bg-emerald-100 transition flex items-center gap-1 shadow-xs"
+                className="min-h-[44px] px-3 py-2 rounded-xl bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-bold hover:bg-emerald-100 transition flex items-center justify-center gap-1.5 shadow-xs active:scale-98"
                 title="Mark all filtered students as Present"
               >
-                <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Mark All Present</span>
+                <CheckCheck className="w-4 h-4 text-emerald-600" />
+                <span>All Present</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleMarkAllAbsent}
-                className="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-xs font-bold hover:bg-rose-100 transition flex items-center gap-1 shadow-xs"
+                className="min-h-[44px] px-3 py-2 rounded-xl bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-xs font-bold hover:bg-rose-100 transition flex items-center justify-center gap-1.5 shadow-xs active:scale-98"
                 title="Mark all filtered students as Absent"
               >
-                <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                <span>Mark All Absent</span>
+                <XCircle className="w-4 h-4 text-rose-600" />
+                <span>All Absent</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleSaveAttendance}
-                className="px-4 py-1.5 rounded-lg bg-[#0F2A4A] dark:bg-[#0E7C86] text-white text-xs font-bold hover:opacity-90 transition flex items-center gap-1.5 shadow-sm"
+                className="col-span-2 sm:col-span-1 min-h-[44px] px-5 py-2 rounded-xl bg-[#0F2A4A] hover:bg-[#1E3A5F] dark:bg-[#0E7C86] text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm active:scale-98"
               >
-                <Save className="w-3.5 h-3.5" />
+                <Save className="w-4 h-4" />
                 <span>{t.common.save}</span>
               </button>
             </div>
@@ -262,14 +262,16 @@ export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null })
             {['START', 'MID', 'END'].map(sess => (
               <button
                 key={sess}
+                type="button"
                 onClick={() => setSelectedSession(sess)}
-                className={`py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                className={`min-h-[44px] py-2 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-98 ${
                   selectedSession === sess
                     ? 'bg-[#0F2A4A] dark:bg-[#0E7C86] text-white shadow-xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
                 }`}
               >
-                <span>{sess} Session</span>
+                <span>{sess}</span>
+                <span className="hidden sm:inline">Session</span>
               </button>
             ))}
           </div>
@@ -316,14 +318,14 @@ export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null })
 
       {/* Attendance Table */}
       <div className="bg-white dark:bg-[#0F1B2B] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto max-w-full">
+          <table className="w-full text-left text-xs min-w-[620px] sm:min-w-full">
             <thead className="bg-slate-50 dark:bg-slate-900/60 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 text-[11px]">
               <tr>
                 <th className="py-2.5 px-3 w-10 text-center">#</th>
-                <th className="py-2.5 px-3 sm:px-4">Student Participant (Name &amp; CIC No)</th>
+                <th className="py-2.5 px-3 sm:px-4 sticky left-0 bg-slate-50 dark:bg-[#0B1522] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">Student Participant (Name &amp; CIC No)</th>
                 <th className="py-2.5 px-3">Class &amp; House Team</th>
-                <th className="py-2.5 px-3 text-center min-w-[150px]">Status for {selectedSession}</th>
+                <th className="py-2.5 px-3 text-center min-w-[190px]">Status for {selectedSession}</th>
                 <th className="py-2.5 px-3 text-center">Summit Att %</th>
                 <th className="py-2.5 px-3 text-center">Overall Att %</th>
                 <th className="py-2.5 px-3 text-right">Alert</th>
@@ -344,7 +346,7 @@ export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null })
                     <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-400">
                       {idx + 1}
                     </td>
-                    <td className="py-2.5 px-3 sm:px-4">
+                    <td className="py-2.5 px-3 sm:px-4 sticky left-0 bg-white dark:bg-[#0F1B2B] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
                       <div className="flex items-center gap-2.5">
                         <div
                           className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-xs"
@@ -373,13 +375,13 @@ export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null })
                       </div>
                     </td>
 
-                    {/* Status Toggles: Present, Absent, Late, Excused */}
+                    {/* Status Toggles: Present, Absent, Late, Excused - 44px touch targets */}
                     <td className="py-2.5 px-3 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
+                      <div className="flex items-center justify-center gap-1 sm:gap-1.5">
                         <button
                           type="button"
                           onClick={() => handleStatusChange(student.id, 'Present')}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition flex items-center justify-center shadow-xs cursor-pointer ${
+                          className={`w-10 h-10 sm:w-9 sm:h-9 min-w-[40px] min-h-[40px] rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center shadow-xs cursor-pointer active:scale-95 ${
                             currentStatus === 'Present'
                               ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 dark:ring-emerald-800 scale-105'
                               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-emerald-50 hover:text-emerald-700'
@@ -391,7 +393,7 @@ export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null })
                         <button
                           type="button"
                           onClick={() => handleStatusChange(student.id, 'Absent')}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition flex items-center justify-center shadow-xs cursor-pointer ${
+                          className={`w-10 h-10 sm:w-9 sm:h-9 min-w-[40px] min-h-[40px] rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center shadow-xs cursor-pointer active:scale-95 ${
                             currentStatus === 'Absent'
                               ? 'bg-rose-600 text-white ring-2 ring-rose-300 dark:ring-rose-800 scale-105'
                               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-rose-50 hover:text-rose-700'
@@ -403,7 +405,7 @@ export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null })
                         <button
                           type="button"
                           onClick={() => handleStatusChange(student.id, 'Late')}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition flex items-center justify-center shadow-xs cursor-pointer ${
+                          className={`w-10 h-10 sm:w-9 sm:h-9 min-w-[40px] min-h-[40px] rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center shadow-xs cursor-pointer active:scale-95 ${
                             currentStatus === 'Late'
                               ? 'bg-amber-600 text-white ring-2 ring-amber-300 dark:ring-amber-800 scale-105'
                               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-amber-50 hover:text-amber-700'
@@ -415,7 +417,7 @@ export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null })
                         <button
                           type="button"
                           onClick={() => handleStatusChange(student.id, 'Excused')}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition flex items-center justify-center shadow-xs cursor-pointer ${
+                          className={`w-10 h-10 sm:w-9 sm:h-9 min-w-[40px] min-h-[40px] rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center shadow-xs cursor-pointer active:scale-95 ${
                             currentStatus === 'Excused'
                               ? 'bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-800 scale-105'
                               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-blue-50 hover:text-blue-700'

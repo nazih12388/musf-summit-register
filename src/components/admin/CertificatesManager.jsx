@@ -238,18 +238,20 @@ export const CertificatesManager = () => {
         </div>
 
         {/* Global Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
           <button
+            type="button"
             onClick={openAddModal}
-            className="py-2.5 px-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-xs"
+            className="min-h-[44px] py-2.5 px-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs active:scale-98"
           >
             <Plus className="w-4 h-4" />
             <span>Allocate Custom</span>
           </button>
           <button
+            type="button"
             onClick={() => bulkGenerateCertificatesPDF(filteredCertificates)}
             disabled={filteredCertificates.length === 0}
-            className="py-2.5 px-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-xs flex items-center gap-1.5 transition shadow-xs disabled:opacity-50"
+            className="min-h-[44px] py-2.5 px-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs disabled:opacity-50 active:scale-98"
           >
             <Download className="w-4 h-4" />
             <span>Bulk PDF ({filteredCertificates.length})</span>
@@ -287,10 +289,11 @@ export const CertificatesManager = () => {
         </div>
 
         {/* Action Buttons for Selected Month */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2.5 w-full md:w-auto">
           <button
+            type="button"
             onClick={handleAutoAllocate}
-            className="py-2 px-3.5 rounded-xl bg-[#0E7C86] hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+            className="min-h-[44px] py-2 px-3.5 rounded-xl bg-[#0E7C86] hover:bg-teal-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs active:scale-98"
             title="Automatically detect Top Performers and Class Toppers from month results"
           >
             <Zap className="w-4 h-4 text-amber-300" />
@@ -298,9 +301,10 @@ export const CertificatesManager = () => {
           </button>
 
           <button
+            type="button"
             onClick={handlePublishAll}
             disabled={monthStats.drafts === 0}
-            className="py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-xs disabled:opacity-50"
+            className="min-h-[44px] py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs disabled:opacity-50 active:scale-98"
             title="Publish all drafted certificates for this month to student portals"
           >
             <Send className="w-4 h-4" />

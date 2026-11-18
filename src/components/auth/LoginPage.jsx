@@ -39,33 +39,36 @@ export const LoginPage = ({ isDark, setIsDark }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-[#F6F8FB] dark:bg-[#080E18] text-slate-800 dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-[100dvh] flex flex-col justify-between bg-[#F6F8FB] dark:bg-[#080E18] text-slate-800 dark:text-slate-100 transition-colors duration-200 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] px-3 sm:px-6">
       {/* Top Utility Bar */}
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl overflow-hidden border border-[#0E7C86]/50 shadow-xs bg-[#0F2A4A]">
+      <div className="w-full max-w-7xl mx-auto py-2 sm:py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden border border-[#0E7C86]/50 shadow-xs bg-[#0F2A4A] shrink-0">
             <img src="/college-campus.jpg" alt="Logo" className="w-full h-full object-cover" />
           </div>
-          <span className="font-bold text-xs sm:text-sm tracking-tight text-[#0F2A4A] dark:text-slate-200">
+          <span className="font-bold text-xs sm:text-sm tracking-tight text-[#0F2A4A] dark:text-slate-200 truncate max-w-[200px] sm:max-w-none">
             {settings.collegeName}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Language Toggle */}
           <button
+            type="button"
             onClick={toggleLanguage}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition flex items-center gap-1.5"
+            className="min-h-[44px] min-w-[44px] px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition flex items-center justify-center gap-1.5 active:scale-95"
             title="Toggle Language / ഭാഷ മാറ്റുക"
+            aria-label="Toggle Language"
           >
-            <Globe className="w-3.5 h-3.5 text-[#0E7C86]" />
-            <span>{lang === 'en' ? 'മലയാളം' : 'English'}</span>
+            <Globe className="w-4 h-4 text-[#0E7C86]" />
+            <span className="hidden sm:inline">{lang === 'en' ? 'മലയാളം' : 'English'}</span>
           </button>
 
           {/* Theme Toggle */}
           <button
+            type="button"
             onClick={() => setIsDark(prev => !prev)}
-            className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            className="min-h-[44px] min-w-[44px] p-2 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer flex items-center justify-center active:scale-95"
             title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
             aria-label="Toggle Theme"
           >
@@ -75,11 +78,11 @@ export const LoginPage = ({ isDark, setIsDark }) => {
       </div>
 
       {/* Main Login Card */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white dark:bg-[#0F1B2B] rounded-xl border border-slate-200 dark:border-slate-800 shadow-md p-6 sm:p-8 space-y-6">
+      <div className="flex-1 flex items-center justify-center py-4 px-1 sm:p-4">
+        <div className="w-full max-w-md bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg p-5 sm:p-8 space-y-4 sm:space-y-6">
           {/* Header */}
-          <div className="text-center space-y-3">
-            <div className="relative w-20 h-20 mx-auto rounded-full p-1 bg-gradient-to-br from-[#C9A227] via-[#0E7C86] to-[#0F2A4A] shadow-lg animate-pulse-glow">
+          <div className="text-center space-y-2 sm:space-y-3">
+            <div className="relative w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full p-1 bg-gradient-to-br from-[#C9A227] via-[#0E7C86] to-[#0F2A4A] shadow-md animate-pulse-glow">
               <div className="w-full h-full rounded-full overflow-hidden border-2 border-white dark:border-slate-800 bg-[#0F2A4A]">
                 <img
                   src="/college-campus.jpg"
@@ -90,22 +93,22 @@ export const LoginPage = ({ isDark, setIsDark }) => {
             </div>
 
             <div>
-              <h2 className="text-xl font-bold text-[#0F2A4A] dark:text-white tracking-tight">
+              <h2 className="text-lg sm:text-xl font-bold text-[#0F2A4A] dark:text-white tracking-tight">
                 {t.appTitle}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
                 {settings.collegeName}
               </p>
             </div>
-            <p className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+            <p className="text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
               {t.loginSubtitle}
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
             {error && (
-              <div className="p-3 bg-rose-50 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-900 rounded-lg text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+              <div className="p-3 bg-rose-50 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-900 rounded-xl text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span className="font-semibold">{error}</span>
               </div>
@@ -116,14 +119,16 @@ export const LoginPage = ({ isDark, setIsDark }) => {
                 {t.common.username} / {t.common.cicNo}
               </label>
               <div className="relative">
-                <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
                   required
+                  autoCapitalize="none"
+                  autoCorrect="off"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your username or CIC number..."
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:ring-2 focus:ring-[#0E7C86]"
+                  placeholder="Username or CIC Number..."
+                  className="w-full pl-10 pr-3.5 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-xs min-h-[48px] focus:outline-none focus:ring-2 focus:ring-[#0E7C86] transition shadow-xs"
                 />
               </div>
             </div>
@@ -133,14 +138,14 @@ export const LoginPage = ({ isDark, setIsDark }) => {
                 {t.common.password}
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password..."
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:ring-2 focus:ring-[#0E7C86]"
+                  placeholder="Password..."
+                  className="w-full pl-10 pr-3.5 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-xs min-h-[48px] focus:outline-none focus:ring-2 focus:ring-[#0E7C86] transition shadow-xs"
                 />
               </div>
             </div>
@@ -148,10 +153,10 @@ export const LoginPage = ({ isDark, setIsDark }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-[#0F2A4A] hover:bg-[#1E3A5F] dark:bg-[#0E7C86] dark:hover:bg-[#14919D] text-white font-semibold text-xs rounded-lg transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+              className="w-full py-3 px-4 min-h-[48px] bg-[#0F2A4A] hover:bg-[#1E3A5F] dark:bg-[#0E7C86] dark:hover:bg-[#14919D] text-white font-bold text-sm sm:text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md disabled:opacity-50 active:scale-98"
             >
               {loading ? (
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
                   <LogIn className="w-4 h-4" />
@@ -164,7 +169,7 @@ export const LoginPage = ({ isDark, setIsDark }) => {
       </div>
 
       {/* Footer */}
-      <div className="text-center py-4 text-xs text-slate-400">
+      <div className="text-center py-2 sm:py-3 text-[11px] text-slate-400">
         &copy; {new Date().getFullYear()} {settings.collegeName} • MUSF Summit Register
       </div>
     </div>

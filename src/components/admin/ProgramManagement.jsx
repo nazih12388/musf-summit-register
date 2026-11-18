@@ -1639,7 +1639,7 @@ export const ProgramManagement = () => {
                       <div key={entry.id} className="p-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800">
                         <div>
                           <div className="font-bold text-slate-900 dark:text-white">
-                            {entry.groupName || st?.name} ({entry.chestNo})
+                            {entry.groupName || st?.name}
                           </div>
                           <div className="text-[11px] text-slate-400">
                             {entry.memberIds ? `${entry.memberIds.length} members` : st?.cicNo}
@@ -1686,7 +1686,7 @@ export const ProgramManagement = () => {
                         return (
                           <label key={st.id} className="p-2 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
                             <span className="font-medium text-slate-800 dark:text-slate-200">
-                              {st.name} ({st.chestNo})
+                              {st.name}
                             </span>
                             <input
                               type="checkbox"
@@ -1718,7 +1718,7 @@ export const ProgramManagement = () => {
                       .filter(s => s.teamId === managingTeamId && (managingProgram.sectionId === 'both' || s.sectionId === managingProgram.sectionId))
                       .map(st => (
                         <option key={st.id} value={st.id}>
-                          {st.name} ({st.chestNo} • {st.cicNo})
+                          {st.name} ({st.cicNo})
                         </option>
                       ))}
                   </select>

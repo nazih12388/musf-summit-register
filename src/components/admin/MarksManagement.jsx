@@ -227,11 +227,10 @@ export const MarksManagement = () => {
       {/* Scoring Table */}
       <div className="bg-white dark:bg-[#0F1B2B] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[640px] sm:min-w-full">
             <thead className="bg-slate-50 dark:bg-slate-900/60 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="py-3 px-4">Chest #</th>
-                <th className="py-3 px-4">Participant / Group</th>
+                <th className="py-3 px-4 sticky left-0 bg-slate-50 dark:bg-slate-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">Participant / Group</th>
                 <th className="py-3 px-4">House Team</th>
                 <th className="py-3 px-4 text-center">Marks Breakdown / Source</th>
                 <th className="py-3 px-4 text-center">Final Mark</th>
@@ -244,20 +243,18 @@ export const MarksManagement = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
               {currentEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-8 text-slate-400">
+                  <td colSpan={8} className="text-center py-8 text-slate-400">
                     No participants assigned to this program yet.
                   </td>
                 </tr>
               ) : (
                 currentEntries.map(entry => {
                   let participantName = '';
-                  let chestNo = entry.chestNo;
                   let team = teams.find(t => t.id === entry.teamId);
 
                   if (currentProgram.type === 'individual') {
                     const st = students.find(s => s.id === entry.studentId);
                     participantName = st ? st.name : 'Unknown';
-                    chestNo = st?.chestNo || entry.chestNo;
                     team = teams.find(t => t.id === st?.teamId) || team;
                   } else {
                     participantName = entry.groupName;
@@ -268,10 +265,7 @@ export const MarksManagement = () => {
 
                   return (
                     <tr key={entry.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                      <td className="py-2.5 px-4 font-mono font-bold text-[#0F2A4A] dark:text-[#0E7C86]">
-                        {chestNo}
-                      </td>
-                      <td className="py-2.5 px-4 font-semibold text-slate-900 dark:text-white">
+                      <td className="py-2.5 px-4 font-semibold text-slate-900 dark:text-white sticky left-0 bg-white dark:bg-[#0F1B2B] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
                         {participantName}
                       </td>
                       <td className="py-2.5 px-4">
@@ -372,12 +366,13 @@ export const MarksManagement = () => {
                 step="0.1"
                 min="0"
                 max="10"
+                inputMode="decimal"
                 required
                 autoFocus
                 value={newMarkValue}
                 onChange={(e) => setNewMarkValue(e.target.value)}
                 placeholder="e.g. 9.4"
-                className="w-full p-2.5 text-center text-lg font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                className="w-full p-3 text-center text-lg font-bold min-h-[48px] rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
               />
             </div>
 
