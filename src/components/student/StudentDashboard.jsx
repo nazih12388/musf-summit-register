@@ -2,8 +2,6 @@ import React, { useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { generateCertificatePDF } from '../../utils/certificate';
-import { generateIndividualStudentReportCardPDF } from '../../utils/comprehensivePdfReport';
-import { computeComprehensiveReport } from '../../utils/reportCalculations';
 import {
   User,
   Award,
@@ -111,32 +109,6 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
     generateCertificatePDF(cert);
   };
 
-  const handleDownloadMyReportCard = () => {
-    const repData = computeComprehensiveReport({
-      summits,
-      programs,
-      entries,
-      marks,
-      attendance,
-      students,
-      classes,
-      teams,
-      fields,
-      settings,
-      periodMonths: ['2026-10', '2026-11'],
-      sectionFilter: 'all'
-    });
-
-    const myRep = repData.studentReports.find(s => s.id === student?.id);
-    if (myRep) {
-      generateIndividualStudentReportCardPDF({
-        studentReport: myRep,
-        periodTitle: "Academic Year 2026-2027",
-        settings
-      });
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Student Header Banner */}
@@ -167,17 +139,7 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
         </div>
 
         {/* Badges / Quick Stats */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 relative z-10 w-full md:w-auto">
-          <button
-            type="button"
-            onClick={handleDownloadMyReportCard}
-            className="min-h-[44px] p-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm w-full sm:w-auto active:scale-98"
-            title="Download My Official Monthly / Multi-Month Progress Report Card (PDF)"
-          >
-            <Download className="w-4 h-4" />
-            <span>Progress Report PDF</span>
-          </button>
-
+        <div className="flex items-center gap-2.5 relative z-10 w-full sm:w-auto">
           <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
             <div className="p-2 sm:p-3 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-center min-w-[64px] sm:min-w-[90px]">
               <span className="text-[9px] sm:text-[10px] uppercase font-bold text-white/70 block">Section</span>
