@@ -15,8 +15,10 @@ import {
   X,
   FileJson,
   Check,
-  Database
+  Database,
+  Activity
 } from 'lucide-react';
+import { CloudUsageModal } from '../admin/CloudUsageModal';
 
 export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
   const {
@@ -38,6 +40,7 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
   const [cloudSyncResult, setCloudSyncResult] = useState(null);
   const [migrationProgress, setMigrationProgress] = useState(null);
+  const [isCloudUsageOpen, setIsCloudUsageOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -432,6 +435,26 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
                 </button>
               </div>
 
+              {/* Cloud Usage Telemetry Card */}
+              <div className="p-3.5 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <span className="font-bold text-xs text-[#0F2A4A] dark:text-white flex items-center gap-1.5">
+                    <Activity className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>Cloud Usage &amp; Diagnostics</span>
+                  </span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    തത്സമയ റീഡ് / റൈറ്റ് കൗണ്ടറും സ്ക്രീൻ തിരിച്ചുള്ള കണക്കുകളും കാണുക.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCloudUsageOpen(true)}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition shrink-0 active:scale-95"
+                >
+                  View Usage
+                </button>
+              </div>
+
               {cloudSyncResult && (
                 <div
                   className={`p-3 rounded-xl text-xs font-medium flex items-start gap-2 ${
@@ -463,6 +486,12 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
           </button>
         </div>
       </div>
+
+      {/* Cloud Usage Telemetry Modal */}
+      <CloudUsageModal
+        isOpen={isCloudUsageOpen}
+        onClose={() => setIsCloudUsageOpen(false)}
+      />
     </div>
   );
 };
