@@ -3,24 +3,69 @@
  * Majlis Umariyya Wafy College
  */
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  getFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager
+} from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBgKOir8nkDRRt5JJcDcfaJIBHBLGjb5qI",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "musf-summit-reg.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "musf-summit-reg",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "musf-summit-reg.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "14502064606",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:14502064606:web:e4da5c514fe579d6bdad4f"
+  apiKey: import.meta.env?.VITE_FIREBASE_API_KEY || "AIzaSyBgKOir8nkDRRt5JJcDcfaJIBHBLGjb5qI",
+  authDomain: import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN || "musf-summit-reg.firebaseapp.com",
+  projectId: import.meta.env?.VITE_FIREBASE_PROJECT_ID || "musf-summit-reg",
+  storageBucket: import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET || "musf-summit-reg.firebasestorage.app",
+  messagingSenderId: import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID || "14502064606",
+  appId: import.meta.env?.VITE_FIREBASE_APP_ID || "1:14502064606:web:e4da5c514fe579d6bdad4f"
 };
 
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-export const db = getFirestore(app);
+
+// Initialize Firestore with robust multi-tab persistent offline cache
+let firestoreDb;
+try {
+  firestoreDb = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  });
+} catch (e) {
+  // If already initialized (e.g. during HMR or multiple imports)
+  firestoreDb = getFirestore(app);
+}
+
+export const db = firestoreDb;
+export const auth = getAuth(app);
 
 export const isFirebaseConfigured = () => {
   return Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
 };
 
+// Collections: each entity is its OWN first-class Firestore collection
+export const COLLECTIONS = {
+  STUDENTS: 'students',
+  CLASSES: 'classes',
+  TEAMS: 'teams',
+  SUMMITS: 'summits',
+  PROGRAMS: 'programs',
+  PROGRAM_LIBRARY: 'programLibrary',
+  ENTRIES: 'entries',
+  MARKS: 'marks',
+  ATTENDANCE: 'attendance',
+  NOTICES: 'notices',
+  NOTIFICATIONS: 'notifications',
+  AUDIT_LOGS: 'auditLogs',
+  SETTINGS: 'settings',
+  JUDGES: 'judges',
+  SECTIONS: 'sections',
+  FIELDS: 'fields',
+  CATEGORIES: 'categories',
+  CERTIFICATES: 'certificates',
+  REPORT_HISTORY: 'reportHistory'
+};
+
+// Legacy storage keys retained strictly for one-time backward migration & direct backup
 export const STORAGE_KEYS = {
   SECTIONS: 'musf_summit_sections_v6',
   FIELDS: 'musf_summit_fields_v6',

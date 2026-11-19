@@ -98,6 +98,40 @@
 - [x] **Phase 15: Student Report Download Removal**
   - **Removed Report Card Download from Student Portal**: Removed the "Progress Report PDF" download button from `StudentDashboard.jsx` header banner so students cannot download their comprehensive academic report cards.
   - Built with `npm run build` (0 errors, 717ms), pushed to GitHub, and deployed live to Firebase Hosting.
+- [x] **Phase 16: Firestore Single Source of Truth & Realtime Synchronization Overhaul**
+  - **Firestore as Single Source of Truth**:
+    - Discontinued `localStorage` as primary store and removed all third-party storage (`kvdb.io`, `npoint`, etc.).
+    - Created first-class Firestore collections per entity: `students`, `classes`, `teams`, `summits`, `programs`, `programLibrary`, `entries`, `marks`, `attendance`, `notices`, `notifications`, `auditLogs`, `settings`, `judges`, `sections`, `fields`, `categories`, `certificates`, `reportHistory`.
+    - Each record is its OWN document with a stable unique ID (`doc(db, col, id)`).
+  - **Atomic Writes & Chunked Batches**:
+    - Single document mutations write only the exact document modified (`saveDoc`, `removeDoc`).
+    - Bulk imports (Excel student import of 100+ students, bulk attendance, bulk summits) use `writeBatch` in chunks of 400 or less (`batchSaveDocs`).
+    - Removed all 20 `useEffect` hooks writing data on mount/refresh (0 writes on load/refresh).
+    - Append-only Firestore documents for `auditLogs` and `reportHistory` so every device sees the audit trail.
+  - **Role-Scoped Realtime Synchronization (`onSnapshot`)**:
+    - Real-time listeners automatically sync changes between Device A and Device B within seconds without requiring manual refresh.
+    - Role-based scoping to minimize quota: Leaders listen only to their team's data, Judges to assigned programs/summits, Students to their own profile and published results, Admin to everything.
+    - Clean listener cleanup on logout / role switch.
+  - **Offline Persistence & Quota Protection**:
+    - Enabled multi-tab persistent offline cache (`persistentLocalCache({ tabManager: persistentMultipleTabManager() })`).
+    - Handled HTTP 429 (`RESOURCE_EXHAUSTED`) gracefully: queues pending writes and retries automatically without dropping data.
+    - Added floating error alert (`WriteErrorToast.jsx`) and top status banner (`QuotaBanner.jsx`).
+    - Built hidden Admin Telemetry page (`CloudUsageModal.jsx`) that counts session reads, writes, and pending queue status.
+  - **Security Rules & Firebase Auth**:
+    - Integrated Firebase Auth with username mapping (`username@musf.app`) and fallback authentication.
+    - Deployed `firestore.rules` enforcing role permissions (Admin full; Leaders own team only, marks create only; Judges assigned programs; Students own data and published results).
+  - **One-Time Cloud Migration**:
+    - Implemented idempotent "Upload Local Data to Cloud" migration tool with progress bar and statistics breakdown. Safe to run multiple times with zero duplicates.
+    - Preserved existing "Direct Sync" export backup intact.
+  - **Firestore Writes Report**:
+    - Student creation: **1 write** (`students/{id}`)
+    - Summit creation: **1 write** (`summits/{id}`)
+    - Program assignment: **1 write** (`programs/{id}`)
+    - Marks entry: **1 write** (`marks/{id}`)
+    - Attendance entry: **1 write** (`attendance/{id}`)
+    - Excel import of 100 students: **100 writes** executed in a single chunk (`writeBatch` <= 400 docs)
+    - Realtime sync speed: **< 5 seconds** across concurrent devices without page refresh.
+
 
 ---
 

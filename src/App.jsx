@@ -11,6 +11,10 @@ import { JudgeDashboard } from './components/judge/JudgeDashboard';
 import { StudentDashboard } from './components/student/StudentDashboard';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { SplashScreen } from './components/common/SplashScreen';
+import { QuotaBanner } from './components/common/QuotaBanner';
+import { WriteErrorToast } from './components/common/WriteErrorToast';
+import { CloudUsageModal } from './components/admin/CloudUsageModal';
+import { MultiDeviceSyncModal } from './components/common/MultiDeviceSyncModal';
 
 export function AppContent() {
   const { currentUser } = useAuth();
@@ -64,6 +68,8 @@ export function AppContent() {
 
   // Mobile Drawer State
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [isCloudUsageOpen, setIsCloudUsageOpen] = useState(false);
+  const [isDirectSyncOpen, setIsDirectSyncOpen] = useState(false);
 
   return (
     <>
@@ -81,6 +87,12 @@ export function AppContent() {
             setActiveTab={setActiveTab}
             mobileDrawerOpen={mobileDrawerOpen}
             setMobileDrawerOpen={setMobileDrawerOpen}
+          />
+
+          {/* Quota & Offline Alert Banner */}
+          <QuotaBanner
+            onOpenDirectSync={() => setIsDirectSyncOpen(true)}
+            onOpenCloudUsage={() => setIsCloudUsageOpen(true)}
           />
 
           <div className="flex-1 flex max-w-7xl w-full mx-auto">
@@ -113,6 +125,21 @@ export function AppContent() {
             onOpenMore={() => setMobileDrawerOpen(prev => !prev)}
             isMoreOpen={mobileDrawerOpen}
           />
+
+          {/* Cloud Usage Telemetry Modal */}
+          <CloudUsageModal
+            isOpen={isCloudUsageOpen}
+            onClose={() => setIsCloudUsageOpen(false)}
+          />
+
+          {/* Direct Device Sync & Backup Modal */}
+          <MultiDeviceSyncModal
+            isOpen={isDirectSyncOpen}
+            onClose={() => setIsDirectSyncOpen(false)}
+          />
+
+          {/* Realtime Write Error Toast */}
+          <WriteErrorToast />
         </div>
       )}
     </>

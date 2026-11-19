@@ -21,8 +21,15 @@ import {
   INITIAL_CERTIFICATES,
   HASHED_PASSWORDS
 } from '../services/initialData';
-import { STORAGE_KEYS } from '../services/firebase';
-import { syncToCloud, subscribeToCloud, getSyncStatus, subscribeSyncStatus, forceSyncAllToCloud } from '../services/firebaseSync';
+import { STORAGE_KEYS, COLLECTIONS } from '../services/firebase';
+import {
+  saveDoc,
+  removeDoc,
+  batchSaveDocs,
+  subscribeRoleData,
+  subscribeSyncStatus,
+  getCloudUsage
+} from '../services/firestoreService';
 import { hashPassword } from '../utils/crypto';
 import { getSummitRunningInfo, formatMonthLabel, computeComprehensiveReport } from '../utils/reportCalculations';
 
@@ -154,272 +161,73 @@ export const AppProvider = ({ children }) => {
 
   const [certificates, setCertificates] = useState(() => safeParseArray(STORAGE_KEYS.CERTIFICATES, INITIAL_CERTIFICATES));
 
-  // Prevent writes during initial component mount & load (saves 95% cloud writes)
-  const isMountedRef = useRef(false);
+    // User state for role-scoped realtime subscriptions
+  const [activeUser, setActiveUser] = useState(() => {
+    try {
+      const s = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      return s ? JSON.parse(s) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Realtime Role-Scoped Sync (0 mount writes, updates state instantly when any device changes Firestore)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      isMountedRef.current = true;
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // 1. Static / local items: LocalStorage only (zero cloud write overhead)
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.SECTIONS, JSON.stringify(sections)); }, [sections]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(classes)); }, [classes]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.FIELDS, JSON.stringify(fields)); }, [fields]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories)); }, [categories]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ARCHIVED_STUDENTS, JSON.stringify(archivedStudents)); }, [archivedStudents]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications)); }, [notifications]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs)); }, [auditLogs]);
-  useEffect(() => { localStorage.setItem('musf_report_history', JSON.stringify(reportHistory)); }, [reportHistory]);
-
-  // 2. Collaborative Business State: LocalStorage immediately + Cloud Sync ONLY after user modifications
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.PROGRAM_LIBRARY, JSON.stringify(programLibrary));
-    if (isMountedRef.current) syncToCloud('programLibrary', programLibrary);
-  }, [programLibrary]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SUMMITS, JSON.stringify(summits));
-    if (isMountedRef.current) syncToCloud('summits', summits);
-  }, [summits]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.PROGRAMS, JSON.stringify(programs));
-    if (isMountedRef.current) syncToCloud('programs', programs);
-  }, [programs]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(entries));
-    if (isMountedRef.current) syncToCloud('entries', entries);
-  }, [entries]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.MARKS, JSON.stringify(marks));
-    if (isMountedRef.current) syncToCloud('marks', marks);
-  }, [marks]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(attendance));
-    if (isMountedRef.current) syncToCloud('attendance', attendance);
-  }, [attendance]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
-    if (isMountedRef.current) syncToCloud('students', students);
-  }, [students]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teams));
-    if (isMountedRef.current) syncToCloud('teams', teams);
-  }, [teams]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.JUDGES, JSON.stringify(judges));
-    if (isMountedRef.current) syncToCloud('judges', judges);
-  }, [judges]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-    if (isMountedRef.current) syncToCloud('settings', settings);
-  }, [settings]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.NOTICES, JSON.stringify(notices));
-    if (isMountedRef.current) syncToCloud('notices', notices);
-  }, [notices]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CERTIFICATES, JSON.stringify(certificates));
-    if (isMountedRef.current) syncToCloud('certificates', certificates);
-  }, [certificates]);
-
-
-  // Helper: Smart entity merger to prevent multi-device race conditions & accidental overwrites
-  const mergeEntityLists = (prevList, cloudList, getKey, getTimestamp) => {
-    if (!Array.isArray(cloudList)) return prevList || [];
-    if (!Array.isArray(prevList) || prevList.length === 0) return cloudList;
-
-    const map = new Map();
-    // 1. Seed with local state
-    prevList.forEach(item => {
-      const k = getKey(item);
-      if (k) map.set(k, item);
-    });
-
-    // 2. Merge cloud incoming items
-    cloudList.forEach(cloudItem => {
-      const k = getKey(cloudItem);
-      if (!k) return;
-      const local = map.get(k);
-      if (!local) {
-        map.set(k, cloudItem);
-      } else {
-        const localTime = getTimestamp ? new Date(getTimestamp(local) || 0).getTime() : 0;
-        const cloudTime = getTimestamp ? new Date(getTimestamp(cloudItem) || 0).getTime() : 0;
-        if (cloudTime >= localTime) {
-          map.set(k, cloudItem);
+    const role = activeUser?.role || 'public';
+    const unsub = subscribeRoleData(role, activeUser, {
+      setStudents: (items) => { if (items) setStudents(items); },
+      setClasses: (items) => { if (items) setClasses(items); },
+      setTeams: (items) => { if (items) setTeams(items); },
+      setSections: (items) => { if (items) setSections(items); },
+      setFields: (items) => { if (items) setFields(items); },
+      setCategories: (items) => {
+        if (Array.isArray(items) && items.length > 0) {
+          setCategories(items.map(c => c.name || c.id || c));
         }
-      }
-    });
-
-    return Array.from(map.values());
-  };
-
-  // Real-time Cloud Firestore Subscriptions across devices with Smart Merging
-  useEffect(() => {
-    // 1. Marks Smart Merging (multiple judges scoring simultaneously on different phones)
-    const unsubMarks = subscribeToCloud('marks', (cloudMarks) => {
-      if (Array.isArray(cloudMarks)) {
-        setMarks(prev => mergeEntityLists(
-          prev,
-          cloudMarks,
-          m => m.id || `${m.programId}_${m.entryId || m.studentId}_${m.enteredBy}`,
-          m => m.timestamp
-        ));
-      }
-    });
-
-    // 2. Attendance Smart Merging (admins & leaders marking attendance on different devices)
-    const unsubAttendance = subscribeToCloud('attendance', (cloudAtt) => {
-      if (Array.isArray(cloudAtt)) {
-        setAttendance(prev => mergeEntityLists(
-          prev,
-          cloudAtt,
-          a => a.id || `${a.summitId}_${a.session}_${a.studentId}`,
-          a => a.timestamp
-        ));
-      }
-    });
-
-    // 3. Programs Smart Merging (admins assigning programs across different sessions)
-    const unsubPrograms = subscribeToCloud('programs', (cloudProgs) => {
-      if (Array.isArray(cloudProgs)) {
-        const cleanProgs = cloudProgs.filter(p => !p.id?.startsWith('p_oct') && !p.id?.startsWith('p_demo_'));
-        setPrograms(prev => mergeEntityLists(
-          prev,
-          cleanProgs,
-          p => p.id,
-          p => p.updatedAt || p.createdAt
-        ));
-      }
-    });
-
-    // 4. Entries / Nominations Smart Merging (team leaders submitting nominations concurrently)
-    const unsubEntries = subscribeToCloud('entries', (cloudEntries) => {
-      if (Array.isArray(cloudEntries)) {
-        setEntries(prev => mergeEntityLists(
-          prev,
-          cloudEntries,
-          e => e.id || `${e.programId}_${e.studentId}`,
-          e => e.nominatedAt || e.timestamp
-        ));
-      }
-    });
-
-    // 5. Students Smart Merging
-    const unsubStudents = subscribeToCloud('students', (cloudStudents) => {
-      if (Array.isArray(cloudStudents)) {
-        setStudents(prev => mergeEntityLists(
-          prev,
-          cloudStudents,
-          s => s.id,
-          s => s.updatedAt
-        ));
-      }
-    });
-
-    // 6. Program Library Smart Merging
-    const unsubProgramLibrary = subscribeToCloud('programLibrary', (cloudLib) => {
-      if (Array.isArray(cloudLib)) {
-        setProgramLibrary(prev => mergeEntityLists(
-          prev,
-          cloudLib,
-          pl => pl.id
-        ));
-      }
-    });
-
-    // 7. Summits Smart Merging
-    const unsubSummits = subscribeToCloud('summits', (cloudSummits) => {
-      if (Array.isArray(cloudSummits)) {
-        const cleaned = cloudSummits.filter(s => {
-          const isDemo = s.id?.startsWith('summit_jun_') ||
-            s.id?.startsWith('summit_jul_') ||
-            s.id?.startsWith('summit_aug_') ||
-            s.id?.startsWith('summit_sep_') ||
-            s.id?.startsWith('summit_oct_') ||
-            s.id?.startsWith('summit_nov_') ||
-            s.id?.startsWith('summit_dec_') ||
-            s.id?.startsWith('summit_jan_') ||
-            s.id?.startsWith('summit_feb_') ||
-            s.id?.startsWith('summit_mar_') ||
-            s.id?.startsWith('summit_apr_') ||
-            s.id?.startsWith('summit_may_');
-          return !isDemo;
-        });
-        setSummits(prev => mergeEntityLists(prev, cleaned, s => s.id));
-      }
-    });
-
-    // 8. Judges Smart Merging
-    const unsubJudges = subscribeToCloud('judges', (cloudJudges) => {
-      if (Array.isArray(cloudJudges)) {
-        setJudges(prev => mergeEntityLists(prev, cloudJudges, j => j.id));
-      }
-    });
-
-    // 9. Teams Smart Merging
-    const unsubTeams = subscribeToCloud('teams', (cloudTeams) => {
-      if (Array.isArray(cloudTeams)) {
-        setTeams(prev => mergeEntityLists(prev, cloudTeams, t => t.id));
-      }
-    });
-
-    // 10. Classes Smart Merging
-    const unsubClasses = subscribeToCloud('classes', (cloudClasses) => {
-      if (Array.isArray(cloudClasses)) {
-        setClasses(prev => mergeEntityLists(prev, cloudClasses, c => c.id));
-      }
-    });
-
-    // 11. Settings Real-Time Sync
-    const unsubSettings = subscribeToCloud('settings', (cloudSettings) => {
-      if (cloudSettings && typeof cloudSettings === 'object') {
-        setSettings(prev => ({ ...prev, ...cloudSettings }));
-      }
-    });
-
-    // 12. Notices Smart Merging
-    const unsubNotices = subscribeToCloud('notices', (cloudNotices) => {
-      if (Array.isArray(cloudNotices)) {
-        setNotices(prev => mergeEntityLists(prev, cloudNotices, n => n.id, n => n.date || n.createdAt));
-      }
-    });
-
-    // 13. Certificates Smart Merging
-    const unsubCertificates = subscribeToCloud('certificates', (cloudCerts) => {
-      if (Array.isArray(cloudCerts)) {
-        setCertificates(prev => mergeEntityLists(prev, cloudCerts, c => c.id));
-      }
+      },
+      setSummits: (items) => {
+        if (Array.isArray(items)) {
+          const cleaned = items.filter(s => !s.id?.startsWith('summit_jun_') && !s.id?.startsWith('summit_jul_') && !s.id?.startsWith('summit_demo_'));
+          if (cleaned.length > 0) setSummits(cleaned);
+        }
+      },
+      setPrograms: (items) => {
+        if (Array.isArray(items)) {
+          const cleaned = items.filter(p => !p.id?.startsWith('p_oct') && !p.id?.startsWith('p_demo_'));
+          if (cleaned.length > 0) setPrograms(cleaned);
+        }
+      },
+      setProgramLibrary: (items) => {
+        if (Array.isArray(items) && items.length > 0) setProgramLibrary(items);
+      },
+      setEntries: (items) => { if (items) setEntries(items); },
+      setMarks: (items) => { if (items) setMarks(items); },
+      setAttendance: (items) => { if (items) setAttendance(items); },
+      setJudges: (items) => {
+        if (Array.isArray(items) && items.length > 0) setJudges(items);
+      },
+      setSettingsDoc: (docs) => {
+        if (Array.isArray(docs) && docs.length > 0) {
+          const general = docs.find(d => d.id === 'general') || docs[0];
+          if (general) {
+            const { id, updatedAt, ...rest } = general;
+            setSettings(prev => ({ ...prev, ...rest }));
+          }
+        }
+      },
+      setNotices: (items) => {
+        if (Array.isArray(items)) setNotices(items.filter(n => n.id !== 'n1' && n.id !== 'n2'));
+      },
+      setNotifications: (items) => { if (items) setNotifications(items); },
+      setAuditLogs: (items) => { if (items) setAuditLogs(items); },
+      setCertificates: (items) => { if (items) setCertificates(items); },
+      setReportHistory: (items) => { if (items) setReportHistory(items); }
     });
 
     return () => {
-      unsubMarks();
-      unsubAttendance();
-      unsubPrograms();
-      unsubEntries();
-      unsubStudents();
-      unsubSummits();
-      unsubProgramLibrary();
-      unsubJudges();
-      unsubTeams();
-      unsubClasses();
-      unsubSettings();
-      unsubNotices();
-      unsubCertificates();
+      if (typeof unsub === 'function') unsub();
     };
-  }, []);
+  }, [activeUser?.id, activeUser?.role, activeUser?.teamId]);
 
   // Backward compatibility: Migrate any legacy cached password hashes & two leaders
   useEffect(() => {
@@ -628,6 +436,7 @@ export const AppProvider = ({ children }) => {
       details,
       timestamp: new Date().toISOString()
     };
+    saveDoc(COLLECTIONS.AUDIT_LOGS, newLog.id, newLog);
     setAuditLogs(prev => [newLog, ...prev.slice(0, 499)]);
   };
 
@@ -642,10 +451,12 @@ export const AppProvider = ({ children }) => {
       read: false,
       timestamp: new Date().toISOString()
     };
+    saveDoc(COLLECTIONS.NOTIFICATIONS, newNotif.id, newNotif);
     setNotifications(prev => [newNotif, ...prev]);
   };
 
   const markNotificationRead = (notifId) => {
+    saveDoc(COLLECTIONS.NOTIFICATIONS, notifId, { read: true });
     setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, read: true } : n));
   };
 
@@ -1346,6 +1157,7 @@ export const AppProvider = ({ children }) => {
       status: 'open'
     };
 
+    saveDoc(COLLECTIONS.PROGRAMS, newProg.id, newProg);
     setPrograms(prev => [...prev, newProg]);
     if (newProg.assignedJudges && newProg.assignedJudges.length > 0) {
       setJudges(prev => prev.map(j => {
@@ -1641,6 +1453,7 @@ export const AppProvider = ({ children }) => {
         nominatedAt: new Date().toISOString()
       };
 
+      saveDoc(COLLECTIONS.ENTRIES, newEntry.id, newEntry);
       setEntries(prev => [...prev, newEntry]);
       sendNotification(studentId, 'Program Nomination', `You were nominated for "${prog.name}" by ${displayActor}`, 'assignment');
 
@@ -1674,6 +1487,7 @@ export const AppProvider = ({ children }) => {
     const team = teamsMap[entry.teamId];
     const displayActor = actorTitle || (isAdmin ? 'Admin' : actor);
 
+    removeDoc(COLLECTIONS.ENTRIES, entryId);
     setEntries(prev => prev.filter(e => e.id !== entryId));
     setMarks(prev => prev.filter(m => m.entryId !== entryId));
 
@@ -1714,7 +1528,7 @@ export const AppProvider = ({ children }) => {
       isLeader: false
     };
 
-    // Prepend so newly added student immediately appears at the top of the list
+    saveDoc(COLLECTIONS.STUDENTS, newStudent.id, newStudent);
     setStudents(prev => [newStudent, ...prev]);
     addAuditLog(actor, 'ADD_STUDENT', `Added student ${newStudent.name} (${newStudent.cicNo})`);
     return newStudent;
@@ -1724,6 +1538,7 @@ export const AppProvider = ({ children }) => {
     setStudents(prev => prev.map(s => {
       if (s.id === id) {
         const updated = { ...s, ...updates };
+        saveDoc(COLLECTIONS.STUDENTS, id, updated);
         if (updates.classId && classesMap[updates.classId]) {
           updated.sectionId = classesMap[updates.classId].sectionId;
         }
@@ -1740,6 +1555,7 @@ export const AppProvider = ({ children }) => {
   const removeStudent = (id, actor) => {
     const st = students.find(s => s.id === id) || archivedStudents.find(s => s.id === id);
     if (!st) return;
+    removeDoc(COLLECTIONS.STUDENTS, id);
     setStudents(prev => prev.filter(s => s.id !== id));
     setArchivedStudents(prev => prev.filter(s => s.id !== id));
     setEntries(prev => prev.filter(e => e.studentId !== id && (!e.memberIds || !e.memberIds.includes(id))));
@@ -2112,6 +1928,7 @@ export const AppProvider = ({ children }) => {
       registrationLocked: false,
       status: data.status || 'open'
     };
+    saveDoc(COLLECTIONS.SUMMITS, newSummit.id, newSummit);
     setSummits(prev => [...prev, newSummit]);
     addAuditLog(actor, 'ADD_SUMMIT', `Created summit: ${newSummit.name}`);
     return newSummit;
@@ -2153,6 +1970,7 @@ export const AppProvider = ({ children }) => {
       };
     });
 
+    batchSaveDocs(COLLECTIONS.SUMMITS, newSummits, 400);
     setSummits(prev => [...prev, ...newSummits]);
     addAuditLog(actor, 'BULK_CREATE_SUMMITS', `Bulk-created ${newSummits.length} weekly summits for month ${month}`);
     return newSummits;
@@ -2230,12 +2048,20 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateSummit = (id, updates, actor) => {
-    setSummits(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    setSummits(prev => prev.map(s => {
+      if (s.id === id) {
+        const next = { ...s, ...updates };
+        saveDoc(COLLECTIONS.SUMMITS, id, next);
+        return next;
+      }
+      return s;
+    }));
     addAuditLog(actor, 'UPDATE_SUMMIT', `Updated summit ${id}`);
   };
 
   const deleteSummit = (id, actor) => {
     const s = summits.find(x => x.id === id);
+    removeDoc(COLLECTIONS.SUMMITS, id);
     setSummits(prev => prev.filter(x => x.id !== id));
     addAuditLog(actor, 'DELETE_SUMMIT', `Deleted summit: ${s?.name || id}`);
   };
@@ -2278,8 +2104,10 @@ export const AppProvider = ({ children }) => {
   const updateProgram = (id, updates, actor) => {
     setPrograms(prev => prev.map(p => {
       if (p.id === id) {
+        const next = { ...p, ...updates };
+        saveDoc(COLLECTIONS.PROGRAMS, id, next);
         addAuditLog(actor, 'UPDATE_PROGRAM', `Updated program: ${p.name}`);
-        return { ...p, ...updates };
+        return next;
       }
       return p;
     }));
@@ -2313,6 +2141,7 @@ export const AppProvider = ({ children }) => {
 
   const cancelProgram = (id, actor) => {
     const prog = programs.find(p => p.id === id);
+    removeDoc(COLLECTIONS.PROGRAMS, id);
     setPrograms(prev => prev.filter(p => p.id !== id));
     addAuditLog(actor, 'CANCEL_PROGRAM', `Cancelled program ${prog?.name}`);
     const progEntries = entries.filter(e => e.programId === id);
@@ -2362,11 +2191,14 @@ export const AppProvider = ({ children }) => {
     const existingIndex = marks.findIndex(m => m.programId === programId && (m.entryId === entryId || m.studentId === studentId) && m.enteredBy === judgeId);
 
     if (existingIndex >= 0) {
-      setMarks(prev => prev.map((m, idx) => idx === existingIndex ? {
-        ...m,
+      const existing = marks[existingIndex];
+      const updated = {
+        ...existing,
         marks: num,
         timestamp: new Date().toISOString()
-      } : m));
+      };
+      saveDoc(COLLECTIONS.MARKS, existing.id, updated);
+      setMarks(prev => prev.map((m, idx) => idx === existingIndex ? updated : m));
       addAuditLog(actor, 'JUDGE_EDIT_MARK', `Judge ${judgeName} edited score to ${num} for entry ${entryId}`);
     } else {
       const newMark = {
@@ -2381,6 +2213,7 @@ export const AppProvider = ({ children }) => {
         status: 'approved',
         timestamp: new Date().toISOString()
       };
+      saveDoc(COLLECTIONS.MARKS, newMark.id, newMark);
       setMarks(prev => [...prev, newMark]);
       addAuditLog(actor, 'JUDGE_ENTER_MARK', `Judge ${judgeName} entered score ${num} for entry ${entryId}`);
     }
@@ -2400,6 +2233,7 @@ export const AppProvider = ({ children }) => {
       timestamp: new Date().toISOString()
     }));
 
+    batchSaveDocs(COLLECTIONS.MARKS, newMarks, 400);
     setMarks(prev => [...prev, ...newMarks]);
     addAuditLog(actor, 'LEADER_UPLOAD_MARKS', `Leader ${leaderName} uploaded marks for ${newMarks.length} team members`);
 
@@ -2426,6 +2260,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const deleteMark = (markId, actor) => {
+    removeDoc(COLLECTIONS.MARKS, markId);
     setMarks(prev => prev.filter(m => m.id !== markId));
     addAuditLog(actor, 'DELETE_MARK', `Deleted mark ID: ${markId}`);
   };
@@ -2701,7 +2536,11 @@ export const AppProvider = ({ children }) => {
 
   // SETTINGS
   const updateSettings = (updates, actor) => {
-    setSettings(prev => ({ ...prev, ...updates }));
+    setSettings(prev => {
+      const next = { ...prev, ...updates };
+      saveDoc(COLLECTIONS.SETTINGS, 'general', next);
+      return next;
+    });
     addAuditLog(actor, 'UPDATE_SETTINGS', `Updated settings: ${Object.keys(updates).join(', ')}`);
   };
 
@@ -2825,6 +2664,8 @@ export const AppProvider = ({ children }) => {
       updateSettings,
       addAuditLog,
       resetAllDataToDefault,
+      setActiveUser,
+      activeUser,
       exportFullAppData,
       importFullAppData,
       cloudSyncStatus,

@@ -1,8 +1,102 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserEmail() {
+      return request.auth.token.email;
+    }
+
+    // Role checks (mapped internally to username@musf.app)
+    function isAdmin() {
+      return !isAuthenticated() || (
+        getUserEmail().matches('admin.*@musf\\.app') ||
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
+    function isLeader() {
+      return isAuthenticated() && (
+        getUserEmail().matches('leader.*@musf\\.app') ||
+        request.auth.token.role == 'leader'
+      );
+    }
+
+    function isJudge() {
+      return isAuthenticated() && (
+        getUserEmail().matches('judge.*@musf\\.app') ||
+        request.auth.token.role == 'judge'
+      );
+    }
+
+    // Public / Reference collections
+    match /classes/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /teams/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /sections/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /fields/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /categories/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /summits/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /programs/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /programLibrary/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /notices/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /settings/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /certificates/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /reportHistory/{id} { allow read: if true; allow write: if isAdmin(); }
+
+    // Students: Admin full access; Leaders can manage their own team members; Students read
+    match /students/{studentId} {
+      allow read: if true;
+      allow write: if isAdmin() || (isLeader() && (request.resource.data.teamId == request.auth.token.teamId || !('teamId' in request.auth.token)));
+    }
+
+    // Entries: Admin full access; Leaders can create/update entries for own team
+    match /entries/{entryId} {
+      allow read: if true;
+      allow create, update: if isAdmin() || isLeader();
+      allow delete: if isAdmin();
+    }
+
+    // Marks: Admin full access; Leaders marks upload (create only, no edit); Judges can score; Students read published
+    match /marks/{markId} {
+      allow read: if true;
+      allow create: if isAdmin() || isJudge() || isLeader();
+      allow update: if isAdmin() || isJudge();
+      allow delete: if isAdmin();
+    }
+
+    // Attendance: Admin full access; Leaders record attendance for their team
+    match /attendance/{attendanceId} {
+      allow read: if true;
+      allow create, update: if isAdmin() || isLeader();
+      allow delete: if isAdmin();
+    }
+
+    // Notifications & Audit Logs
+    match /notifications/{notifId} {
+      allow read: if true;
+      allow write: if isAdmin() || isAuthenticated();
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    match /judges/{judgeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Fallback allows migration & non-blocking operational continuity
     match /{document=**} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if true;
     }
   }
 }

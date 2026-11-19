@@ -1,13 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useApp } from './AppContext';
-import { STORAGE_KEYS } from '../services/firebase';
+import { STORAGE_KEYS, auth } from '../services/firebase';
 import { verifyPassword, hashPassword } from '../utils/crypto';
 import { INITIAL_ADMINS } from '../services/initialData';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut
+} from 'firebase/auth';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const { students, judges, addAuditLog, setStudents, setJudges, settings, updateSettings } = useApp();
+  const { students, judges, addAuditLog, setStudents, setJudges, settings, updateSettings, setActiveUser } = useApp();
 
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
@@ -20,7 +25,10 @@ export const AuthProvider = ({ children }) => {
     } else {
       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     }
-  }, [currentUser]);
+    if (typeof setActiveUser === 'function') {
+      setActiveUser(currentUser);
+    }
+  }, [currentUser, setActiveUser]);
 
   /**
    * Attempts login with username and password
@@ -32,6 +40,20 @@ export const AuthProvider = ({ children }) => {
 
     const trimmedUser = username.trim().toLowerCase();
     const candidatePass = String(plainPassword).trim();
+
+    // Firebase Auth: username mapped internally to username@musf.app
+    const internalEmail = `${trimmedUser.replace(/[^a-z0-9]/g, '')}@musf.app`;
+    if (auth) {
+      try {
+        await signInWithEmailAndPassword(auth, internalEmail, candidatePass);
+      } catch (authErr) {
+        if (authErr.code === 'auth/user-not-found' || authErr.code === 'auth/invalid-credential') {
+          try {
+            await createUserWithEmailAndPassword(auth, internalEmail, candidatePass);
+          } catch {}
+        }
+      }
+    }
 
     // 1. Check Admin
     const admin = INITIAL_ADMINS.find(a => a.username.toLowerCase() === trimmedUser);
@@ -132,6 +154,9 @@ export const AuthProvider = ({ children }) => {
    * Logs out the current user
    */
   const logout = () => {
+    if (auth) {
+      signOut(auth).catch(() => {});
+    }
     if (currentUser) {
       addAuditLog(currentUser.username, 'LOGOUT', `${currentUser.name} signed out`);
     }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { migrateLocalDataToCloud } from '../../services/migrationService';
 import {
   Smartphone,
   Share2,
@@ -13,7 +14,8 @@ import {
   CloudOff,
   X,
   FileJson,
-  Check
+  Check,
+  Database
 } from 'lucide-react';
 
 export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
@@ -35,6 +37,7 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
   const [importStatus, setImportStatus] = useState(null); // { type: 'success' | 'error', message: '' }
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
   const [cloudSyncResult, setCloudSyncResult] = useState(null);
+  const [migrationProgress, setMigrationProgress] = useState(null);
 
   if (!isOpen) return null;
 
@@ -373,15 +376,61 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              <button
-                type="button"
-                disabled={isCloudSyncing}
-                onClick={handleManualCloudSync}
-                className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-[#0F2A4A] text-white hover:bg-[#1a3d66] disabled:opacity-50 transition flex items-center justify-center gap-2 text-xs font-bold shadow-xs active:scale-98"
-              >
-                <RefreshCw className={`w-4 h-4 text-[#0E7C86] ${isCloudSyncing ? 'animate-spin' : ''}`} />
-                <span>{isCloudSyncing ? 'ക്ലൗഡിലേക്ക് അയക്കുന്നു...' : 'ക്ലൗഡിലേക്ക് എല്ലാം സമന്വയിപ്പിക്കുക (Sync Now)'}</span>
-              </button>
+              {/* One-Time Migration Card */}
+              <div className="p-3.5 rounded-xl bg-teal-50/60 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/50 space-y-2.5">
+                <span className="font-bold text-xs text-[#0F2A4A] dark:text-white flex items-center gap-1.5">
+                  <Database className="w-4 h-4 text-[#0E7C86]" />
+                  <span>One-Time Migration: Upload Local Data to Cloud</span>
+                </span>
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                  ഈ ഫോണിൽ നേരത്തെ സേവ് ചെയ്തിട്ടുള്ള എല്ലാ ഡാറ്റയും പുതിയ ഫയർസ്റ്റോർ സിസ്റ്റത്തിലേക്ക് അപ്‌ലോഡ് ചെയ്യുക (Zero Duplicates, safe to re-run).
+                </p>
+
+                {migrationProgress && (
+                  <div className="space-y-1.5 p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center justify-between text-[11px] font-semibold">
+                      <span>{migrationProgress.message}</span>
+                      <span className="font-mono text-teal-600 font-bold">{migrationProgress.percent}%</span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                      <div className="h-full bg-[#0E7C86]" style={{ width: `${migrationProgress.percent}%` }} />
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  disabled={migrationProgress?.isRunning}
+                  onClick={async () => {
+                    if (!window.confirm('Upload local browser data to individual Firestore documents now?')) return;
+                    setMigrationProgress({ step: 0, percent: 0, message: 'Starting migration...', isRunning: true });
+                    try {
+                      const stats = await migrateLocalDataToCloud((step, percent, msg) => {
+                        setMigrationProgress({ step, percent, message: msg, isRunning: true });
+                      });
+                      setMigrationProgress({
+                        step: 100,
+                        percent: 100,
+                        message: `Migrated ${stats.totalMigrated} records to Firestore!`,
+                        isRunning: false,
+                        result: stats
+                      });
+                    } catch (e) {
+                      setMigrationProgress({
+                        step: 0,
+                        percent: 0,
+                        message: 'Notice: ' + (e.message || 'Write paused'),
+                        isRunning: false,
+                        isError: true
+                      });
+                    }
+                  }}
+                  className="w-full min-h-[40px] px-3.5 py-1.5 rounded-xl bg-[#0E7C86] text-white hover:bg-teal-700 disabled:opacity-50 text-xs font-bold transition flex items-center justify-center gap-1.5"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>{migrationProgress?.isRunning ? 'Migrating...' : 'Upload Local Data to Cloud'}</span>
+                </button>
+              </div>
 
               {cloudSyncResult && (
                 <div
