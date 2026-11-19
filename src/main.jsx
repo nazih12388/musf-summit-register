@@ -5,6 +5,7 @@ import App from './App.jsx'
 import { LanguageProvider } from './context/LanguageContext'
 import { AppProvider } from './context/AppContext'
 import { AuthProvider } from './context/AuthContext'
+import { ErrorBoundary } from './components/common/ErrorBoundary'
 
 // Register service worker for offline PWA support
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
@@ -17,12 +18,14 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <LanguageProvider>
-      <AppProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </AppProvider>
-    </LanguageProvider>
+    <ErrorBoundary>
+      <LanguageProvider>
+        <AppProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </AppProvider>
+      </LanguageProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )

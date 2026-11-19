@@ -135,6 +135,25 @@ const notifyWriteError = (error, context) => {
   });
 };
 
+export const getSyncStatus = () => {
+  const state = isQuotaExhausted
+    ? 'quota_exhausted'
+    : isOffline
+    ? 'offline'
+    : pendingWriteQueue.length > 0
+    ? 'syncing'
+    : 'synced';
+
+  return {
+    state,
+    isOffline,
+    quotaExhausted: isQuotaExhausted,
+    pendingWritesCount: pendingWriteQueue.length,
+    activeListenersCount: sharedListeners.size,
+    lastWriteAt: new Date().toISOString()
+  };
+};
+
 export const getCloudUsage = () => ({
   sessionReads,
   sessionWrites,
@@ -327,89 +346,117 @@ const sharedListeners = new Map();
 export const getActiveListenersCount = () => sharedListeners.size;
 
 /**
+ * Deterministically serialize a QueryConstraint for deduplication
+ */
+const serializeConstraint = (c) => {
+  if (!c) return '';
+  if (c.type === 'limit' || c.type === 'limitToLast') {
+    return `${c.type}:${c._limit}`;
+  }
+  if (c.type === 'where') {
+    const field = c._field?.segments?.join('.') || c._field?._internalPath?.segments?.join('.') || 'field';
+    return `where:${field}:${c._op}:${JSON.stringify(c._value)}`;
+  }
+  if (c.type === 'orderBy') {
+    const field = c._field?.segments?.join('.') || c._field?._internalPath?.segments?.join('.') || 'field';
+    return `orderBy:${field}:${c._direction}`;
+  }
+  try {
+    return JSON.stringify(c);
+  } catch (e) {
+    return String(c);
+  }
+};
+
+/**
  * Register interest in a Firestore query.
  * Reuses existing active listener if query signature matches!
  */
 export const registerSharedListener = (colName, queryConstraints = [], onUpdate, onError) => {
   if (!db || !colName) return () => {};
 
-  // Build stable key representing this collection + constraints
-  const constraintKey = queryConstraints.map((c) => c._query?.path || String(c)).join('|');
-  const listenerKey = `${colName}:${constraintKey}`;
+  try {
+    // Build stable deterministic key representing this collection + constraints
+    const constraintKey = queryConstraints.map(serializeConstraint).join('|');
+    const listenerKey = `${colName}:${constraintKey}`;
 
-  let entry = sharedListeners.get(listenerKey);
+    let entry = sharedListeners.get(listenerKey);
 
-  if (entry) {
-    // Listener already running! Add callback and immediately deliver cached items
-    entry.callbacks.add(onUpdate);
-    if (entry.items !== undefined && typeof onUpdate === 'function') {
-      try { onUpdate(entry.items); } catch (e) { console.error(e); }
-    }
-  } else {
-    // Create new shared onSnapshot listener
-    const callbacks = new Set();
-    if (typeof onUpdate === 'function') callbacks.add(onUpdate);
-
-    let isFirstSnapshot = true;
-    const colRef = collection(db, colName);
-    const q = queryConstraints.length > 0 ? query(colRef, ...queryConstraints) : colRef;
-
-    const unsubscribe = onSnapshot(
-      q,
-      { includeMetadataChanges: true },
-      (snapshot) => {
-        // Track reads: on first snapshot track docs count; on subsequent track docChanges
-        if (isFirstSnapshot) {
-          trackReads(snapshot.docs.length);
-          isFirstSnapshot = false;
-        } else {
-          trackReads(snapshot.docChanges().length);
-        }
-
-        const items = snapshot.docs.map((d) => ({
-          ...d.data(),
-          id: d.id
-        }));
-
-        const currentEntry = sharedListeners.get(listenerKey);
-        if (currentEntry) {
-          currentEntry.items = items;
-          currentEntry.callbacks.forEach((cb) => {
-            try { cb(items, snapshot); } catch (e) { console.error(e); }
-          });
-        }
-      },
-      (err) => {
-        console.warn(`[Firestore Listener Notice] ${colName}:`, err.message);
-        if (typeof onError === 'function') onError(err);
+    if (entry) {
+      // Listener already running! Add callback and immediately deliver cached items
+      entry.callbacks.add(onUpdate);
+      if (entry.items !== undefined && typeof onUpdate === 'function') {
+        try { onUpdate(entry.items); } catch (e) { console.error(e); }
       }
-    );
+    } else {
+      // Create new shared onSnapshot listener
+      const callbacks = new Set();
+      if (typeof onUpdate === 'function') callbacks.add(onUpdate);
 
-    entry = {
-      unsubscribe,
-      callbacks,
-      items: undefined,
-      colName
-    };
-    sharedListeners.set(listenerKey, entry);
-    notifyUsage();
-    notifySyncStatus();
-  }
+      let isFirstSnapshot = true;
+      const colRef = collection(db, colName);
+      const q = queryConstraints.length > 0 ? query(colRef, ...queryConstraints) : colRef;
 
-  // Return unsubscription function
-  return () => {
-    const current = sharedListeners.get(listenerKey);
-    if (!current) return;
-    current.callbacks.delete(onUpdate);
+      const unsubscribe = onSnapshot(
+        q,
+        { includeMetadataChanges: true },
+        (snapshot) => {
+          // Track reads: on first snapshot track docs count; on subsequent track docChanges
+          if (isFirstSnapshot) {
+            trackReads(snapshot.docs.length);
+            isFirstSnapshot = false;
+          } else {
+            trackReads(snapshot.docChanges().length);
+          }
 
-    // If no more callbacks are listening, cleanly terminate listener to save reads
-    if (current.callbacks.size === 0) {
-      try { current.unsubscribe(); } catch (e) { /* ignore */ }
-      sharedListeners.delete(listenerKey);
+          const items = snapshot.docs.map((d) => ({
+            ...d.data(),
+            id: d.id
+          }));
+
+          const currentEntry = sharedListeners.get(listenerKey);
+          if (currentEntry) {
+            currentEntry.items = items;
+            currentEntry.callbacks.forEach((cb) => {
+              try { cb(items, snapshot); } catch (e) { console.error(e); }
+            });
+          }
+        },
+        (err) => {
+          console.warn(`[Firestore Listener Notice] ${colName}:`, err.message);
+          if (typeof onError === 'function') onError(err);
+        }
+      );
+
+      entry = {
+        unsubscribe,
+        callbacks,
+        items: undefined,
+        colName
+      };
+      sharedListeners.set(listenerKey, entry);
       notifyUsage();
       notifySyncStatus();
     }
-  };
+
+    // Return unsubscription function
+    return () => {
+      const current = sharedListeners.get(listenerKey);
+      if (!current) return;
+      current.callbacks.delete(onUpdate);
+
+      // If no more callbacks are listening, cleanly terminate listener to save reads
+      if (current.callbacks.size === 0) {
+        try { current.unsubscribe(); } catch (e) { /* ignore */ }
+        sharedListeners.delete(listenerKey);
+        notifyUsage();
+        notifySyncStatus();
+      }
+    };
+  } catch (outerErr) {
+    console.error(`[Firestore Shared Listener Error] Failed for ${colName}:`, outerErr);
+    return () => {};
+  }
 };
 
 // =========================================================================
@@ -434,7 +481,7 @@ export const syncScreenData = (screen, role, user, currentSummitId, handlers = {
   };
 
   // -------------------------------------------------------------
-  // 1. BASELINE SHELL (Shared across all screens - only 3 listeners)
+  // 1. BASELINE SHELL (Shared across all screens - only 5 listeners)
   // -------------------------------------------------------------
   // Settings (1 document 'general' -> 1 read)
   sub(COLLECTIONS.SETTINGS, [limit(1)], handlers.setSettingsDoc);
@@ -442,13 +489,17 @@ export const syncScreenData = (screen, role, user, currentSummitId, handlers = {
   // Active Summits only (limit 10 -> ~4-8 reads)
   sub(COLLECTIONS.SUMMITS, [orderBy('date', 'desc'), limit(10)], handlers.setSummits);
 
+  // Classes & Teams (small reference lists -> ~7 reads total)
+  sub(COLLECTIONS.CLASSES, [limit(20)], handlers.setClasses);
+  sub(COLLECTIONS.TEAMS, [limit(10)], handlers.setTeams);
+
   // User Notifications (scoped by userId -> ~2-5 reads)
   if (user?.id) {
     if (role === 'admin') {
       sub(COLLECTIONS.NOTIFICATIONS, [orderBy('timestamp', 'desc'), limit(20)], handlers.setNotifications);
     } else {
       sub(COLLECTIONS.NOTIFICATIONS, [limit(20)], (allNotifs) => {
-        const filtered = allNotifs.filter(
+        const filtered = (allNotifs || []).filter(
           (n) => n.userId === user.id || n.userId === 'all' || (user.teamId && n.teamId === user.teamId)
         );
         if (handlers.setNotifications) handlers.setNotifications(filtered);

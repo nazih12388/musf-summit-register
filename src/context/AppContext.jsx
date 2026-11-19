@@ -29,8 +29,11 @@ import {
   syncScreenData,
   setCurrentScreen,
   subscribeSyncStatus,
-  getCloudUsage
+  getSyncStatus,
+  getCloudUsage,
+  retryPendingWrites
 } from '../services/firestoreService';
+import { migrateLocalDataToCloud } from '../services/migrationService';
 import { hashPassword } from '../utils/crypto';
 import { getSummitRunningInfo, formatMonthLabel, computeComprehensiveReport } from '../utils/reportCalculations';
 
@@ -395,27 +398,31 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const [cloudSyncStatus, setCloudSyncStatus] = useState(getSyncStatus);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState(() => {
+    try {
+      return typeof getSyncStatus === 'function' ? getSyncStatus() : { state: 'synced', isOffline: false, pendingWritesCount: 0 };
+    } catch {
+      return { state: 'synced', isOffline: false, pendingWritesCount: 0 };
+    }
+  });
   useEffect(() => {
-    const unsub = subscribeSyncStatus(setCloudSyncStatus);
-    return () => unsub();
+    const unsub = subscribeSyncStatus((status) => {
+      if (status) setCloudSyncStatus(status);
+    });
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
   }, []);
 
   const manualCloudSync = async () => {
-    return await forceSyncAllToCloud({
-      summits,
-      programs,
-      programLibrary,
-      students,
-      entries,
-      marks,
-      attendance,
-      judges,
-      teams,
-      settings,
-      notices,
-      certificates
-    });
+    try {
+      await retryPendingWrites();
+      await migrateLocalDataToCloud();
+      return true;
+    } catch (e) {
+      console.error('Manual sync failed:', e);
+      return false;
+    }
   };
 
   const resetAllDataToDefault = () => {
