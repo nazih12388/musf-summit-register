@@ -29,6 +29,7 @@ let sessionWrites = 0;
 let isQuotaExhausted = false;
 let isOffline = typeof navigator !== 'undefined' ? !navigator.onLine : false;
 let currentScreenName = 'dashboard';
+let lastFirestoreError = null;
 
 // Screen-by-Screen telemetry tracking
 export const screenUsage = {
@@ -111,6 +112,8 @@ const notifySyncStatus = () => {
     ? 'quota_exhausted'
     : isOffline
     ? 'offline'
+    : lastFirestoreError
+    ? 'error'
     : pendingWriteQueue.length > 0
     ? 'syncing'
     : 'synced';
@@ -121,6 +124,7 @@ const notifySyncStatus = () => {
     quotaExhausted: isQuotaExhausted,
     pendingWritesCount: pendingWriteQueue.length,
     activeListenersCount: sharedListeners.size,
+    firestoreError: lastFirestoreError,
     lastWriteAt: new Date().toISOString()
   };
 
@@ -140,6 +144,8 @@ export const getSyncStatus = () => {
     ? 'quota_exhausted'
     : isOffline
     ? 'offline'
+    : lastFirestoreError
+    ? 'error'
     : pendingWriteQueue.length > 0
     ? 'syncing'
     : 'synced';
@@ -150,6 +156,7 @@ export const getSyncStatus = () => {
     quotaExhausted: isQuotaExhausted,
     pendingWritesCount: pendingWriteQueue.length,
     activeListenersCount: sharedListeners.size,
+    firestoreError: lastFirestoreError,
     lastWriteAt: new Date().toISOString()
   };
 };
@@ -423,8 +430,22 @@ export const registerSharedListener = (colName, queryConstraints = [], onUpdate,
           }
         },
         (err) => {
-          console.warn(`[Firestore Listener Notice] ${colName}:`, err.message);
-          if (typeof onError === 'function') onError(err);
+          console.warn(`[Firestore Listener Notice] ${colName}:`, err.message || err.code);
+          lastFirestoreError = err.code || err.message;
+          notifySyncStatus();
+
+          // Provide safe fallback empty array so UI components waiting for snapshot don't hang
+          const currentEntry = sharedListeners.get(listenerKey);
+          if (currentEntry) {
+            currentEntry.items = currentEntry.items || [];
+            currentEntry.callbacks.forEach((cb) => {
+              try { cb(currentEntry.items, null); } catch (e) { console.error(e); }
+            });
+          }
+
+          if (typeof onError === 'function') {
+            try { onError(err); } catch (e) {}
+          }
         }
       );
 

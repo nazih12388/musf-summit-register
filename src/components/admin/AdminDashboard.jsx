@@ -48,22 +48,22 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
   } = useApp();
   const { t } = useLanguage();
 
-  // Summary Metrics
-  const totalStudents = students.length;
-  const thamheediyyaStudentsCount = students.filter(s => s.sectionId === 'thamheediyya').length;
-  const aliyaStudentsCount = students.filter(s => s.sectionId === 'aliya').length;
+  // Summary Metrics (with safe defaults and optional chaining)
+  const totalStudents = students?.length || 0;
+  const thamheediyyaStudentsCount = (students || []).filter(s => s?.sectionId === 'thamheediyya').length;
+  const aliyaStudentsCount = (students || []).filter(s => s?.sectionId === 'aliya').length;
 
-  const totalTeams = teams.length;
-  const totalPrograms = programs.length;
-  const libraryProgramsCount = programLibrary.length;
-  const completedPrograms = programs.filter(p => p.status === 'published' || p.status === 'locked').length;
+  const totalTeams = teams?.length || 0;
+  const totalPrograms = programs?.length || 0;
+  const libraryProgramsCount = programLibrary?.length || 0;
+  const completedPrograms = (programs || []).filter(p => p?.status === 'published' || p?.status === 'locked').length;
 
   // Average Marks across evaluated programs
   let totalEvaluatedMarks = 0;
   let totalEvaluatedCount = 0;
-  Object.values(programResultsMap).forEach(list => {
-    list.forEach(r => {
-      totalEvaluatedMarks += r.finalMark;
+  Object.values(programResultsMap || {}).forEach(list => {
+    (list || []).forEach(r => {
+      totalEvaluatedMarks += Number(r?.finalMark || 0);
       totalEvaluatedCount++;
     });
   });
@@ -71,13 +71,13 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
 
   // Average Attendance percentage across all students
   let totalAttPct = 0;
-  students.forEach(st => {
-    totalAttPct += studentAttendanceMap[st.id]?.percentage || 0;
+  (students || []).forEach(st => {
+    totalAttPct += Number(studentAttendanceMap?.[st?.id]?.percentage || 0);
   });
   const overallAvgAttendance = totalStudents > 0 ? totalAttPct / totalStudents : 0;
 
   // Pending results
-  const pendingResultsCount = programs.filter(p => p.status !== 'published').length;
+  const pendingResultsCount = (programs || []).filter(p => p?.status !== 'published').length;
 
   return (
     <div className="space-y-6">

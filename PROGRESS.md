@@ -182,4 +182,42 @@
   5. Built and deployed to Firebase Hosting (`https://musf-summit-reg.web.app`).
   6. Verified directly via headless Chrome DevTools protocol on the live URL: 0 exceptions, 100% DOM rendering, Login screen and Admin Dashboard active.
 
-**Pending Issues**: None. All features operational and verified.
+---
+
+### Step 6: Full Firebase Authentication Architecture & Zero Blank Screen Hardening
+**Date**: November 19, 2026
+- **Root Cause**: When Firebase Auth Email/Password provider was unconfigured or returned 400 `CONFIGURATION_NOT_FOUND`, unhandled auth promise rejections and state transitions left the browser window in a blank white state.
+- **Architectural Upgrades**:
+  1. **Zero Blank Screen Resilience**:
+     - Upgraded `ErrorBoundary` with clear friendly error messages, Reload Page button, Retry button, and a Copy Error Details button with clipboard confirmation.
+     - Wrapped Firebase App initialization, `getAuth`, and `onAuthStateChanged` in strict `try/catch`. If Auth fails, the LoginPage renders cleanly with an explanatory notice (`Login service unavailable: [code]`).
+     - Added error handling to `onSnapshot` listeners to deliver safe defaults (`[]` and `{}`) without hanging, and surfaced real-time cloud errors in `QuotaBanner`.
+     - Added optional chaining and safe defaults across all dashboard calculations and views (`AdminDashboard`, `TeamLeaderDashboard`, `JudgeDashboard`, `StudentDashboard`).
+  2. **Complete Login Flow**:
+     - Username and CIC number input mapped internally to `${username}@musf.app` for `signInWithEmailAndPassword`.
+     - User-friendly error messaging for:
+       - `auth/wrong-password` / `auth/invalid-credential`: "Incorrect password. Please verify and try again."
+       - `auth/user-not-found`: "No account found for this username / CIC number."
+       - `auth/too-many-requests`: "Too many failed login attempts. Please wait a few moments before trying again."
+       - `CONFIGURATION_NOT_FOUND` / `auth/operation-not-allowed`: "Ask the admin to enable Email/Password sign-in in Firebase Authentication."
+       - `auth/network-request-failed`: "Network connection error. Check your internet connection."
+     - **Admin Bootstrap**: Automatic detection of signed-in `admin@musf.app`. If no `users/{uid}` document exists in Firestore, automatically bootstraps it with role `"admin"`.
+  3. **Secondary Auth Account Creation**:
+     - Created `src/services/accountCreationService.js` utilizing a secondary Firebase App instance (`getSecondaryAuth()`) so admins can create student, leader, and judge accounts without being logged out.
+     - Rate-limited bulk creation (~5 accounts/second) with progress bar and per-row error tracking.
+     - Passwords are never stored in Firestore; credentials are only presented once in the printable credentials sheet.
+     - User role, teamId, section, and linked studentId/judgeId stored in `users/{uid}`.
+     - `firestore.rules` updated to read user roles directly from `users/{uid}`.
+  4. **PWA Service Worker & Cache Busting**:
+     - Upgraded `public/sw.js` with Network-First strategy for `index.html` and navigation requests (eliminating stale cache locks).
+     - Cache-First for content-hashed Vite chunks (`/assets/*`).
+     - Immediate `self.skipWaiting()` and `self.clients.claim()`.
+     - Built `<UpdatePrompt />` toast notifying users when a new version is available with a single-tap refresh action.
+  5. **Verification**:
+     - Verified unauthenticated state: Login page renders with complete inputs, campus branding, and zero exceptions.
+     - Verified `CONFIGURATION_NOT_FOUND` handling: Form displays friendly guidance banner with zero crashes.
+     - Verified secondary auth account creation for Leader and Student.
+     - Verified role-scoped views for Admin, Leader, and Student.
+     - Deployed production hosting and rules to `https://musf-summit-reg.web.app`.
+
+**Pending Issues**: None. All requirements satisfied and verified in browser.

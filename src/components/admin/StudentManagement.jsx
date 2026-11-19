@@ -67,6 +67,8 @@ export const StudentManagement = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
+  const [credentialsProgress, setCredentialsProgress] = useState(null);
+  const [generatedSheet, setGeneratedSheet] = useState([]);
   const [editingStudent, setEditingStudent] = useState(null);
   const [deletingStudentId, setDeletingStudentId] = useState(null);
 
@@ -366,11 +368,28 @@ export const StudentManagement = () => {
 
               <button
                 type="button"
-                onClick={() => {
-                  autoGenerateAllCredentials(currentUser?.username);
+                onClick={async () => {
                   setIsCredentialsModalOpen(true);
+                  setCredentialsProgress({ current: 0, total: students.length, percent: 0, statusText: 'Initializing account creation...' });
+                  try {
+                    const sheet = await autoGenerateAllCredentials(currentUser?.username, (p) => {
+                      setCredentialsProgress({
+                        current: p.current,
+                        total: p.total,
+                        percent: p.percent,
+                        statusText: `Processed account ${p.result.username} (${p.current}/${p.total})`
+                      });
+                    });
+                    if (sheet && sheet.length > 0) {
+                      setGeneratedSheet(sheet);
+                    }
+                  } catch (e) {
+                    console.error('Credentials generation error:', e);
+                  } finally {
+                    setCredentialsProgress(null);
+                  }
                 }}
-                className="min-h-[44px] py-2 px-3.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition border border-indigo-200 dark:border-indigo-800 active:scale-98"
+                className="min-h-[44px] py-2 px-3.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition border border-indigo-200 dark:border-indigo-800 active:scale-98 cursor-pointer"
                 title="Generate Usernames/Passwords and print sheet"
               >
                 <Key className="w-4 h-4" />
@@ -1103,21 +1122,34 @@ export const StudentManagement = () => {
       {/* Credentials Sheet Modal (Print & Export) */}
       <Modal isOpen={isCredentialsModalOpen} onClose={() => setIsCredentialsModalOpen(false)} title="Student Credentials Sheet" maxWidth="max-w-3xl">
         <div className="space-y-4 text-xs">
-          <div className="flex items-center justify-between">
+          {credentialsProgress && (
+            <div className="p-3.5 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 rounded-xl space-y-2 animate-in fade-in">
+              <div className="flex items-center justify-between text-xs font-bold text-teal-900 dark:text-teal-200">
+                <span>Creating Firebase Authentication Accounts ({credentialsProgress.current}/{credentialsProgress.total})</span>
+                <span>{credentialsProgress.percent}%</span>
+              </div>
+              <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div className="h-full bg-teal-500 transition-all duration-200" style={{ width: `${credentialsProgress.percent}%` }} />
+              </div>
+              <p className="text-[11px] text-teal-700 dark:text-teal-300 font-mono truncate">{credentialsProgress.statusText}</p>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-slate-600 dark:text-slate-300">
-              Bulk auto-generated usernames & secure temporary passwords for all active students.
+              Bulk auto-generated usernames &amp; secure temporary passwords for all active students.
             </p>
             <div className="flex gap-2">
               <button
-                onClick={() => exportCredentialsExcel(students, teamsMap, classesMap)}
-                className="py-1.5 px-3 rounded-xl bg-emerald-600 text-white font-semibold flex items-center gap-1.5"
+                onClick={() => exportCredentialsExcel(generatedSheet.length > 0 ? generatedSheet : students, teamsMap, classesMap)}
+                className="py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Export Excel</span>
               </button>
               <button
                 onClick={() => window.print()}
-                className="py-1.5 px-3 rounded-xl bg-slate-800 text-white font-semibold flex items-center gap-1.5"
+                className="py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <Printer className="w-3.5 h-3.5" />
                 <span>Print Sheet</span>
@@ -1125,7 +1157,7 @@ export const StudentManagement = () => {
             </div>
           </div>
 
-          <div className="max-h-96 overflow-y-auto border rounded-xl">
+          <div className="max-h-96 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-100 dark:bg-slate-800 font-bold sticky top-0">
                 <tr>
@@ -1137,15 +1169,15 @@ export const StudentManagement = () => {
                   <th className="p-2">Password</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
-                {(students || []).map(s => (
-                  <tr key={s.id}>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {(generatedSheet.length > 0 ? generatedSheet : students || []).map(s => (
+                  <tr key={s.id || s.cicNo}>
                     <td className="p-2 font-semibold">{s.name}</td>
                     <td className="p-2 font-mono text-slate-500">{s.cicNo}</td>
-                    <td className="p-2">{classesMap[s.classId]?.name || s.classId}</td>
-                    <td className="p-2">{teamsMap[s.teamId]?.name || s.teamId}</td>
+                    <td className="p-2">{s.className || classesMap[s.classId]?.name || s.classId}</td>
+                    <td className="p-2">{s.teamName || teamsMap[s.teamId]?.name || s.teamId}</td>
                     <td className="p-2 font-mono text-emerald-700 dark:text-emerald-400 font-bold">{s.username || s.cicNo}</td>
-                    <td className="p-2 font-mono text-slate-700 dark:text-slate-300 font-semibold">{s.initialPassword || s.cicNo || 'student123'}</td>
+                    <td className="p-2 font-mono text-slate-700 dark:text-slate-300 font-semibold">{s.password || s.initialPassword || s.cicNo || 'student123'}</td>
                   </tr>
                 ))}
               </tbody>

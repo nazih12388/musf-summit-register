@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export const LoginPage = ({ isDark, setIsDark }) => {
-  const { login } = useAuth();
+  const { login, authError } = useAuth();
   const { lang, toggleLanguage, t } = useLanguage();
   const { settings } = useApp();
 
@@ -107,6 +107,13 @@ export const LoginPage = ({ isDark, setIsDark }) => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
+            {authError && (
+              <div className="p-3 bg-amber-50 border border-amber-200 dark:bg-amber-950/40 dark:border-amber-900 rounded-xl text-amber-800 dark:text-amber-200 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                <span className="font-medium">{authError}</span>
+              </div>
+            )}
+
             {error && (
               <div className="p-3 bg-rose-50 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-900 rounded-xl text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />

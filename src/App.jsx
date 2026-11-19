@@ -16,6 +16,7 @@ import { QuotaBanner } from './components/common/QuotaBanner';
 import { WriteErrorToast } from './components/common/WriteErrorToast';
 import { CloudUsageModal } from './components/admin/CloudUsageModal';
 import { MultiDeviceSyncModal } from './components/common/MultiDeviceSyncModal';
+import { UpdatePrompt } from './components/common/UpdatePrompt';
 
 export function AppContent() {
   const { currentUser } = useAuth();
@@ -81,6 +82,7 @@ export function AppContent() {
   return (
     <>
       {showSplash && <SplashScreen onFinished={() => setShowSplash(false)} />}
+      <UpdatePrompt />
 
       {!currentUser ? (
         <LoginPage isDark={isDark} setIsDark={setIsDark} />
@@ -147,6 +149,9 @@ export function AppContent() {
 
           {/* Realtime Write Error Toast */}
           <WriteErrorToast />
+
+          {/* Service Worker Update Prompt */}
+          <UpdatePrompt />
         </div>
       )}
     </>

@@ -20,23 +20,71 @@ export const firebaseConfig = {
   appId: import.meta.env?.VITE_FIREBASE_APP_ID || "1:14502064606:web:e4da5c514fe579d6bdad4f"
 };
 
-export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-
-// Initialize Firestore with robust multi-tab persistent offline cache
-let firestoreDb;
+// Safe initialization of Primary Firebase App
+let primaryApp;
 try {
-  firestoreDb = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager()
-    })
-  });
-} catch (e) {
-  // If already initialized (e.g. during HMR or multiple imports)
-  firestoreDb = getFirestore(app);
+  primaryApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+} catch (appErr) {
+  console.error('[Firebase] Primary App initialization error:', appErr);
+  try {
+    primaryApp = getApp();
+  } catch (e) {
+    primaryApp = null;
+  }
+}
+
+export const app = primaryApp;
+
+// Safe initialization of Firestore with multi-tab persistent cache fallback
+let firestoreDb = null;
+if (app) {
+  try {
+    firestoreDb = initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+      })
+    });
+  } catch (e) {
+    try {
+      firestoreDb = getFirestore(app);
+    } catch (e2) {
+      console.warn('[Firebase] Firestore fallback failed:', e2);
+      firestoreDb = null;
+    }
+  }
 }
 
 export const db = firestoreDb;
-export const auth = getAuth(app);
+
+// Safe initialization of Primary Auth
+let primaryAuth = null;
+let authInitError = null;
+
+if (app) {
+  try {
+    primaryAuth = getAuth(app);
+  } catch (err) {
+    console.error('[Firebase] Auth initialization failed:', err);
+    authInitError = err;
+    primaryAuth = null;
+  }
+}
+
+export const auth = primaryAuth;
+export const getAuthInitError = () => authInitError;
+
+/**
+ * Secondary Auth App Instance:
+ * Used for creating new accounts (leaders, judges, students) WITHOUT logging out the current admin!
+ */
+export const getSecondaryAuth = () => {
+  const secondaryAppName = 'MUSFSecondaryAuthApp';
+  let secondaryApp = getApps().find(a => a.name === secondaryAppName);
+  if (!secondaryApp) {
+    secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
+  }
+  return getAuth(secondaryApp);
+};
 
 export const isFirebaseConfigured = () => {
   return Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
@@ -44,6 +92,7 @@ export const isFirebaseConfigured = () => {
 
 // Collections: each entity is its OWN first-class Firestore collection
 export const COLLECTIONS = {
+  USERS: 'users',
   STUDENTS: 'students',
   CLASSES: 'classes',
   TEAMS: 'teams',
@@ -65,7 +114,7 @@ export const COLLECTIONS = {
   REPORT_HISTORY: 'reportHistory'
 };
 
-// Legacy storage keys retained strictly for one-time backward migration & direct backup
+// Legacy storage keys retained strictly for backward migration & direct backup
 export const STORAGE_KEYS = {
   SECTIONS: 'musf_summit_sections_v6',
   FIELDS: 'musf_summit_fields_v6',

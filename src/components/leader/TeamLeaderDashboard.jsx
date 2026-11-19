@@ -51,22 +51,22 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
 
   // Find leader's team
   const myTeam = useMemo(() => {
-    return teams.find(t => t.id === currentUser?.teamId) || teams[0];
+    return (teams || []).find(t => t?.id === currentUser?.teamId) || teams?.[0] || null;
   }, [teams, currentUser]);
 
   const myTeamStanding = useMemo(() => {
-    return teamStandings.find(t => t.id === myTeam?.id) || {
+    return (teamStandings || []).find(t => t?.id === myTeam?.id) || {
       rank: 1, totalPoints: 0, thamheediyyaPoints: 0, aliyaPoints: 0, marksPercentage: 0, avgAttendancePct: 0
     };
   }, [teamStandings, myTeam]);
 
   // My members only
   const myMembers = useMemo(() => {
-    return students.filter(s => s.teamId === myTeam?.id);
+    return (students || []).filter(s => s?.teamId === myTeam?.id);
   }, [students, myTeam]);
 
-  const classesMap = useMemo(() => Object.fromEntries(classes.map(c => [c.id, c])), [classes]);
-  const fieldsMap = useMemo(() => Object.fromEntries(fields.map(f => [f.id, f])), [fields]);
+  const classesMap = useMemo(() => Object.fromEntries((classes || []).map(c => [c?.id, c])), [classes]);
+  const fieldsMap = useMemo(() => Object.fromEntries((fields || []).map(f => [f?.id, f])), [fields]);
 
   // Only published / active summits are visible to Team Leaders (planned summits are hidden)
   const publishedSummits = useMemo(() => {

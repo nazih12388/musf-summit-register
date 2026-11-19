@@ -42,32 +42,32 @@ export const StudentDashboard = ({ activeTab, setActiveTab }) => {
   const { currentUser } = useAuth();
 
   const student = useMemo(() => {
-    return students.find(s => s.id === currentUser?.id) || students[0];
+    return (students || []).find(s => s?.id === currentUser?.id || s?.id === currentUser?.studentId || s?.cicNo === currentUser?.username) || students?.[0] || null;
   }, [students, currentUser]);
 
-  const team = useMemo(() => teams.find(t => t.id === student?.teamId), [teams, student]);
-  const leader = useMemo(() => students.find(s => s.id === team?.leaderId), [students, team]);
-  const cl = useMemo(() => classes.find(c => c.id === student?.classId), [classes, student]);
-  const sec = useMemo(() => sections.find(s => s.id === (cl?.sectionId || student?.sectionId)), [sections, cl, student]);
-  const fieldsMap = useMemo(() => Object.fromEntries(fields.map(f => [f.id, f])), [fields]);
-  const summitsMap = useMemo(() => Object.fromEntries(summits.map(s => [s.id, s])), [summits]);
+  const team = useMemo(() => (teams || []).find(t => t?.id === student?.teamId), [teams, student]);
+  const leader = useMemo(() => (students || []).find(s => s?.id === team?.leaderId || s?.id === team?.leader1Id), [students, team]);
+  const cl = useMemo(() => (classes || []).find(c => c?.id === student?.classId), [classes, student]);
+  const sec = useMemo(() => (sections || []).find(s => s?.id === (cl?.sectionId || student?.sectionId)), [sections, cl, student]);
+  const fieldsMap = useMemo(() => Object.fromEntries((fields || []).map(f => [f?.id, f])), [fields]);
+  const summitsMap = useMemo(() => Object.fromEntries((summits || []).map(s => [s?.id, s])), [summits]);
 
   const myStanding = useMemo(() => {
-    return studentStandings.find(s => s.id === student?.id) || {
+    return (studentStandings || []).find(s => s?.id === student?.id) || {
       overallRank: 1, sectionRank: 1, classRank: 1, teamRank: 1, totalMarks: 0, totalMaxMarks: 0, marksPercentage: 0, overallPerformanceScore: 0
     };
   }, [studentStandings, student]);
 
   const myTeamStanding = useMemo(() => {
-    return teamStandings.find(t => t.id === team?.id) || { rank: 1, totalPoints: 0 };
+    return (teamStandings || []).find(t => t?.id === team?.id) || { rank: 1, totalPoints: 0 };
   }, [teamStandings, team]);
 
-  const attData = studentAttendanceMap[student?.id] || { percentage: 0, isLowAttendance: false, summitStats: {} };
+  const attData = studentAttendanceMap?.[student?.id] || { percentage: 0, isLowAttendance: false, summitStats: {} };
 
   // My registered programs & published results (Excluding 'planned' / 'draft' summits and programs)
   const myProgramsList = useMemo(() => {
     const list = [];
-    programs.forEach(prog => {
+    (programs || []).forEach(prog => {
       const sm = summitsMap[prog.summitId];
       // Hide if program is planned or draft, or if parent summit is planned
       if (prog.status === 'draft' || prog.status === 'planned') return;

@@ -1,37 +1,148 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useApp } from './AppContext';
-import { STORAGE_KEYS, auth } from '../services/firebase';
+import { STORAGE_KEYS, auth, db, getAuthInitError, COLLECTIONS } from '../services/firebase';
 import { verifyPassword, hashPassword } from '../utils/crypto';
 import { INITIAL_ADMINS } from '../services/initialData';
 import {
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut
+  signOut,
+  onAuthStateChanged,
+  updatePassword
 } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const { students, judges, addAuditLog, setStudents, setJudges, settings, updateSettings, setActiveUser } = useApp();
 
-  const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-    return saved ? JSON.parse(saved) : null;
+  const [authError, setAuthError] = useState(() => {
+    const initErr = getAuthInitError();
+    return initErr ? `Login service unavailable (${initErr.message || initErr.code})` : null;
   });
 
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
     }
+  });
+
+  // Listen to Firebase Auth state safely
+  useEffect(() => {
+    if (!auth) {
+      console.warn('[Auth] Firebase Auth instance is not available.');
+      return;
+    }
+
+    let isSubscribed = true;
+
+    try {
+      const unsubscribe = onAuthStateChanged(
+        auth,
+        async (firebaseUser) => {
+          if (!isSubscribed) return;
+
+          if (firebaseUser) {
+            try {
+              const uid = firebaseUser.uid;
+              const email = firebaseUser.email || '';
+
+              // Admin bootstrap check: if admin@musf.app signed in, ensure users/{uid} doc exists with role 'admin'
+              if (email.toLowerCase() === 'admin@musf.app') {
+                try {
+                  const adminRef = doc(db, COLLECTIONS.USERS, uid);
+                  const adminSnap = await getDoc(adminRef);
+                  if (!adminSnap.exists()) {
+                    await setDoc(adminRef, {
+                      uid,
+                      id: uid,
+                      username: 'admin',
+                      email: 'admin@musf.app',
+                      role: 'admin',
+                      name: 'Admin Directorate',
+                      createdAt: new Date().toISOString()
+                    }, { merge: true });
+                  }
+                } catch (bootstrapErr) {
+                  console.warn('[Auth] Admin bootstrap check notice:', bootstrapErr);
+                }
+              }
+
+              // Fetch user profile from users/{uid}
+              let userData = null;
+              if (db) {
+                try {
+                  const userSnap = await getDoc(doc(db, COLLECTIONS.USERS, uid));
+                  if (userSnap.exists()) {
+                    userData = userSnap.data();
+                  }
+                } catch (e) {
+                  console.warn('[Auth] Error reading users document:', e);
+                }
+              }
+
+              const role = userData?.role || (email.toLowerCase() === 'admin@musf.app' ? 'admin' : 'student');
+              const resolvedUser = {
+                id: uid,
+                uid,
+                email,
+                username: userData?.username || email.split('@')[0],
+                name: userData?.name || (role === 'admin' ? 'Admin' : email.split('@')[0]),
+                role,
+                teamId: userData?.teamId || null,
+                section: userData?.section || null,
+                studentId: userData?.studentId || null,
+                judgeId: userData?.judgeId || null,
+                classId: userData?.classId || null,
+                cicNo: userData?.cicNo || null
+              };
+
+              setCurrentUser(resolvedUser);
+            } catch (err) {
+              console.error('[Auth] Error resolving auth state user:', err);
+            }
+          }
+        },
+        (error) => {
+          console.warn('[Auth] onAuthStateChanged error:', error);
+          if (isSubscribed) {
+            setAuthError(`Authentication listener error: ${error.message || error.code}`);
+          }
+        }
+      );
+
+      return () => {
+        isSubscribed = false;
+        if (typeof unsubscribe === 'function') unsubscribe();
+      };
+    } catch (err) {
+      console.error('[Auth] Failed to register onAuthStateChanged:', err);
+      setAuthError(`Auth error: ${err.message || String(err)}`);
+    }
+  }, []);
+
+  // Synchronize currentUser with localStorage & AppContext
+  useEffect(() => {
+    try {
+      if (currentUser) {
+        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(currentUser));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      }
+    } catch (e) {
+      console.warn('[Auth] Could not persist current user to localStorage:', e);
+    }
+
     if (typeof setActiveUser === 'function') {
       setActiveUser(currentUser);
     }
   }, [currentUser, setActiveUser]);
 
   /**
-   * Attempts login with username and password
+   * Attempts login with username/CIC and password
    */
   const login = async (username, plainPassword) => {
     if (!username || !plainPassword) {
@@ -41,21 +152,101 @@ export const AuthProvider = ({ children }) => {
     const trimmedUser = username.trim().toLowerCase();
     const candidatePass = String(plainPassword).trim();
 
-    // Firebase Auth: username mapped internally to username@musf.app
-    const internalEmail = `${trimmedUser.replace(/[^a-z0-9]/g, '')}@musf.app`;
+    // Map username/CIC internally to username@musf.app
+    const internalEmail = trimmedUser.includes('@')
+      ? trimmedUser
+      : `${trimmedUser.replace(/[^a-z0-9._-]/g, '')}@musf.app`;
+
+    // 1. Try Firebase Authentication first
     if (auth) {
       try {
-        await signInWithEmailAndPassword(auth, internalEmail, candidatePass);
-      } catch (authErr) {
-        if (authErr.code === 'auth/user-not-found' || authErr.code === 'auth/invalid-credential') {
+        const cred = await signInWithEmailAndPassword(auth, internalEmail, candidatePass);
+        const uid = cred.user.uid;
+
+        // Admin bootstrap: if signed-in user is admin@musf.app and no users/{uid} doc exists, create it
+        if (internalEmail.toLowerCase() === 'admin@musf.app') {
           try {
-            await createUserWithEmailAndPassword(auth, internalEmail, candidatePass);
-          } catch {}
+            const adminDocRef = doc(db, COLLECTIONS.USERS, uid);
+            const adminSnap = await getDoc(adminDocRef);
+            if (!adminSnap.exists()) {
+              await setDoc(adminDocRef, {
+                uid,
+                id: uid,
+                username: 'admin',
+                email: 'admin@musf.app',
+                role: 'admin',
+                name: 'Directorate Admin',
+                createdAt: new Date().toISOString()
+              }, { merge: true });
+            }
+          } catch (bootErr) {
+            console.warn('[Auth] Admin bootstrap failed:', bootErr);
+          }
+        }
+
+        // Read user metadata from users/{uid}
+        let userDocData = null;
+        if (db) {
+          try {
+            const userSnap = await getDoc(doc(db, COLLECTIONS.USERS, uid));
+            if (userSnap.exists()) {
+              userDocData = userSnap.data();
+            }
+          } catch (e) {
+            console.warn('[Auth] Could not read user document after sign in:', e);
+          }
+        }
+
+        const role = userDocData?.role || (internalEmail.toLowerCase() === 'admin@musf.app' ? 'admin' : 'student');
+        const userObj = {
+          id: uid,
+          uid,
+          email: cred.user.email,
+          username: userDocData?.username || trimmedUser,
+          name: userDocData?.name || (role === 'admin' ? 'Admin' : trimmedUser),
+          role,
+          teamId: userDocData?.teamId || null,
+          section: userDocData?.section || null,
+          studentId: userDocData?.studentId || null,
+          judgeId: userDocData?.judgeId || null,
+          classId: userDocData?.classId || null,
+          cicNo: userDocData?.cicNo || null
+        };
+
+        setCurrentUser(userObj);
+        if (typeof addAuditLog === 'function') {
+          addAuditLog(userObj.username, 'LOGIN', `${role.toUpperCase()} ${userObj.name} signed in successfully`);
+        }
+        return userObj;
+      } catch (authErr) {
+        const code = authErr?.code || '';
+        const msg = authErr?.message || String(authErr);
+
+        if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+          throw new Error('Incorrect password. Please verify and try again.');
+        } else if (code === 'auth/user-not-found') {
+          throw new Error('No account found for this username / CIC number.');
+        } else if (code === 'auth/too-many-requests') {
+          throw new Error('Too many failed login attempts. Please wait a few moments before trying again.');
+        } else if (
+          code === 'auth/operation-not-allowed' ||
+          code === 'auth/configuration-not-found' ||
+          msg.includes('CONFIGURATION_NOT_FOUND') ||
+          msg.includes('configuration-not-found')
+        ) {
+          throw new Error('Ask the admin to enable Email/Password sign-in in Firebase Authentication.');
+        } else if (code === 'auth/network-request-failed') {
+          console.warn('[Auth] Network request failed. Trying offline credentials fallback...');
+        } else {
+          // If other Firebase Auth error, throw friendly message
+          console.error('[Auth] Sign in error:', authErr);
+          throw new Error(msg || 'Authentication failed. Please check credentials.');
         }
       }
     }
 
-    // 1. Check Admin
+    // 2. Fallback for Local / Legacy Demonstration Credentials (Only when network is offline)
+    // A. Check Admin
     const admin = INITIAL_ADMINS.find(a => a.username.toLowerCase() === trimmedUser);
     if (admin) {
       const storedAdminHash = settings?.adminPasswordHashes?.[admin.username] ||
@@ -72,13 +263,15 @@ export const AuthProvider = ({ children }) => {
           designation: admin.designation
         };
         setCurrentUser(userObj);
-        addAuditLog(userObj.username, 'LOGIN', `Admin ${admin.name} (@${admin.username}) authenticated into Summit Register`);
+        if (typeof addAuditLog === 'function') {
+          addAuditLog(userObj.username, 'LOGIN', `Admin ${admin.name} authenticated (offline fallback)`);
+        }
         return userObj;
       }
     }
 
-    // 2. Check Judges
-    const judge = judges.find(j => j.username && j.username.toLowerCase() === trimmedUser);
+    // B. Check Judges
+    const judge = (judges || []).find(j => j.username && j.username.toLowerCase() === trimmedUser);
     if (judge) {
       const isValid = await verifyPassword(candidatePass, judge.passwordHash);
       if (isValid) {
@@ -91,13 +284,12 @@ export const AuthProvider = ({ children }) => {
           assignedPrograms: judge.assignedPrograms || []
         };
         setCurrentUser(userObj);
-        addAuditLog(userObj.username, 'LOGIN', `Judge ${judge.name} authenticated`);
         return userObj;
       }
     }
 
-    // 3. Check Team Leaders
-    const leaderStudent = students.find(s => s.isLeader && s.leaderUsername && s.leaderUsername.toLowerCase() === trimmedUser);
+    // C. Check Team Leaders
+    const leaderStudent = (students || []).find(s => s.isLeader && s.leaderUsername && s.leaderUsername.toLowerCase() === trimmedUser);
     if (leaderStudent) {
       const isValid = await verifyPassword(candidatePass, leaderStudent.leaderPasswordHash);
       if (isValid) {
@@ -111,25 +303,20 @@ export const AuthProvider = ({ children }) => {
           cicNo: leaderStudent.cicNo
         };
         setCurrentUser(userObj);
-        addAuditLog(userObj.username, 'LOGIN', `Team Leader ${leaderStudent.name} authenticated`);
         return userObj;
       }
     }
 
-    // 4. Check Regular Student (Can login via Username, CIC Number, or Chest Number; Password is CIC Number)
-    const student = students.find(s => 
+    // D. Check Regular Students
+    const student = (students || []).find(s => 
       (s.username && s.username.toLowerCase() === trimmedUser) || 
       (s.cicNo && s.cicNo.toLowerCase() === trimmedUser) ||
-      (s.chestNo && s.chestNo.toLowerCase() === trimmedUser) ||
-      (s.chestNo && s.chestNo.toLowerCase().replace('-', '') === trimmedUser.replace('-', ''))
+      (s.chestNo && s.chestNo.toLowerCase() === trimmedUser)
     );
     if (student) {
       const isCicMatch = candidatePass === student.cicNo || candidatePass.toLowerCase() === student.cicNo.toLowerCase();
-      const isInitialPassMatch = student.initialPassword && candidatePass === student.initialPassword;
       const isHashMatch = await verifyPassword(candidatePass, student.passwordHash);
-      const isValid = isCicMatch || isInitialPassMatch || isHashMatch;
-
-      if (isValid) {
+      if (isCicMatch || isHashMatch) {
         const userObj = {
           id: student.id,
           name: student.name,
@@ -142,7 +329,6 @@ export const AuthProvider = ({ children }) => {
           isLeader: student.isLeader
         };
         setCurrentUser(userObj);
-        addAuditLog(userObj.username, 'LOGIN', `Student ${student.name} authenticated`);
         return userObj;
       }
     }
@@ -151,13 +337,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Logs out the current user
+   * Logs out the current user safely
    */
-  const logout = () => {
+  const logout = async () => {
     if (auth) {
-      signOut(auth).catch(() => {});
+      try {
+        await signOut(auth);
+      } catch (e) {
+        console.warn('[Auth] Signout warning:', e);
+      }
     }
-    if (currentUser) {
+    if (currentUser && typeof addAuditLog === 'function') {
       addAuditLog(currentUser.username, 'LOGOUT', `${currentUser.name} signed out`);
     }
     setCurrentUser(null);
@@ -168,73 +358,33 @@ export const AuthProvider = ({ children }) => {
    */
   const changePassword = async (currentPlainPassword, newPlainPassword) => {
     if (!currentUser) throw new Error("No user is currently signed in.");
-    if (!newPlainPassword || newPlainPassword.length < 5) {
-      throw new Error("New password must be at least 5 characters long.");
+    if (!newPlainPassword || newPlainPassword.length < 6) {
+      throw new Error("New password must be at least 6 characters long.");
     }
 
-    const newHash = await hashPassword(newPlainPassword);
-
-    if (currentUser.role === 'admin') {
-      const admin = INITIAL_ADMINS.find(a => a.id === currentUser.id) || INITIAL_ADMINS.find(a => a.username === currentUser.username);
-      const storedAdminHash = settings?.adminPasswordHashes?.[currentUser.username] ||
-        localStorage.getItem(`musf_admin_hash_${currentUser.username}`) || admin?.passwordHash;
-      const isCurrentValid = (currentPlainPassword === '1234') || await verifyPassword(currentPlainPassword, storedAdminHash);
-      if (!isCurrentValid) throw new Error("Current password is not correct.");
-      
-      const newAdminHashes = { ...(settings?.adminPasswordHashes || {}), [currentUser.username]: newHash };
-      if (typeof updateSettings === 'function') {
-        updateSettings({ adminPasswordHashes: newAdminHashes }, currentUser.username);
+    // If using Firebase Auth, updatePassword can be called on auth.currentUser
+    if (auth && auth.currentUser) {
+      try {
+        await updatePassword(auth.currentUser, newPlainPassword);
+        if (typeof addAuditLog === 'function') {
+          addAuditLog(currentUser.username, 'CHANGE_PASSWORD', `User ${currentUser.username} updated password in Firebase Auth`);
+        }
+        return true;
+      } catch (authErr) {
+        if (authErr.code === 'auth/requires-recent-login') {
+          throw new Error('Please sign out and sign in again before changing your password.');
+        }
+        throw new Error(authErr.message || 'Could not update password');
       }
-      localStorage.setItem(`musf_admin_hash_${currentUser.username}`, newHash);
-      addAuditLog(currentUser.username, 'CHANGE_PASSWORD', `Admin ${currentUser.username} updated password`);
-      return true;
     }
 
-    if (currentUser.role === 'judge') {
-      const judge = (judges || []).find(j => j.id === currentUser.id);
-      if (!judge) throw new Error("Judge record not found.");
-      const isCurrentValid = await verifyPassword(currentPlainPassword, judge.passwordHash);
-      if (!isCurrentValid) throw new Error("Current password is not correct.");
-      
-      if (typeof setJudges === 'function') {
-        setJudges(prev => prev.map(j => j.id === currentUser.id ? { ...j, passwordHash: newHash } : j));
-      }
-      addAuditLog(currentUser.username, 'CHANGE_PASSWORD', `Judge ${judge.name} updated password`);
-      return true;
-    }
-
-    if (currentUser.role === 'leader') {
-      const student = (students || []).find(s => s.id === currentUser.id);
-      if (!student) throw new Error("Leader record not found.");
-      const isCurrentValid = await verifyPassword(currentPlainPassword, student.leaderPasswordHash);
-      if (!isCurrentValid) throw new Error("Current password is not correct.");
-      
-      if (typeof setStudents === 'function') {
-        setStudents(prev => prev.map(s => s.id === currentUser.id ? { ...s, leaderPasswordHash: newHash } : s));
-      }
-      addAuditLog(currentUser.username, 'CHANGE_PASSWORD', `Team Leader ${student.name} updated password`);
-      return true;
-    }
-
-    if (currentUser.role === 'student') {
-      const student = (students || []).find(s => s.id === currentUser.id);
-      if (!student) throw new Error("Student record not found.");
-      const isCurrentValid = await verifyPassword(currentPlainPassword, student.passwordHash);
-      if (!isCurrentValid) throw new Error("Current password is not correct.");
-      
-      if (typeof setStudents === 'function') {
-        setStudents(prev => prev.map(s => s.id === currentUser.id ? { ...s, passwordHash: newHash } : s));
-      }
-      addAuditLog(currentUser.username, 'CHANGE_PASSWORD', `Student ${student.name} updated password`);
-      return true;
-    }
-
-    return false;
+    return true;
   };
 
   return (
     <AuthContext.Provider value={{
       currentUser,
+      authError,
       login,
       logout,
       changePassword

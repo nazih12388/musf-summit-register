@@ -17,7 +17,7 @@ export const QuotaBanner = ({ onOpenDirectSync, onOpenCloudUsage }) => {
     return () => unsub();
   }, []);
 
-  if (isDismissed || (!syncStatus.quotaExhausted && !syncStatus.isOffline && syncStatus.pendingWritesCount === 0)) {
+  if (isDismissed || (!syncStatus.quotaExhausted && !syncStatus.isOffline && !syncStatus.firestoreError && syncStatus.pendingWritesCount === 0)) {
     return null;
   }
 
@@ -35,7 +35,11 @@ export const QuotaBanner = ({ onOpenDirectSync, onOpenCloudUsage }) => {
       <div className="flex items-center gap-2 min-w-0">
         <AlertTriangle className="w-4 h-4 shrink-0 text-slate-950" />
         <span className="leading-tight">
-          {syncStatus.quotaExhausted ? (
+          {syncStatus.firestoreError ? (
+            <>
+              <strong>ക്ലൗഡ് കണക്ഷൻ ശ്രദ്ധിക്കുക:</strong> {syncStatus.firestoreError === 'permission-denied' ? 'Permission denied in Firestore rules. Please sign in.' : syncStatus.firestoreError}
+            </>
+          ) : syncStatus.quotaExhausted ? (
             <>
               <strong>ക്വാട്ട പരിധി (429 Quota Paused):</strong> മാറ്റങ്ങൾ ലോക്കലായി ക്യൂവിൽ സുരക്ഷിതമാണ് ({syncStatus.pendingWritesCount} pending).
             </>

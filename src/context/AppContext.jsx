@@ -34,6 +34,7 @@ import {
   retryPendingWrites
 } from '../services/firestoreService';
 import { migrateLocalDataToCloud } from '../services/migrationService';
+import { createAccountSecondary, createBulkAccounts, generateSecurePassword } from '../services/accountCreationService';
 import { hashPassword } from '../utils/crypto';
 import { getSummitRunningInfo, formatMonthLabel, computeComprehensiveReport } from '../utils/reportCalculations';
 
@@ -1619,19 +1620,31 @@ export const AppProvider = ({ children }) => {
     return imported;
   };
 
-  const autoGenerateAllCredentials = async (actor) => {
+  const autoGenerateAllCredentials = async (actor, onProgress) => {
     const updated = [];
     const credentialsSheet = [];
+    const accountsToCreate = [];
 
     for (const s of students) {
-      const genUsername = s.cicNo.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const genPassword = 'Wafy' + Math.floor(1000 + Math.random() * 9000);
-      const passwordHash = await hashPassword(genPassword);
+      const genUsername = s.cicNo ? s.cicNo.toLowerCase().replace(/[^a-z0-9]/g, '') : `student_${s.id}`;
+      const genPassword = generateSecurePassword('Wafy');
 
       updated.push({
         ...s,
         username: genUsername,
-        passwordHash
+        hasAccount: true
+      });
+
+      accountsToCreate.push({
+        username: genUsername,
+        password: genPassword,
+        role: 'student',
+        name: s.name,
+        teamId: s.teamId,
+        section: s.sectionId,
+        studentId: s.id,
+        classId: s.classId,
+        cicNo: s.cicNo
       });
 
       credentialsSheet.push({
@@ -1646,6 +1659,14 @@ export const AppProvider = ({ children }) => {
     }
 
     setStudents(updated);
+
+    // Create Firebase Auth accounts asynchronously via secondary auth
+    try {
+      await createBulkAccounts(accountsToCreate, onProgress);
+    } catch (e) {
+      console.warn('[autoGenerateAllCredentials] Bulk creation notice:', e);
+    }
+
     addAuditLog(actor, 'GENERATE_CREDENTIALS', `Auto-generated credentials for ${students.length} students`);
     return credentialsSheet;
   };
@@ -1744,6 +1765,21 @@ export const AppProvider = ({ children }) => {
       }
       return s;
     }));
+
+    // Create Secondary Auth Account for Leader (without logging out admin)
+    try {
+      await createAccountSecondary({
+        username: leaderUsername || `leader_${targetStudent?.username || studentId}`,
+        password: leaderPassword || 'leader123',
+        role: 'leader',
+        name: targetStudent?.name || 'Leader',
+        teamId,
+        section: sectionRestriction || 'all',
+        studentId
+      });
+    } catch (authErr) {
+      console.warn('[appointTeamLeader] Secondary Auth creation notice:', authErr);
+    }
 
     addAuditLog(actor, 'APPOINT_LEADER', `Appointed ${targetStudent?.name || studentId} as ${leaderRole === 'leader2' ? 'Leader 2' : 'Leader 1'} of ${team?.name || teamId} (${sectionRestriction === 'all' ? 'Full Team' : sectionRestriction})`);
     sendNotification(studentId, 'Leadership Appointment', `You have been appointed as ${leaderRole === 'leader2' ? 'Leader 2' : 'Leader 1'} for ${team?.name || 'your team'}.`, 'assignment');
@@ -1872,6 +1908,19 @@ export const AppProvider = ({ children }) => {
         }
         return p;
       }));
+    }
+
+    // Create Secondary Auth Account for Judge (without logging out admin)
+    try {
+      await createAccountSecondary({
+        username: judgeData.username,
+        password: judgeData.password || 'judge123',
+        role: 'judge',
+        name: judgeData.name,
+        judgeId: newId
+      });
+    } catch (authErr) {
+      console.warn('[addJudge] Secondary Auth creation notice:', authErr);
     }
 
     addAuditLog(actor, 'ADD_JUDGE', `Added judge: ${newJudge.name}${newJudge.unrestricted ? ' (Unrestricted)' : ''}`);
