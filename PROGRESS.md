@@ -168,4 +168,18 @@
 | **768px** | iPad Mini / Portrait Tablet| Pass | Pass | Pass | Pass | **Zero** | >= 44px |
 | **1280px**| Desktop / Laptop | Pass | Pass | Pass | Pass | **Zero** | Desktop Sidebar |
 
-**Pending Issues**: None. All 15 rules satisfied.
+---
+
+### Step 5: Startup Crash Fix (Blank Screen Resolution)
+**Date**: November 19, 2026  
+**Commit**: `d563e08`
+- **Root Cause**: An unimported function reference (`useState(getSyncStatus)`) inside `AppContext.jsx` triggered an uncaught `ReferenceError: getSyncStatus is not defined` during the initial component render, preventing the React DOM tree from mounting and causing a blank screen on startup.
+- **Resolution**:
+  1. Exported `getSyncStatus()` from `firestoreService.js` and imported it in `AppContext.jsx`.
+  2. Implemented `serializeConstraint` in `firestoreService.js` for robust, deterministic query cache key generation without collisions.
+  3. Added `ErrorBoundary` at the top level in `main.jsx` to prevent any uncaught component error from collapsing the entire app into a blank screen.
+  4. Wrapped all listener subscriptions in defensive `try/catch` handlers.
+  5. Built and deployed to Firebase Hosting (`https://musf-summit-reg.web.app`).
+  6. Verified directly via headless Chrome DevTools protocol on the live URL: 0 exceptions, 100% DOM rendering, Login screen and Admin Dashboard active.
+
+**Pending Issues**: None. All features operational and verified.
