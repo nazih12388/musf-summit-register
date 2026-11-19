@@ -262,6 +262,11 @@ export const saveDoc = async (collectionName, id, data, merge = true) => {
   if (!db || !collectionName || id === undefined || id === null) return;
   const docId = String(id);
 
+  // Preserve quota: keep high-frequency audit logs & notifications local-only
+  if (collectionName === COLLECTIONS.AUDIT_LOGS || collectionName === COLLECTIONS.NOTIFICATIONS) {
+    return true;
+  }
+
   const cleanData = JSON.parse(JSON.stringify(data));
   cleanData.id = docId;
   cleanData.updatedAt = new Date().toISOString();
