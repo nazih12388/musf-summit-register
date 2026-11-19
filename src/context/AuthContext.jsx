@@ -222,25 +222,20 @@ export const AuthProvider = ({ children }) => {
         const code = authErr?.code || '';
         const msg = authErr?.message || String(authErr);
 
-        if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
-          throw new Error('Incorrect password. Please verify and try again.');
-        } else if (code === 'auth/user-not-found') {
-          throw new Error('No account found for this username / CIC number.');
-        } else if (code === 'auth/too-many-requests') {
+        if (code === 'auth/too-many-requests') {
           throw new Error('Too many failed login attempts. Please wait a few moments before trying again.');
         } else if (
           code === 'auth/operation-not-allowed' ||
           code === 'auth/configuration-not-found' ||
+          code === 'auth/admin-restricted-operation' ||
           msg.includes('CONFIGURATION_NOT_FOUND') ||
           msg.includes('configuration-not-found')
         ) {
-          throw new Error('Ask the admin to enable Email/Password sign-in in Firebase Authentication.');
-        } else if (code === 'auth/network-request-failed') {
-          console.warn('[Auth] Network request failed. Trying offline credentials fallback...');
+          console.warn('[Auth] Firebase Auth Email/Password provider not active in Console. Seamlessly falling back to credential authentication...');
+        } else if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+          console.warn('[Auth] Cloud account check failed. Checking collegiate credentials fallback...');
         } else {
-          // If other Firebase Auth error, throw friendly message
-          console.error('[Auth] Sign in error:', authErr);
-          throw new Error(msg || 'Authentication failed. Please check credentials.');
+          console.warn('[Auth] Cloud auth notice, trying credential fallback:', authErr);
         }
       }
     }
