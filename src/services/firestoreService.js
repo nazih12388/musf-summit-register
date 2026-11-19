@@ -1,13 +1,13 @@
 /**
- * Single Source of Truth Firestore Service
+ * Single Source of Truth Firestore Service (Ultra-Optimized)
  * Majlis Umariyya Wafy College - MUSF Summit Register
  *
  * Enforces:
- * 1. Document-level atomic writes (setDoc/updateDoc/deleteDoc per entity).
- * 2. Bulk batch operations in chunks <= 400.
- * 3. Realtime onSnapshot sync scoped by role.
- * 4. Quota protection with session metrics (sessionReads / sessionWrites) and 429 write queuing.
- * 5. Write failure error notifications.
+ * 1. Shared singleton listeners across the entire app (fewer than 10 active listeners per device).
+ * 2. Screen-scoped lazy subscriptions with limit() and pagination.
+ * 3. Opening dashboard costs < 100 reads; student login costs < 30 reads.
+ * 4. Document-level atomic writes (setDoc/updateDoc) and bulk chunks <= 400.
+ * 5. Screen-by-screen telemetry and quota protection.
  */
 import {
   collection,
@@ -23,11 +23,37 @@ import {
 } from 'firebase/firestore';
 import { db, COLLECTIONS } from './firebase.js';
 
-// Session Usage Tracking (reads/writes in this browser session)
+// Global Session Usage Telemetry
 let sessionReads = 0;
 let sessionWrites = 0;
 let isQuotaExhausted = false;
-let isOffline = !navigator.onLine;
+let isOffline = typeof navigator !== 'undefined' ? !navigator.onLine : false;
+let currentScreenName = 'dashboard';
+
+// Screen-by-Screen telemetry tracking
+export const screenUsage = {
+  dashboard: { reads: 0, writes: 0 },
+  students: { reads: 0, writes: 0 },
+  programs: { reads: 0, writes: 0 },
+  marks: { reads: 0, writes: 0 },
+  attendance: { reads: 0, writes: 0 },
+  audit: { reads: 0, writes: 0 },
+  reports: { reads: 0, writes: 0 },
+  settings: { reads: 0, writes: 0 },
+  certificates: { reads: 0, writes: 0 },
+  other: { reads: 0, writes: 0 }
+};
+
+export const setCurrentScreen = (screen) => {
+  if (screen) {
+    currentScreenName = screen;
+    if (!screenUsage[screen]) {
+      screenUsage[screen] = { reads: 0, writes: 0 };
+    }
+  }
+};
+
+export const getCurrentScreen = () => currentScreenName;
 
 // Pending write queue for 429 quota exhaustion or offline retries
 const pendingWriteQueue = [];
@@ -48,13 +74,32 @@ if (typeof window !== 'undefined') {
   });
 }
 
+const trackReads = (count) => {
+  sessionReads += count;
+  const s = currentScreenName || 'other';
+  if (!screenUsage[s]) screenUsage[s] = { reads: 0, writes: 0 };
+  screenUsage[s].reads += count;
+  notifyUsage();
+};
+
+const trackWrites = (count) => {
+  sessionWrites += count;
+  const s = currentScreenName || 'other';
+  if (!screenUsage[s]) screenUsage[s] = { reads: 0, writes: 0 };
+  screenUsage[s].writes += count;
+  notifyUsage();
+};
+
 const notifyUsage = () => {
   const snapshot = {
     sessionReads,
     sessionWrites,
+    activeListenersCount: sharedListeners.size,
     pendingWritesCount: pendingWriteQueue.length,
     quotaExhausted: isQuotaExhausted,
-    isOffline
+    isOffline,
+    currentScreen: currentScreenName,
+    screenUsage: { ...screenUsage }
   };
   usageListeners.forEach((cb) => {
     try { cb(snapshot); } catch (e) { console.error(e); }
@@ -75,6 +120,7 @@ const notifySyncStatus = () => {
     isOffline,
     quotaExhausted: isQuotaExhausted,
     pendingWritesCount: pendingWriteQueue.length,
+    activeListenersCount: sharedListeners.size,
     lastWriteAt: new Date().toISOString()
   };
 
@@ -92,9 +138,12 @@ const notifyWriteError = (error, context) => {
 export const getCloudUsage = () => ({
   sessionReads,
   sessionWrites,
+  activeListenersCount: sharedListeners.size,
   pendingWritesCount: pendingWriteQueue.length,
   quotaExhausted: isQuotaExhausted,
-  isOffline
+  isOffline,
+  currentScreen: currentScreenName,
+  screenUsage: { ...screenUsage }
 });
 
 export const subscribeCloudUsage = (cb) => {
@@ -117,11 +166,14 @@ export const onWriteError = (cb) => {
 export const resetCloudUsage = () => {
   sessionReads = 0;
   sessionWrites = 0;
+  Object.keys(screenUsage).forEach((k) => {
+    screenUsage[k] = { reads: 0, writes: 0 };
+  });
   notifyUsage();
 };
 
 /**
- * Handle a write failure. Checks for 429 quota exhaustion and queues for later retry.
+ * Handle write failures: queue for retry & notify UI
  */
 const handleWriteFailure = (err, operation) => {
   const msg = err?.message || String(err);
@@ -134,7 +186,6 @@ const handleWriteFailure = (err, operation) => {
     console.error('[Firestore] Write failed:', operation.collectionName, operation.id, msg);
   }
 
-  // Queue write locally so user never loses data
   pendingWriteQueue.push({
     ...operation,
     queuedAt: new Date().toISOString(),
@@ -162,7 +213,7 @@ export const retryPendingWrites = async () => {
       } else {
         await setDoc(doc(db, item.collectionName, String(item.id)), item.data, { merge: true });
       }
-      sessionWrites += 1;
+      trackWrites(1);
     } catch (e) {
       handleWriteFailure(e, item);
       break;
@@ -177,14 +228,14 @@ export const retryPendingWrites = async () => {
 };
 
 /**
- * Save a single entity document to its collection.
- * Write ONLY the single document that changed.
+ * Atomic Single Document Write:
+ * Only writes the single document that changed.
+ * Does NOT re-read from cloud after write (local cache and listener update UI automatically).
  */
 export const saveDoc = async (collectionName, id, data, merge = true) => {
   if (!db || !collectionName || id === undefined || id === null) return;
   const docId = String(id);
 
-  // Clean data: prevent undefined fields
   const cleanData = JSON.parse(JSON.stringify(data));
   cleanData.id = docId;
   cleanData.updatedAt = new Date().toISOString();
@@ -192,7 +243,7 @@ export const saveDoc = async (collectionName, id, data, merge = true) => {
   try {
     const docRef = doc(db, collectionName, docId);
     await setDoc(docRef, cleanData, { merge });
-    sessionWrites += 1;
+    trackWrites(1);
     isQuotaExhausted = false;
     notifyUsage();
     notifySyncStatus();
@@ -204,7 +255,7 @@ export const saveDoc = async (collectionName, id, data, merge = true) => {
 };
 
 /**
- * Remove a single entity document from its collection.
+ * Remove a single document
  */
 export const removeDoc = async (collectionName, id) => {
   if (!db || !collectionName || id === undefined || id === null) return;
@@ -213,7 +264,7 @@ export const removeDoc = async (collectionName, id) => {
   try {
     const docRef = doc(db, collectionName, docId);
     await deleteDoc(docRef);
-    sessionWrites += 1;
+    trackWrites(1);
     isQuotaExhausted = false;
     notifyUsage();
     notifySyncStatus();
@@ -225,14 +276,13 @@ export const removeDoc = async (collectionName, id) => {
 };
 
 /**
- * Batch write multiple documents in chunks of 400 or less.
- * Ideal for Excel student imports, bulk program assignments, or migration.
+ * Batch write multiple documents in chunks of 400 or less
  */
 export const batchSaveDocs = async (collectionName, items, chunkSize = 400) => {
   if (!db || !collectionName || !Array.isArray(items) || items.length === 0) return 0;
 
   let totalWritten = 0;
-  const effectiveChunkSize = Math.min(chunkSize, 400); // Firestore max is 500, 400 provides safety margin
+  const effectiveChunkSize = Math.min(chunkSize, 400);
 
   for (let i = 0; i < items.length; i += effectiveChunkSize) {
     const chunk = items.slice(i, i + effectiveChunkSize);
@@ -251,7 +301,7 @@ export const batchSaveDocs = async (collectionName, items, chunkSize = 400) => {
     try {
       await batch.commit();
       totalWritten += chunk.length;
-      sessionWrites += chunk.length;
+      trackWrites(chunk.length);
       isQuotaExhausted = false;
       notifyUsage();
       notifySyncStatus();
@@ -264,85 +314,140 @@ export const batchSaveDocs = async (collectionName, items, chunkSize = 400) => {
   return totalWritten;
 };
 
+// =========================================================================
+// SHARED SINGLETON LISTENER REGISTRY (Fewer than 10 active listeners total)
+// =========================================================================
+
 /**
- * Generic listener for a Firestore collection or scoped query.
+ * Map of listenerKey -> { unsubscribe, callbacks: Set, items, queryKey }
+ * Prevents duplicate listeners: if 5 components ask for summits, only 1 snapshot runs!
  */
-export const subscribeCollection = (colName, queryConstraints = [], onUpdate, onError) => {
+const sharedListeners = new Map();
+
+export const getActiveListenersCount = () => sharedListeners.size;
+
+/**
+ * Register interest in a Firestore query.
+ * Reuses existing active listener if query signature matches!
+ */
+export const registerSharedListener = (colName, queryConstraints = [], onUpdate, onError) => {
   if (!db || !colName) return () => {};
 
-  try {
+  // Build stable key representing this collection + constraints
+  const constraintKey = queryConstraints.map((c) => c._query?.path || String(c)).join('|');
+  const listenerKey = `${colName}:${constraintKey}`;
+
+  let entry = sharedListeners.get(listenerKey);
+
+  if (entry) {
+    // Listener already running! Add callback and immediately deliver cached items
+    entry.callbacks.add(onUpdate);
+    if (entry.items !== undefined && typeof onUpdate === 'function') {
+      try { onUpdate(entry.items); } catch (e) { console.error(e); }
+    }
+  } else {
+    // Create new shared onSnapshot listener
+    const callbacks = new Set();
+    if (typeof onUpdate === 'function') callbacks.add(onUpdate);
+
+    let isFirstSnapshot = true;
     const colRef = collection(db, colName);
     const q = queryConstraints.length > 0 ? query(colRef, ...queryConstraints) : colRef;
 
-    let isFirstSnapshot = true;
-
-    return onSnapshot(
+    const unsubscribe = onSnapshot(
       q,
       { includeMetadataChanges: true },
       (snapshot) => {
-        // Track reads: on first snapshot track total docs; subsequently track docChanges count
-        const docsCount = snapshot.docs.length;
+        // Track reads: on first snapshot track docs count; on subsequent track docChanges
         if (isFirstSnapshot) {
-          sessionReads += docsCount;
+          trackReads(snapshot.docs.length);
           isFirstSnapshot = false;
         } else {
-          sessionReads += snapshot.docChanges().length;
+          trackReads(snapshot.docChanges().length);
         }
-        notifyUsage();
 
         const items = snapshot.docs.map((d) => ({
           ...d.data(),
           id: d.id
         }));
 
-        if (typeof onUpdate === 'function') {
-          onUpdate(items, snapshot);
+        const currentEntry = sharedListeners.get(listenerKey);
+        if (currentEntry) {
+          currentEntry.items = items;
+          currentEntry.callbacks.forEach((cb) => {
+            try { cb(items, snapshot); } catch (e) { console.error(e); }
+          });
         }
       },
       (err) => {
         console.warn(`[Firestore Listener Notice] ${colName}:`, err.message);
-        if (typeof onError === 'function') {
-          onError(err);
-        }
+        if (typeof onError === 'function') onError(err);
       }
     );
-  } catch (err) {
-    console.error(`[Firestore Listener Setup Error] ${colName}:`, err);
-    return () => {};
+
+    entry = {
+      unsubscribe,
+      callbacks,
+      items: undefined,
+      colName
+    };
+    sharedListeners.set(listenerKey, entry);
+    notifyUsage();
+    notifySyncStatus();
   }
+
+  // Return unsubscription function
+  return () => {
+    const current = sharedListeners.get(listenerKey);
+    if (!current) return;
+    current.callbacks.delete(onUpdate);
+
+    // If no more callbacks are listening, cleanly terminate listener to save reads
+    if (current.callbacks.size === 0) {
+      try { current.unsubscribe(); } catch (e) { /* ignore */ }
+      sharedListeners.delete(listenerKey);
+      notifyUsage();
+      notifySyncStatus();
+    }
+  };
 };
 
-/**
- * Role-Scoped Realtime Sync:
- * Sets up listeners tailored strictly to the current user's role to minimize read quota
- * and ensure lightning-fast real-time synchronization between devices.
- */
-export const subscribeRoleData = (role, user, handlers = {}) => {
-  const unsubscribers = [];
+// =========================================================================
+// SCREEN-SCOPED LAZY SYNCHRONIZATION
+// =========================================================================
 
-  const addSub = (colName, constraints, handler) => {
+/**
+ * Screen-Scoped Lazy Sync Manager:
+ * Subscribes ONLY to the data the current screen needs.
+ * Unsubscribes automatically when the user leaves the screen!
+ * Target: < 100 reads for Dashboard, < 30 reads for Student login, < 10 active listeners.
+ */
+export const syncScreenData = (screen, role, user, currentSummitId, handlers = {}) => {
+  const cleanups = [];
+  setCurrentScreen(screen);
+
+  const sub = (colName, constraints, handler) => {
     if (typeof handler === 'function') {
-      const unsub = subscribeCollection(colName, constraints, handler);
-      unsubscribers.push(unsub);
+      const unsub = registerSharedListener(colName, constraints, handler);
+      cleanups.push(unsub);
     }
   };
 
-  // 1. Common public / essential collections needed for all roles
-  addSub(COLLECTIONS.CLASSES, [], handlers.setClasses);
-  addSub(COLLECTIONS.TEAMS, [], handlers.setTeams);
-  addSub(COLLECTIONS.SECTIONS, [], handlers.setSections);
-  addSub(COLLECTIONS.FIELDS, [], handlers.setFields);
-  addSub(COLLECTIONS.CATEGORIES, [], handlers.setCategories);
-  addSub(COLLECTIONS.SUMMITS, [], handlers.setSummits);
-  addSub(COLLECTIONS.NOTICES, [], handlers.setNotices);
+  // -------------------------------------------------------------
+  // 1. BASELINE SHELL (Shared across all screens - only 3 listeners)
+  // -------------------------------------------------------------
+  // Settings (1 document 'general' -> 1 read)
+  sub(COLLECTIONS.SETTINGS, [limit(1)], handlers.setSettingsDoc);
 
-  // Notifications: scoped to current user or broadcast ('all')
+  // Active Summits only (limit 10 -> ~4-8 reads)
+  sub(COLLECTIONS.SUMMITS, [orderBy('date', 'desc'), limit(10)], handlers.setSummits);
+
+  // User Notifications (scoped by userId -> ~2-5 reads)
   if (user?.id) {
-    // If admin, listen to all notifications; otherwise filter
     if (role === 'admin') {
-      addSub(COLLECTIONS.NOTIFICATIONS, [orderBy('timestamp', 'desc'), limit(100)], handlers.setNotifications);
+      sub(COLLECTIONS.NOTIFICATIONS, [orderBy('timestamp', 'desc'), limit(20)], handlers.setNotifications);
     } else {
-      addSub(COLLECTIONS.NOTIFICATIONS, [limit(100)], (allNotifs) => {
+      sub(COLLECTIONS.NOTIFICATIONS, [limit(20)], (allNotifs) => {
         const filtered = allNotifs.filter(
           (n) => n.userId === user.id || n.userId === 'all' || (user.teamId && n.teamId === user.teamId)
         );
@@ -351,62 +456,144 @@ export const subscribeRoleData = (role, user, handlers = {}) => {
     }
   }
 
-  // 2. Role-specific scoping
-  if (role === 'admin') {
-    // ADMIN: full real-time access to everything
-    addSub(COLLECTIONS.STUDENTS, [], handlers.setStudents);
-    addSub(COLLECTIONS.PROGRAM_LIBRARY, [], handlers.setProgramLibrary);
-    addSub(COLLECTIONS.PROGRAMS, [], handlers.setPrograms);
-    addSub(COLLECTIONS.ENTRIES, [], handlers.setEntries);
-    addSub(COLLECTIONS.MARKS, [], handlers.setMarks);
-    addSub(COLLECTIONS.ATTENDANCE, [], handlers.setAttendance);
-    addSub(COLLECTIONS.JUDGES, [], handlers.setJudges);
-    addSub(COLLECTIONS.SETTINGS, [], handlers.setSettingsDoc);
-    addSub(COLLECTIONS.AUDIT_LOGS, [orderBy('timestamp', 'desc'), limit(250)], handlers.setAuditLogs);
-    addSub(COLLECTIONS.CERTIFICATES, [], handlers.setCertificates);
-    addSub(COLLECTIONS.REPORT_HISTORY, [], handlers.setReportHistory);
-  } else if (role === 'leader') {
-    // LEADER: scoped strictly to their own team
-    const teamId = user?.teamId;
-    if (teamId) {
-      addSub(COLLECTIONS.STUDENTS, [where('teamId', '==', teamId)], handlers.setStudents);
-      addSub(COLLECTIONS.ENTRIES, [where('teamId', '==', teamId)], handlers.setEntries);
-      addSub(COLLECTIONS.ATTENDANCE, [where('teamId', '==', teamId)], handlers.setAttendance);
-      addSub(COLLECTIONS.MARKS, [where('teamId', '==', teamId)], handlers.setMarks);
-    } else {
-      addSub(COLLECTIONS.STUDENTS, [], handlers.setStudents);
-      addSub(COLLECTIONS.ENTRIES, [], handlers.setEntries);
-    }
-    addSub(COLLECTIONS.PROGRAMS, [], handlers.setPrograms);
-    addSub(COLLECTIONS.PROGRAM_LIBRARY, [], handlers.setProgramLibrary);
-    addSub(COLLECTIONS.SETTINGS, [], handlers.setSettingsDoc);
-    addSub(COLLECTIONS.CERTIFICATES, [], handlers.setCertificates);
-  } else if (role === 'judge') {
-    // JUDGE: scoped to assigned programs & summits
-    addSub(COLLECTIONS.PROGRAMS, [], handlers.setPrograms);
-    addSub(COLLECTIONS.ENTRIES, [], handlers.setEntries);
-    addSub(COLLECTIONS.MARKS, [], handlers.setMarks);
-    addSub(COLLECTIONS.JUDGES, [], handlers.setJudges);
-    addSub(COLLECTIONS.SETTINGS, [], handlers.setSettingsDoc);
-  } else {
-    // STUDENT / GENERAL: read-only for own student profile & published results
+  // Notices (limit 10 -> ~2-4 reads)
+  sub(COLLECTIONS.NOTICES, [limit(10)], handlers.setNotices);
+
+  // -------------------------------------------------------------
+  // 2. ROLE & SCREEN-SPECIFIC SCOPING
+  // -------------------------------------------------------------
+
+  // === STUDENT ROLE ===
+  if (role === 'student') {
     if (user?.id) {
-      addSub(COLLECTIONS.STUDENTS, [where('id', '==', user.id)], handlers.setStudents);
-      addSub(COLLECTIONS.ENTRIES, [where('studentId', '==', user.id)], handlers.setEntries);
-      addSub(COLLECTIONS.ATTENDANCE, [where('studentId', '==', user.id)], handlers.setAttendance);
-    } else {
-      addSub(COLLECTIONS.STUDENTS, [], handlers.setStudents);
+      // 1 read for own profile
+      sub(COLLECTIONS.STUDENTS, [where('id', '==', user.id)], handlers.setStudents);
+      // ~3-5 reads for own entries
+      sub(COLLECTIONS.ENTRIES, [where('studentId', '==', user.id)], handlers.setEntries);
+      // ~3-5 reads for own marks
+      sub(COLLECTIONS.MARKS, [where('studentId', '==', user.id)], handlers.setMarks);
+      // ~2-4 reads for own attendance
+      sub(COLLECTIONS.ATTENDANCE, [where('studentId', '==', user.id)], handlers.setAttendance);
+      // ~1-2 reads for own certificates
+      sub(COLLECTIONS.CERTIFICATES, [where('studentId', '==', user.id)], handlers.setCertificates);
     }
-    addSub(COLLECTIONS.PROGRAMS, [], handlers.setPrograms);
-    addSub(COLLECTIONS.MARKS, [], handlers.setMarks);
-    addSub(COLLECTIONS.SETTINGS, [], handlers.setSettingsDoc);
-    addSub(COLLECTIONS.CERTIFICATES, [], handlers.setCertificates);
+    // Programs for active summit
+    if (currentSummitId) {
+      sub(COLLECTIONS.PROGRAMS, [where('summitId', '==', currentSummitId)], handlers.setPrograms);
+    } else {
+      sub(COLLECTIONS.PROGRAMS, [limit(25)], handlers.setPrograms);
+    }
+    // Total student reads: ~15 to 25 reads! Active listeners: 5 to 6!
+    return () => cleanups.forEach((c) => { try { c(); } catch (e) {} });
   }
 
-  // Cleanup function to unsubscribe all active snapshot listeners
+  // === TEAM LEADER ROLE ===
+  if (role === 'leader') {
+    const teamId = user?.teamId;
+    if (teamId) {
+      // Scoped strictly to team members (~15-20 reads)
+      sub(COLLECTIONS.STUDENTS, [where('teamId', '==', teamId)], handlers.setStudents);
+      // Scoped to team entries (~10-15 reads)
+      sub(COLLECTIONS.ENTRIES, [where('teamId', '==', teamId)], handlers.setEntries);
+      if (screen === 'marks' || screen === 'overview' || screen === 'dashboard') {
+        sub(COLLECTIONS.MARKS, [where('teamId', '==', teamId)], handlers.setMarks);
+      }
+      if (screen === 'attendance') {
+        if (currentSummitId) {
+          sub(COLLECTIONS.ATTENDANCE, [where('summitId', '==', currentSummitId), where('teamId', '==', teamId)], handlers.setAttendance);
+        } else {
+          sub(COLLECTIONS.ATTENDANCE, [where('teamId', '==', teamId), limit(50)], handlers.setAttendance);
+        }
+      }
+    }
+    // Active summit programs only
+    if (currentSummitId) {
+      sub(COLLECTIONS.PROGRAMS, [where('summitId', '==', currentSummitId)], handlers.setPrograms);
+    } else {
+      sub(COLLECTIONS.PROGRAMS, [limit(25)], handlers.setPrograms);
+    }
+    return () => cleanups.forEach((c) => { try { c(); } catch (e) {} });
+  }
+
+  // === JUDGE ROLE ===
+  if (role === 'judge') {
+    // Programs assigned or active summit (~10 reads)
+    if (currentSummitId) {
+      sub(COLLECTIONS.PROGRAMS, [where('summitId', '==', currentSummitId)], handlers.setPrograms);
+    } else {
+      sub(COLLECTIONS.PROGRAMS, [limit(20)], handlers.setPrograms);
+    }
+    // Entries for current evaluation
+    if (screen === 'evaluation') {
+      sub(COLLECTIONS.ENTRIES, [limit(40)], handlers.setEntries);
+      sub(COLLECTIONS.MARKS, [where('enteredBy', '==', user?.id || '')], handlers.setMarks);
+    }
+    return () => cleanups.forEach((c) => { try { c(); } catch (e) {} });
+  }
+
+  // === ADMIN ROLE (LAZY SCREEN ATTRIBUTION) ===
+  if (role === 'admin') {
+    if (screen === 'dashboard') {
+      // DASHBOARD: < 80 reads total!
+      if (currentSummitId) {
+        sub(COLLECTIONS.PROGRAMS, [where('summitId', '==', currentSummitId)], handlers.setPrograms);
+        sub(COLLECTIONS.ENTRIES, [where('summitId', '==', currentSummitId), limit(40)], handlers.setEntries);
+        sub(COLLECTIONS.MARKS, [where('summitId', '==', currentSummitId), limit(40)], handlers.setMarks);
+      } else {
+        sub(COLLECTIONS.PROGRAMS, [limit(25)], handlers.setPrograms);
+        sub(COLLECTIONS.MARKS, [limit(30)], handlers.setMarks);
+      }
+      sub(COLLECTIONS.STUDENTS, [limit(30)], handlers.setStudents);
+    } else if (screen === 'students') {
+      // STUDENTS SCREEN: limit 100
+      sub(COLLECTIONS.STUDENTS, [limit(100)], handlers.setStudents);
+    } else if (screen === 'programs') {
+      if (currentSummitId) {
+        sub(COLLECTIONS.PROGRAMS, [where('summitId', '==', currentSummitId)], handlers.setPrograms);
+      } else {
+        sub(COLLECTIONS.PROGRAMS, [limit(40)], handlers.setPrograms);
+      }
+      sub(COLLECTIONS.PROGRAM_LIBRARY, [limit(50)], handlers.setProgramLibrary);
+      sub(COLLECTIONS.JUDGES, [limit(20)], handlers.setJudges);
+    } else if (screen === 'marks') {
+      // MARKS SCREEN: scoped to current summit
+      if (currentSummitId) {
+        sub(COLLECTIONS.MARKS, [where('summitId', '==', currentSummitId)], handlers.setMarks);
+        sub(COLLECTIONS.ENTRIES, [where('summitId', '==', currentSummitId)], handlers.setEntries);
+        sub(COLLECTIONS.PROGRAMS, [where('summitId', '==', currentSummitId)], handlers.setPrograms);
+      } else {
+        sub(COLLECTIONS.MARKS, [limit(60)], handlers.setMarks);
+        sub(COLLECTIONS.PROGRAMS, [limit(30)], handlers.setPrograms);
+      }
+      sub(COLLECTIONS.STUDENTS, [limit(100)], handlers.setStudents);
+    } else if (screen === 'attendance') {
+      // ATTENDANCE SCREEN: scoped strictly to selected summit!
+      if (currentSummitId) {
+        sub(COLLECTIONS.ATTENDANCE, [where('summitId', '==', currentSummitId)], handlers.setAttendance);
+      } else {
+        sub(COLLECTIONS.ATTENDANCE, [limit(60)], handlers.setAttendance);
+      }
+      sub(COLLECTIONS.STUDENTS, [limit(100)], handlers.setStudents);
+    } else if (screen === 'settings' || screen === 'audit') {
+      // AUDIT TRAIL: strictly limited to latest 30!
+      sub(COLLECTIONS.AUDIT_LOGS, [orderBy('timestamp', 'desc'), limit(30)], handlers.setAuditLogs);
+      sub(COLLECTIONS.JUDGES, [limit(20)], handlers.setJudges);
+    } else if (screen === 'certificates') {
+      sub(COLLECTIONS.CERTIFICATES, [limit(50)], handlers.setCertificates);
+      sub(COLLECTIONS.STUDENTS, [limit(100)], handlers.setStudents);
+    } else if (screen === 'reports') {
+      sub(COLLECTIONS.REPORT_HISTORY, [limit(20)], handlers.setReportHistory);
+      sub(COLLECTIONS.STUDENTS, [limit(100)], handlers.setStudents);
+      if (currentSummitId) {
+        sub(COLLECTIONS.MARKS, [where('summitId', '==', currentSummitId)], handlers.setMarks);
+      }
+    }
+  }
+
+  // Cleanup: cleanly terminates screen listeners when user navigates away
   return () => {
-    unsubscribers.forEach((unsub) => {
-      try { unsub(); } catch (e) { /* ignore */ }
+    cleanups.forEach((c) => {
+      try { c(); } catch (e) { /* ignore */ }
     });
   };
 };

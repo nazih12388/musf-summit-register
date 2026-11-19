@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
+import { useApp } from './context/AppContext';
 import { useLanguage } from './context/LanguageContext';
 import { LoginPage } from './components/auth/LoginPage';
 import { Navbar } from './components/common/Navbar';
@@ -18,6 +19,7 @@ import { MultiDeviceSyncModal } from './components/common/MultiDeviceSyncModal';
 
 export function AppContent() {
   const { currentUser } = useAuth();
+  const { setActiveScreen } = useApp();
   const { t } = useLanguage();
 
   // Dark Mode State with strict localStorage priority
@@ -42,7 +44,12 @@ export function AppContent() {
   // Active Tab state for navigation
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // Set default active tab when role changes
+  // Synchronize active navigation screen to lazy Firestore sync manager
+  useEffect(() => {
+    if (typeof setActiveScreen === 'function') {
+      setActiveScreen(activeTab);
+    }
+  }, [activeTab, setActiveScreen]);
   useEffect(() => {
     if (currentUser) {
       if (currentUser.role === 'admin') setActiveTab('dashboard');

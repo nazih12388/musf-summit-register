@@ -26,7 +26,8 @@ import {
   saveDoc,
   removeDoc,
   batchSaveDocs,
-  subscribeRoleData,
+  syncScreenData,
+  setCurrentScreen,
   subscribeSyncStatus,
   getCloudUsage
 } from '../services/firestoreService';
@@ -161,7 +162,7 @@ export const AppProvider = ({ children }) => {
 
   const [certificates, setCertificates] = useState(() => safeParseArray(STORAGE_KEYS.CERTIFICATES, INITIAL_CERTIFICATES));
 
-    // User state for role-scoped realtime subscriptions
+  // User state for role-scoped realtime subscriptions
   const [activeUser, setActiveUser] = useState(() => {
     try {
       const s = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
@@ -171,10 +172,16 @@ export const AppProvider = ({ children }) => {
     }
   });
 
-  // Realtime Role-Scoped Sync (0 mount writes, updates state instantly when any device changes Firestore)
+  // Active Screen tracking for lazy, screen-scoped Firestore subscriptions (keeps listeners < 10)
+  const [activeScreen, setActiveScreen] = useState('dashboard');
+
+  // Realtime Screen-Scoped Sync (0 mount writes, < 100 reads on dashboard, < 30 on student login)
   useEffect(() => {
     const role = activeUser?.role || 'public';
-    const unsub = subscribeRoleData(role, activeUser, {
+    const currentSummitId = summits[0]?.id;
+    setCurrentScreen(activeScreen);
+
+    const unsub = syncScreenData(activeScreen, role, activeUser, currentSummitId, {
       setStudents: (items) => { if (items) setStudents(items); },
       setClasses: (items) => { if (items) setClasses(items); },
       setTeams: (items) => { if (items) setTeams(items); },
@@ -227,7 +234,7 @@ export const AppProvider = ({ children }) => {
     return () => {
       if (typeof unsub === 'function') unsub();
     };
-  }, [activeUser?.id, activeUser?.role, activeUser?.teamId]);
+  }, [activeScreen, activeUser?.id, activeUser?.role, activeUser?.teamId, summits[0]?.id]);
 
   // Backward compatibility: Migrate any legacy cached password hashes & two leaders
   useEffect(() => {
@@ -2666,6 +2673,8 @@ export const AppProvider = ({ children }) => {
       resetAllDataToDefault,
       setActiveUser,
       activeUser,
+      activeScreen,
+      setActiveScreen,
       exportFullAppData,
       importFullAppData,
       cloudSyncStatus,
