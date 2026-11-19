@@ -186,11 +186,11 @@ export const AppProvider = ({ children }) => {
     setCurrentScreen(activeScreen);
 
     const unsub = syncScreenData(activeScreen, role, activeUser, currentSummitId, {
-      setStudents: (items) => { if (items) setStudents(items); },
-      setClasses: (items) => { if (items) setClasses(items); },
-      setTeams: (items) => { if (items) setTeams(items); },
-      setSections: (items) => { if (items) setSections(items); },
-      setFields: (items) => { if (items) setFields(items); },
+      setStudents: (items) => { if (Array.isArray(items) && items.length > 0) setStudents(items); },
+      setClasses: (items) => { if (Array.isArray(items) && items.length > 0) setClasses(items); },
+      setTeams: (items) => { if (Array.isArray(items) && items.length > 0) setTeams(items); },
+      setSections: (items) => { if (Array.isArray(items) && items.length > 0) setSections(items); },
+      setFields: (items) => { if (Array.isArray(items) && items.length > 0) setFields(items); },
       setCategories: (items) => {
         if (Array.isArray(items) && items.length > 0) {
           setCategories(items.map(c => c.name || c.id || c));
@@ -998,73 +998,140 @@ export const AppProvider = ({ children }) => {
 
   // SECTIONS CRUD
   const updateSection = (id, updates, actor) => {
-    setSections(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    let nextSec = null;
+    setSections(prev => prev.map(s => {
+      if (s.id === id) {
+        nextSec = { ...s, ...updates };
+        return nextSec;
+      }
+      return s;
+    }));
+    if (nextSec) {
+      saveDoc(COLLECTIONS.SECTIONS, id, nextSec);
+    }
     addAuditLog(actor, 'UPDATE_SECTION', `Updated section ${id}: ${Object.keys(updates).join(', ')}`);
   };
 
   const addSection = (secData, actor) => {
     const newSec = {
-      id: secData.id || 'sec_' + Date.now(),
+      id: secData.id || ('sec_' + Date.now()),
       name: secData.name,
       order: sections.length + 1,
       description: secData.description || ''
     };
     setSections(prev => [...prev, newSec]);
+    saveDoc(COLLECTIONS.SECTIONS, newSec.id, newSec);
     addAuditLog(actor, 'ADD_SECTION', `Created new section: ${newSec.name}`);
     return newSec;
   };
 
-  // CLASSES UPDATE (including moving class to another section)
+  // CLASSES CRUD (including section assignment & moving)
+  const addClass = (classData, actor) => {
+    const newClass = {
+      id: classData.id || ('cls_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
+      name: classData.name,
+      sectionId: classData.sectionId || 'thamheediyya',
+      order: classes.length + 1
+    };
+    setClasses(prev => [...prev, newClass]);
+    saveDoc(COLLECTIONS.CLASSES, newClass.id, newClass);
+    addAuditLog(actor, 'ADD_CLASS', `Added academic class: ${newClass.name} (${newClass.sectionId})`);
+    return newClass;
+  };
+
   const updateClass = (id, updates, actor) => {
+    let updatedClass = null;
     setClasses(prev => prev.map(c => {
       if (c.id === id) {
         const updated = { ...c, ...updates };
+        updatedClass = updated;
         addAuditLog(actor, 'UPDATE_CLASS', `Updated class ${c.name} (${Object.keys(updates).join(', ')})`);
         return updated;
       }
       return c;
     }));
 
+    if (updatedClass) {
+      saveDoc(COLLECTIONS.CLASSES, id, updatedClass);
+    }
+
     // If section changed, update all students belonging to this class
     if (updates.sectionId) {
-      setStudents(prev => prev.map(s => s.classId === id ? { ...s, sectionId: updates.sectionId } : s));
+      setStudents(prev => prev.map(s => {
+        if (s.classId === id) {
+          const updatedStudent = { ...s, sectionId: updates.sectionId };
+          saveDoc(COLLECTIONS.STUDENTS, s.id, updatedStudent);
+          return updatedStudent;
+        }
+        return s;
+      }));
     }
+  };
+
+  const deleteClass = (id, targetMoveClassId, actor) => {
+    if (targetMoveClassId) {
+      setStudents(prev => prev.map(s => {
+        if (s.classId === id) {
+          const updatedStudent = { ...s, classId: targetMoveClassId };
+          saveDoc(COLLECTIONS.STUDENTS, s.id, updatedStudent);
+          return updatedStudent;
+        }
+        return s;
+      }));
+    }
+    const c = classes.find(x => x.id === id);
+    setClasses(prev => prev.filter(x => x.id !== id));
+    removeDoc(COLLECTIONS.CLASSES, id);
+    addAuditLog(actor, 'DELETE_CLASS', `Deleted class: ${c?.name || id}`);
   };
 
   // FIELDS CRUD
   const addField = (fieldData, actor) => {
     const newField = {
-      id: 'f_' + Date.now(),
+      id: fieldData.id || ('f_' + Date.now()),
       name: fieldData.name,
       sectionId: fieldData.sectionId || 'aliya',
       order: fields.length + 1,
       description: fieldData.description || ''
     };
     setFields(prev => [...prev, newField]);
+    saveDoc(COLLECTIONS.FIELDS, newField.id, newField);
     addAuditLog(actor, 'ADD_FIELD', `Created field "${newField.name}" for section ${newField.sectionId}`);
     return newField;
   };
 
   const updateField = (id, updates, actor) => {
-    setFields(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
+    let nextField = null;
+    setFields(prev => prev.map(f => {
+      if (f.id === id) {
+        nextField = { ...f, ...updates };
+        return nextField;
+      }
+      return f;
+    }));
+    if (nextField) {
+      saveDoc(COLLECTIONS.FIELDS, id, nextField);
+    }
     addAuditLog(actor, 'UPDATE_FIELD', `Updated field ${id}`);
   };
 
   const deleteField = (id, actor) => {
     const f = fields.find(x => x.id === id);
     setFields(prev => prev.filter(x => x.id !== id));
+    removeDoc(COLLECTIONS.FIELDS, id);
     addAuditLog(actor, 'DELETE_FIELD', `Deleted field: ${f?.name || id}`);
   };
 
   const reorderFields = (newOrderList, actor) => {
     setFields(newOrderList);
+    batchSaveDocs(COLLECTIONS.FIELDS, newOrderList);
     addAuditLog(actor, 'REORDER_FIELDS', 'Reordered program fields');
   };
 
   // MASTER PROGRAM LIBRARY CRUD
   const addLibraryProgram = (data, actor) => {
     const newProg = {
-      id: 'lib_' + Date.now(),
+      id: data.id || ('lib_' + Date.now()),
       name: data.name,
       fieldId: data.fieldId || fields[0]?.id || 'f_communicative',
       sectionId: data.sectionId || 'aliya',
@@ -1076,18 +1143,30 @@ export const AppProvider = ({ children }) => {
       active: true
     };
     setProgramLibrary(prev => [...prev, newProg]);
+    saveDoc(COLLECTIONS.PROGRAM_LIBRARY, newProg.id, newProg);
     addAuditLog(actor, 'ADD_LIBRARY_PROGRAM', `Added program to library: ${newProg.name} (${newProg.sectionId})`);
     return newProg;
   };
 
   const updateLibraryProgram = (id, updates, actor) => {
-    setProgramLibrary(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    let nextProg = null;
+    setProgramLibrary(prev => prev.map(p => {
+      if (p.id === id) {
+        nextProg = { ...p, ...updates };
+        return nextProg;
+      }
+      return p;
+    }));
+    if (nextProg) {
+      saveDoc(COLLECTIONS.PROGRAM_LIBRARY, id, nextProg);
+    }
     addAuditLog(actor, 'UPDATE_LIBRARY_PROGRAM', `Updated library program ${id}`);
   };
 
   const deleteLibraryProgram = (id, actor) => {
     const p = programLibrary.find(x => x.id === id);
     setProgramLibrary(prev => prev.filter(x => x.id !== id));
+    removeDoc(COLLECTIONS.PROGRAM_LIBRARY, id);
     addAuditLog(actor, 'DELETE_LIBRARY_PROGRAM', `Deleted library program: ${p?.name}`);
   };
 
@@ -1100,6 +1179,7 @@ export const AppProvider = ({ children }) => {
       name: `${p.name} (Copy)`
     };
     setProgramLibrary(prev => [...prev, duplicated]);
+    saveDoc(COLLECTIONS.PROGRAM_LIBRARY, duplicated.id, duplicated);
     addAuditLog(actor, 'DUPLICATE_LIBRARY_PROGRAM', `Duplicated library program: ${p.name}`);
   };
 
@@ -1392,6 +1472,7 @@ export const AppProvider = ({ children }) => {
         nominatedAt: new Date().toISOString()
       };
 
+      saveDoc(COLLECTIONS.ENTRIES, newEntry.id, newEntry);
       setEntries(prev => [...prev, newEntry]);
       memberIds.forEach(mid => {
         sendNotification(mid, 'Program Nomination', `You were registered for group event in "${prog.name}" by ${displayActor}`, 'assignment');
@@ -1616,6 +1697,7 @@ export const AppProvider = ({ children }) => {
     }
 
     setStudents(prev => [...imported, ...prev]);
+    batchSaveDocs(COLLECTIONS.STUDENTS, imported);
     addAuditLog(actor, 'BULK_IMPORT_STUDENTS', `Imported ${imported.length} students via sheet (passwords set to CIC Number)`);
     return imported;
   };
@@ -1683,40 +1765,74 @@ export const AppProvider = ({ children }) => {
   // TEAMS CRUD
   const addTeam = (teamData, actor) => {
     const newTeam = {
-      id: 't' + (teams.length + 1),
+      id: teamData.id || ('t_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
       name: teamData.name,
       color: teamData.color || '#0E7C86',
-      leaderId: null
+      leaderId: null,
+      leader1Id: null,
+      leader2Id: null
     };
     setTeams(prev => [...prev, newTeam]);
+    saveDoc(COLLECTIONS.TEAMS, newTeam.id, newTeam);
     addAuditLog(actor, 'ADD_TEAM', `Created house team: ${newTeam.name}`);
     return newTeam;
   };
 
   const updateTeam = (id, updates, actor) => {
-    setTeams(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    let nextTeam = null;
+    setTeams(prev => prev.map(t => {
+      if (t.id === id) {
+        nextTeam = { ...t, ...updates };
+        return nextTeam;
+      }
+      return t;
+    }));
+    if (nextTeam) {
+      saveDoc(COLLECTIONS.TEAMS, id, nextTeam);
+    }
     if (updates.name) {
-      setStudents(prev => prev.map(s => s.teamId === id ? { ...s, teamName: updates.name } : s));
+      setStudents(prev => prev.map(s => {
+        if (s.teamId === id) {
+          const upd = { ...s, teamName: updates.name };
+          saveDoc(COLLECTIONS.STUDENTS, s.id, upd);
+          return upd;
+        }
+        return s;
+      }));
     }
     addAuditLog(actor, 'UPDATE_TEAM', `Updated team ${id}: ${Object.keys(updates).join(', ')}`);
   };
 
   const deleteTeam = (id, targetMoveTeamId, actor) => {
     if (targetMoveTeamId) {
-      setStudents(prev => prev.map(s => s.teamId === id ? { ...s, teamId: targetMoveTeamId } : s));
+      setStudents(prev => prev.map(s => {
+        if (s.teamId === id) {
+          const upd = { ...s, teamId: targetMoveTeamId };
+          saveDoc(COLLECTIONS.STUDENTS, s.id, upd);
+          return upd;
+        }
+        return s;
+      }));
     }
     const t = teams.find(x => x.id === id);
     setTeams(prev => prev.filter(x => x.id !== id));
+    removeDoc(COLLECTIONS.TEAMS, id);
     addAuditLog(actor, 'DELETE_TEAM', `Deleted team ${t?.name || id}`);
   };
 
   const bulkAssignTeams = (assignments, actor) => {
+    const updated = [];
     setStudents(prev => prev.map(s => {
       if (assignments[s.id]) {
-        return { ...s, teamId: assignments[s.id] };
+        const upd = { ...s, teamId: assignments[s.id] };
+        updated.push(upd);
+        return upd;
       }
       return s;
     }));
+    if (updated.length > 0) {
+      batchSaveDocs(COLLECTIONS.STUDENTS, updated);
+    }
     addAuditLog(actor, 'BULK_ASSIGN_TEAMS', `Reassigned teams for ${Object.keys(assignments).length} students`);
   };
 
@@ -1727,23 +1843,28 @@ export const AppProvider = ({ children }) => {
     const targetStudent = students.find(s => s.id === studentId);
 
     // Update Team leaders (leader1Id & leader2Id)
+    let updatedTeam = null;
     setTeams(prev => prev.map(t => {
       if (t.id === teamId) {
         if (leaderRole === 'leader2') {
-          return { ...t, leader2Id: studentId };
+          updatedTeam = { ...t, leader2Id: studentId };
         } else {
-          return { ...t, leader1Id: studentId, leaderId: studentId };
+          updatedTeam = { ...t, leader1Id: studentId, leaderId: studentId };
         }
+        return updatedTeam;
       }
       return t;
     }));
+    if (updatedTeam) {
+      saveDoc(COLLECTIONS.TEAMS, teamId, updatedTeam);
+    }
 
     // Update Students:
     // Any existing student holding this leaderRole in this team reverts to normal member
     setStudents(prev => prev.map(s => {
       if (s.teamId === teamId) {
         if (s.id === studentId) {
-          return {
+          const upd = {
             ...s,
             isLeader: true,
             leaderRole,
@@ -1751,9 +1872,11 @@ export const AppProvider = ({ children }) => {
             leaderPasswordHash: passwordHash,
             leaderSectionRestriction: sectionRestriction || 'all'
           };
+          saveDoc(COLLECTIONS.STUDENTS, s.id, upd);
+          return upd;
         } else if (s.isLeader && s.leaderRole === leaderRole) {
           // Replaced leader becomes a normal member
-          return {
+          const upd = {
             ...s,
             isLeader: false,
             leaderRole: null,
@@ -1761,6 +1884,8 @@ export const AppProvider = ({ children }) => {
             leaderPasswordHash: null,
             leaderSectionRestriction: null
           };
+          saveDoc(COLLECTIONS.STUDENTS, s.id, upd);
+          return upd;
         }
       }
       return s;
@@ -1796,24 +1921,33 @@ export const AppProvider = ({ children }) => {
       throw new Error("Both Leader 1 and Leader 2 must be appointed before swapping.");
     }
 
+    let updatedTeam = null;
     setTeams(prev => prev.map(t => {
       if (t.id === teamId) {
-        return {
+        updatedTeam = {
           ...t,
           leader1Id: leader2.id,
           leader2Id: leader1.id,
           leaderId: leader2.id
         };
+        return updatedTeam;
       }
       return t;
     }));
+    if (updatedTeam) {
+      saveDoc(COLLECTIONS.TEAMS, teamId, updatedTeam);
+    }
 
     setStudents(prev => prev.map(s => {
       if (s.id === leader1.id) {
-        return { ...s, leaderRole: 'leader2' };
+        const upd = { ...s, leaderRole: 'leader2' };
+        saveDoc(COLLECTIONS.STUDENTS, s.id, upd);
+        return upd;
       }
       if (s.id === leader2.id) {
-        return { ...s, leaderRole: 'leader1' };
+        const upd = { ...s, leaderRole: 'leader1' };
+        saveDoc(COLLECTIONS.STUDENTS, s.id, upd);
+        return upd;
       }
       return s;
     }));
@@ -1896,6 +2030,7 @@ export const AppProvider = ({ children }) => {
       assignedPrograms: judgeData.assignedPrograms || []
     };
     setJudges(prev => [...prev, newJudge]);
+    saveDoc(COLLECTIONS.JUDGES, newJudge.id, newJudge);
 
     // Bidirectional sync: link judge to selected programs
     if (newJudge.assignedPrograms && newJudge.assignedPrograms.length > 0) {
@@ -1933,7 +2068,17 @@ export const AppProvider = ({ children }) => {
       finalUpdates.passwordHash = await hashPassword(updates.password);
       delete finalUpdates.password;
     }
-    setJudges(prev => prev.map(j => j.id === id ? { ...j, ...finalUpdates } : j));
+    let updatedJudge = null;
+    setJudges(prev => prev.map(j => {
+      if (j.id === id) {
+        updatedJudge = { ...j, ...finalUpdates };
+        return updatedJudge;
+      }
+      return j;
+    }));
+    if (updatedJudge) {
+      saveDoc(COLLECTIONS.JUDGES, id, updatedJudge);
+    }
 
     // Bidirectional sync with programs
     if (updates.assignedPrograms !== undefined) {
@@ -1966,6 +2111,7 @@ export const AppProvider = ({ children }) => {
   const deleteJudge = (id, actor) => {
     const j = judges.find(x => x.id === id);
     setJudges(prev => prev.filter(x => x.id !== id));
+    removeDoc(COLLECTIONS.JUDGES, id);
     setPrograms(prev => prev.map(p => {
       if (p.assignedJudges?.includes(id)) {
         return { ...p, assignedJudges: p.assignedJudges.filter(jId => jId !== id) };
@@ -2306,6 +2452,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const adminApproveOrEditMark = (markId, newMarkVal, status = 'approved', actor) => {
+    let updatedMark = null;
     setMarks(prev => prev.map(m => {
       if (m.id === markId) {
         const oldVal = m.marks;
@@ -2315,11 +2462,15 @@ export const AppProvider = ({ children }) => {
           status: status === 'approved' ? (newMarkVal != null && newMarkVal !== oldVal ? 'edited_by_admin' : 'approved') : status,
           adminEditedAt: new Date().toISOString()
         };
+        updatedMark = updated;
         addAuditLog(actor, 'ADMIN_EDIT_MARK', `Admin approved/edited mark ID ${markId} from ${oldVal} to ${updated.marks} (${status})`);
         return updated;
       }
       return m;
     }));
+    if (updatedMark) {
+      saveDoc(COLLECTIONS.MARKS, markId, updatedMark);
+    }
   };
 
   const deleteMark = (markId, actor) => {
@@ -2330,10 +2481,13 @@ export const AppProvider = ({ children }) => {
 
   // ATTENDANCE
   const recordAttendance = (summitId, session, studentId, status, actor) => {
+    let savedItem = null;
     setAttendance(prev => {
       const idx = prev.findIndex(a => a.summitId === summitId && a.session === session && a.studentId === studentId);
       if (idx >= 0) {
-        return prev.map((item, i) => i === idx ? { ...item, status, markedBy: actor, timestamp: new Date().toISOString() } : item);
+        const updated = { ...prev[idx], status, markedBy: actor, timestamp: new Date().toISOString() };
+        savedItem = updated;
+        return prev.map((item, i) => i === idx ? updated : item);
       } else {
         const newItem = {
           id: `att_${summitId}_${session}_${studentId}`,
@@ -2345,40 +2499,55 @@ export const AppProvider = ({ children }) => {
           locked: false,
           timestamp: new Date().toISOString()
         };
+        savedItem = newItem;
         return [...prev, newItem];
       }
     });
+    if (savedItem) {
+      saveDoc(COLLECTIONS.ATTENDANCE, savedItem.id, savedItem);
+    }
     addAuditLog(actor, 'MARK_ATTENDANCE', `Marked attendance ${status} for student ${studentId} in session ${session}`);
   };
 
   const bulkRecordAttendance = (summitId, session, studentStatuses, actor) => {
+    const itemsToSave = [];
     setAttendance(prev => {
       const next = [...prev];
       Object.entries(studentStatuses).forEach(([sId, stat]) => {
         const existingIdx = next.findIndex(a => a.summitId === summitId && a.session === session && a.studentId === sId);
         if (existingIdx >= 0) {
-          next[existingIdx] = { ...next[existingIdx], status: stat, markedBy: actor };
+          const upd = { ...next[existingIdx], status: stat, markedBy: actor, timestamp: new Date().toISOString() };
+          next[existingIdx] = upd;
+          itemsToSave.push(upd);
         } else {
-          next.push({
+          const newItem = {
             id: `att_${summitId}_${session}_${sId}`,
             summitId,
             session,
             studentId: sId,
             status: stat,
             markedBy: actor,
-            locked: false
-          });
+            locked: false,
+            timestamp: new Date().toISOString()
+          };
+          next.push(newItem);
+          itemsToSave.push(newItem);
         }
       });
       return next;
     });
+    if (itemsToSave.length > 0) {
+      batchSaveDocs(COLLECTIONS.ATTENDANCE, itemsToSave);
+    }
     addAuditLog(actor, 'BULK_ATTENDANCE', `Saved attendance for session ${session} (${Object.keys(studentStatuses).length} students)`);
   };
 
   const toggleAttendanceSessionLock = (summitId, session, lockStatus, actor) => {
     setAttendance(prev => prev.map(a => {
       if (a.summitId === summitId && a.session === session) {
-        return { ...a, locked: lockStatus };
+        const upd = { ...a, locked: lockStatus };
+        saveDoc(COLLECTIONS.ATTENDANCE, a.id, upd);
+        return upd;
       }
       return a;
     }));
@@ -2388,7 +2557,7 @@ export const AppProvider = ({ children }) => {
   // NOTICES
   const addNotice = (data, actor) => {
     const newNotice = {
-      id: 'n_' + Date.now(),
+      id: data.id || ('n_' + Date.now()),
       title: data.title,
       message: data.message,
       audience: data.audience || 'all',
@@ -2401,17 +2570,29 @@ export const AppProvider = ({ children }) => {
       readBy: []
     };
     setNotices(prev => [newNotice, ...prev]);
+    saveDoc(COLLECTIONS.NOTICES, newNotice.id, newNotice);
     addAuditLog(actor, 'CREATE_NOTICE', `Created announcement: "${newNotice.title}" (${newNotice.status})`);
     return newNotice;
   };
 
   const updateNotice = (id, updates, actor) => {
-    setNotices(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
+    let nextNotice = null;
+    setNotices(prev => prev.map(n => {
+      if (n.id === id) {
+        nextNotice = { ...n, ...updates };
+        return nextNotice;
+      }
+      return n;
+    }));
+    if (nextNotice) {
+      saveDoc(COLLECTIONS.NOTICES, id, nextNotice);
+    }
     addAuditLog(actor, 'UPDATE_NOTICE', `Updated notice ${id}`);
   };
 
   const deleteNotice = (id, actor) => {
     setNotices(prev => prev.filter(n => n.id !== id));
+    removeDoc(COLLECTIONS.NOTICES, id);
     addAuditLog(actor, 'DELETE_NOTICE', `Deleted notice ${id}`);
   };
 
@@ -2427,34 +2608,41 @@ export const AppProvider = ({ children }) => {
   // CERTIFICATES CRUD & AUTO-ALLOCATION (Top Performers of Month and Class-wise Toppers)
   const addCertificate = (certData, actor = 'admin') => {
     const newCert = {
-      id: 'cert_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      id: certData.id || ('cert_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
       createdAt: new Date().toISOString(),
       isPublished: Boolean(certData.isPublished),
       publishedAt: certData.isPublished ? new Date().toISOString() : null,
       ...certData
     };
     setCertificates(prev => [newCert, ...prev]);
+    saveDoc(COLLECTIONS.CERTIFICATES, newCert.id, newCert);
     addAuditLog(actor, 'ADD_CERTIFICATE', `Allocated certificate to ${newCert.studentName}: ${newCert.awardTitle}`);
     return newCert;
   };
 
   const updateCertificate = (id, updates, actor = 'admin') => {
+    let nextCert = null;
     setCertificates(prev => prev.map(c => {
       if (c.id === id) {
         const next = { ...c, ...updates };
         if (updates.isPublished === true && !c.isPublished) {
           next.publishedAt = new Date().toISOString();
         }
+        nextCert = next;
         return next;
       }
       return c;
     }));
+    if (nextCert) {
+      saveDoc(COLLECTIONS.CERTIFICATES, id, nextCert);
+    }
     addAuditLog(actor, 'UPDATE_CERTIFICATE', `Updated certificate ${id}`);
   };
 
   const deleteCertificate = (id, actor = 'admin') => {
     const cert = certificates.find(c => c.id === id);
     setCertificates(prev => prev.filter(c => c.id !== id));
+    removeDoc(COLLECTIONS.CERTIFICATES, id);
     addAuditLog(actor, 'DELETE_CERTIFICATE', `Deleted certificate of ${cert?.studentName || id}`);
   };
 
@@ -2643,7 +2831,9 @@ export const AppProvider = ({ children }) => {
       isConsideredPresent,
       updateSection,
       addSection,
+      addClass,
       updateClass,
+      deleteClass,
       addField,
       updateField,
       deleteField,

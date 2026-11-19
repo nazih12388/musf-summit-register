@@ -510,9 +510,11 @@ export const syncScreenData = (screen, role, user, currentSummitId, handlers = {
   // Active Summits only (limit 10 -> ~4-8 reads)
   sub(COLLECTIONS.SUMMITS, [orderBy('date', 'desc'), limit(10)], handlers.setSummits);
 
-  // Classes & Teams (small reference lists -> ~7 reads total)
-  sub(COLLECTIONS.CLASSES, [limit(20)], handlers.setClasses);
-  sub(COLLECTIONS.TEAMS, [limit(10)], handlers.setTeams);
+  // Classes & Teams & Sections & Fields
+  sub(COLLECTIONS.CLASSES, [limit(100)], handlers.setClasses);
+  sub(COLLECTIONS.TEAMS, [limit(50)], handlers.setTeams);
+  if (handlers.setSections) sub(COLLECTIONS.SECTIONS, [limit(20)], handlers.setSections);
+  if (handlers.setFields) sub(COLLECTIONS.FIELDS, [limit(50)], handlers.setFields);
 
   // User Notifications (scoped by userId -> ~2-5 reads)
   if (user?.id) {
@@ -616,9 +618,9 @@ export const syncScreenData = (screen, role, user, currentSummitId, handlers = {
         sub(COLLECTIONS.MARKS, [limit(30)], handlers.setMarks);
       }
       sub(COLLECTIONS.STUDENTS, [limit(30)], handlers.setStudents);
-    } else if (screen === 'students') {
-      // STUDENTS SCREEN: limit 100
-      sub(COLLECTIONS.STUDENTS, [limit(100)], handlers.setStudents);
+    } else if (screen === 'students' || screen === 'teams') {
+      // STUDENTS & TEAMS SCREEN: limit 150
+      sub(COLLECTIONS.STUDENTS, [limit(150)], handlers.setStudents);
     } else if (screen === 'programs') {
       if (currentSummitId) {
         sub(COLLECTIONS.PROGRAMS, [where('summitId', '==', currentSummitId)], handlers.setPrograms);

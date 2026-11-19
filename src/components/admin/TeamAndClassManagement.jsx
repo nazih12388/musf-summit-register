@@ -46,7 +46,9 @@ export const TeamAndClassManagement = () => {
     marks,
     settings,
     updateSection,
+    addClass,
     updateClass,
+    deleteClass,
     addTeam,
     updateTeam,
     deleteTeam,
@@ -128,6 +130,14 @@ export const TeamAndClassManagement = () => {
   const [editingClass, setEditingClass] = useState(null);
   const [classNameInput, setClassNameInput] = useState('');
   const [classSectionInput, setClassSectionInput] = useState('thamheediyya');
+
+  // Academic Class Add / Delete State
+  const [isAddClassOpen, setIsAddClassOpen] = useState(false);
+  const [newClassNameInput, setNewClassNameInput] = useState('');
+  const [newClassSectionInput, setNewClassSectionInput] = useState('thamheediyya');
+  const [classToDelete, setClassToDelete] = useState(null);
+  const [targetMoveClassId, setTargetMoveClassId] = useState('');
+  const [classDeleteError, setClassDeleteError] = useState('');
 
   // =========================================================================
   // TEAM ADD / EDIT / DELETE MODALS
@@ -232,6 +242,36 @@ export const TeamAndClassManagement = () => {
       sectionId: classSectionInput
     }, currentUser?.username);
     setEditingClass(null);
+  };
+
+  // Add Class Submit
+  const handleAddClassSubmit = (e) => {
+    e.preventDefault();
+    if (!newClassNameInput.trim()) return;
+    addClass({
+      name: newClassNameInput.trim(),
+      sectionId: newClassSectionInput
+    }, currentUser?.username);
+    setIsAddClassOpen(false);
+    setNewClassNameInput('');
+  };
+
+  // Delete Class with enrolled students re-assignment check
+  const handleDeleteClass = () => {
+    if (!classToDelete) return;
+    const memberCount = students.filter(s => s.classId === classToDelete.id).length;
+    if (memberCount > 0 && !targetMoveClassId) {
+      setClassDeleteError("You must select another class to move enrolled students before deleting!");
+      return;
+    }
+    try {
+      deleteClass(classToDelete.id, targetMoveClassId, currentUser?.username);
+      setClassToDelete(null);
+      setTargetMoveClassId('');
+      setClassDeleteError('');
+    } catch (err) {
+      setClassDeleteError(err.message);
+    }
   };
 
   // Add team handler
@@ -905,61 +945,106 @@ export const TeamAndClassManagement = () => {
             </div>
           </div>
 
-          {/* 2. 5 CLASSES & SECTION MAPPING */}
+          {/* 2. ACADEMIC CLASSES & SECTION MAPPING */}
           <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-            <div>
-              <h3 className="text-base font-bold text-[#0F2A4A] dark:text-white flex items-center gap-2">
-                <Layers className="w-5 h-5 text-[#334E73]" />
-                <span>Academic Classes &amp; Section Assignment</span>
-              </h3>
-              <p className="text-xs text-slate-500">
-                Assign each class to its respective Section. Enrolled students inherit their section automatically.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-bold text-[#0F2A4A] dark:text-white flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-[#334E73]" />
+                  <span>Academic Classes &amp; Section Assignment</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Assign each class to its respective Section. Enrolled students inherit their section automatically.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setNewClassNameInput('');
+                  setNewClassSectionInput(sections[0]?.id || 'thamheediyya');
+                  setIsAddClassOpen(true);
+                }}
+                className="px-3.5 py-2 bg-[#0E7C86] hover:bg-[#0B636B] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm transition shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Academic Class</span>
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {classes.map((cls, idx) => {
-                const count = students.filter(s => s.classId === cls.id).length;
-                const sec = sections.find(s => s.id === cls.sectionId);
+            {classes.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/40 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                <Layers className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No Academic Classes Found</p>
+                <p className="text-xs text-slate-500 mb-4">Click below to create your first class.</p>
+                <button
+                  onClick={() => {
+                    setNewClassNameInput('');
+                    setNewClassSectionInput(sections[0]?.id || 'thamheediyya');
+                    setIsAddClassOpen(true);
+                  }}
+                  className="px-4 py-2 bg-[#0E7C86] hover:bg-[#0B636B] text-white rounded-xl text-xs font-semibold inline-flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Create Class</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {classes.map((cls, idx) => {
+                  const count = students.filter(s => s.classId === cls.id).length;
+                  const sec = sections.find(s => s.id === cls.sectionId);
 
-                return (
-                  <div
-                    key={cls.id}
-                    className="p-4 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-bold uppercase text-[#0E7C86] font-mono">
-                          Class {idx + 1}
-                        </span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                          {sec?.name?.split(' ')[0] || 'Thamheediyya'}
+                  return (
+                    <div
+                      key={cls.id}
+                      className="p-4 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold uppercase text-[#0E7C86] font-mono">
+                            Class {idx + 1}
+                          </span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            {sec?.name?.split(' ')[0] || 'Thamheediyya'}
+                          </span>
+                        </div>
+
+                        <h4 className="font-bold text-[#0F2A4A] dark:text-white text-sm">
+                          {cls.name}
+                        </h4>
+                        <span className="text-xs text-slate-400">
+                          {count} Enrolled Students
                         </span>
                       </div>
 
-                      <h4 className="font-bold text-[#0F2A4A] dark:text-white text-sm">
-                        {cls.name}
-                      </h4>
-                      <span className="text-xs text-slate-400">
-                        {count} Enrolled Students
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            setEditingClass(cls);
+                            setClassNameInput(cls.name);
+                            setClassSectionInput(cls.sectionId || 'thamheediyya');
+                          }}
+                          className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition"
+                          title="Edit Class & Section"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setClassToDelete(cls);
+                            setClassDeleteError('');
+                            setTargetMoveClassId(classes.find(c => c.id !== cls.id)?.id || '');
+                          }}
+                          className="p-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 transition"
+                          title="Delete Class"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-
-                    <button
-                      onClick={() => {
-                        setEditingClass(cls);
-                        setClassNameInput(cls.name);
-                        setClassSectionInput(cls.sectionId || 'thamheediyya');
-                      }}
-                      className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition"
-                      title="Edit Class & Section"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1488,6 +1573,131 @@ export const TeamAndClassManagement = () => {
           </form>
         </Modal>
       )}
+
+      {/* Add Academic Class Modal */}
+      {isAddClassOpen && (
+        <Modal
+          isOpen={isAddClassOpen}
+          onClose={() => setIsAddClassOpen(false)}
+          title="Add New Academic Class"
+          maxWidth="max-w-md"
+        >
+          <form onSubmit={handleAddClassSubmit} className="space-y-4 text-xs">
+            <div>
+              <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                Class Name
+              </label>
+              <input
+                type="text"
+                required
+                value={newClassNameInput}
+                onChange={(e) => setNewClassNameInput(e.target.value)}
+                placeholder="e.g. Class 6 or Hifz 1"
+                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold text-slate-800 dark:text-white"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                Assign to Section (Stage)
+              </label>
+              <select
+                value={newClassSectionInput}
+                onChange={(e) => setNewClassSectionInput(e.target.value)}
+                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold text-slate-800 dark:text-white"
+              >
+                {sections.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Enrolled students will inherit this section for summit rankings and rules.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsAddClassOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 rounded-xl font-medium text-slate-700 dark:text-slate-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-[#0E7C86] hover:bg-[#0B636B] text-white rounded-xl font-semibold shadow-xs"
+              >
+                Create Class
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Delete Class Confirmation Modal */}
+      {classToDelete && (() => {
+        const enrolledCount = students.filter(s => s.classId === classToDelete.id).length;
+        const otherClasses = classes.filter(c => c.id !== classToDelete.id);
+
+        return (
+          <Modal
+            isOpen={true}
+            onClose={() => { setClassToDelete(null); setClassDeleteError(''); }}
+            title="Delete Academic Class"
+            maxWidth="max-w-md"
+          >
+            <div className="space-y-4 text-xs">
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 rounded-xl flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <p>
+                  Are you sure you want to delete <strong>{classToDelete.name}</strong>?
+                  {enrolledCount > 0 && ` There are ${enrolledCount} students currently enrolled in this class.`}
+                </p>
+              </div>
+
+              {enrolledCount > 0 && (
+                <div>
+                  <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                    Move {enrolledCount} enrolled students to:
+                  </label>
+                  <select
+                    value={targetMoveClassId}
+                    onChange={(e) => setTargetMoveClassId(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold text-slate-800 dark:text-white"
+                  >
+                    <option value="">-- Select Destination Class --</option>
+                    {otherClasses.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {classDeleteError && (
+                <p className="text-xs text-rose-600 font-semibold">{classDeleteError}</p>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setClassToDelete(null); setClassDeleteError(''); }}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 rounded-xl font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteClass}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-semibold"
+                >
+                  Confirm Delete
+                </button>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
 
       {/* Add Team Modal */}
       {isAddTeamOpen && (
