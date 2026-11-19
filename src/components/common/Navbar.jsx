@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
 import { ChangePasswordModal } from '../auth/ChangePasswordModal';
+import { MultiDeviceSyncModal } from './MultiDeviceSyncModal';
 import {
   Bell,
   Moon,
@@ -28,7 +29,8 @@ import {
   FileCheck,
   Settings,
   LayoutDashboard,
-  Trash2
+  Trash2,
+  Share2
 } from 'lucide-react';
 
 export const Navbar = ({
@@ -47,10 +49,12 @@ export const Navbar = ({
     markAllNotificationsRead,
     deleteNotification,
     clearAllNotifications,
-    settings
+    settings,
+    cloudSyncStatus
   } = useApp();
 
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [internalDrawerOpen, setInternalDrawerOpen] = useState(false);
@@ -96,8 +100,32 @@ export const Navbar = ({
             </div>
           </div>
 
-          {/* Right Action Icons: Notification Bell, Language, Dark Mode, User Profile */}
+          {/* Right Action Icons: Sync, Notification Bell, Language, Dark Mode, User Profile */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            {/* Multi-Device Cloud Sync Button */}
+            <button
+              type="button"
+              onClick={() => setIsSyncModalOpen(true)}
+              className={`min-h-[44px] px-2.5 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-semibold transition active:scale-95 ${
+                cloudSyncStatus?.quotaExhausted
+                  ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300'
+                  : cloudSyncStatus?.state === 'syncing'
+                  ? 'border-blue-400 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300'
+                  : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+              title="Multi-Device Sync / ക്രോസ്-ഡിവൈസ് ഡാറ്റ സമന്വയം"
+              aria-label="Multi-Device Sync"
+            >
+              <Share2 className="w-3.5 h-3.5 text-[#0E7C86] dark:text-teal-400 shrink-0" />
+              {cloudSyncStatus?.quotaExhausted ? (
+                <span className="hidden sm:inline text-[11px] font-bold text-amber-700 dark:text-amber-400">Direct Sync</span>
+              ) : cloudSyncStatus?.state === 'syncing' ? (
+                <span className="hidden sm:inline text-[11px] text-blue-700 dark:text-blue-400">Syncing...</span>
+              ) : (
+                <span className="hidden sm:inline text-[11px] font-medium">Sync</span>
+              )}
+            </button>
+
             {/* Notification Bell with Dropdown */}
             <div className="relative">
               <button
@@ -297,6 +325,14 @@ export const Navbar = ({
                     </div>
 
                     <button
+                      onClick={() => setIsSyncModalOpen(true)}
+                      className="w-full text-left px-4 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold flex items-center gap-2 text-slate-700 dark:text-slate-300 min-h-[44px]"
+                    >
+                      <Share2 className="w-4 h-4 text-[#0E7C86]" />
+                      <span>ഡിവൈസ് സമന്വയം (Device Sync)</span>
+                    </button>
+
+                    <button
                       onClick={() => setIsChangePasswordOpen(true)}
                       className="w-full text-left px-4 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold flex items-center gap-2 text-slate-700 dark:text-slate-300 min-h-[44px]"
                     >
@@ -322,6 +358,11 @@ export const Navbar = ({
       <ChangePasswordModal
         isOpen={isChangePasswordOpen}
         onClose={() => setIsChangePasswordOpen(false)}
+      />
+
+      <MultiDeviceSyncModal
+        isOpen={isSyncModalOpen}
+        onClose={() => setIsSyncModalOpen(false)}
       />
 
       {/* Mobile Navigation Drawer */}

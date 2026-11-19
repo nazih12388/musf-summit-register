@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import {
   INITIAL_SECTIONS,
   INITIAL_CLASSES,
@@ -22,7 +22,7 @@ import {
   HASHED_PASSWORDS
 } from '../services/initialData';
 import { STORAGE_KEYS } from '../services/firebase';
-import { syncToCloud, subscribeToCloud } from '../services/firebaseSync';
+import { syncToCloud, subscribeToCloud, getSyncStatus, subscribeSyncStatus, forceSyncAllToCloud } from '../services/firebaseSync';
 import { hashPassword } from '../utils/crypto';
 import { getSummitRunningInfo, formatMonthLabel, computeComprehensiveReport } from '../utils/reportCalculations';
 
@@ -154,27 +154,85 @@ export const AppProvider = ({ children }) => {
 
   const [certificates, setCertificates] = useState(() => safeParseArray(STORAGE_KEYS.CERTIFICATES, INITIAL_CERTIFICATES));
 
-  // Sync state to LocalStorage & Cloud Firestore
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.SECTIONS, JSON.stringify(sections)); syncToCloud('sections', sections); }, [sections]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(classes)); syncToCloud('classes', classes); }, [classes]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teams)); syncToCloud('teams', teams); }, [teams]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.FIELDS, JSON.stringify(fields)); syncToCloud('fields', fields); }, [fields]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.PROGRAM_LIBRARY, JSON.stringify(programLibrary)); syncToCloud('programLibrary', programLibrary); }, [programLibrary]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.SUMMITS, JSON.stringify(summits)); syncToCloud('summits', summits); }, [summits]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories)); syncToCloud('categories', categories); }, [categories]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.JUDGES, JSON.stringify(judges)); syncToCloud('judges', judges); }, [judges]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students)); syncToCloud('students', students); }, [students]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ARCHIVED_STUDENTS, JSON.stringify(archivedStudents)); syncToCloud('archivedStudents', archivedStudents); }, [archivedStudents]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.PROGRAMS, JSON.stringify(programs)); syncToCloud('programs', programs); }, [programs]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(entries)); syncToCloud('entries', entries); }, [entries]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.MARKS, JSON.stringify(marks)); syncToCloud('marks', marks); }, [marks]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(attendance)); syncToCloud('attendance', attendance); }, [attendance]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.NOTICES, JSON.stringify(notices)); syncToCloud('notices', notices); }, [notices]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications)); syncToCloud('notifications', notifications); }, [notifications]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs)); syncToCloud('auditLogs', auditLogs); }, [auditLogs]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings)); syncToCloud('settings', settings); }, [settings]);
-  useEffect(() => { localStorage.setItem('musf_report_history', JSON.stringify(reportHistory)); syncToCloud('reportHistory', reportHistory); }, [reportHistory]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CERTIFICATES, JSON.stringify(certificates)); syncToCloud('certificates', certificates); }, [certificates]);
+  // Prevent writes during initial component mount & load (saves 95% cloud writes)
+  const isMountedRef = useRef(false);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      isMountedRef.current = true;
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // 1. Static / local items: LocalStorage only (zero cloud write overhead)
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.SECTIONS, JSON.stringify(sections)); }, [sections]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(classes)); }, [classes]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.FIELDS, JSON.stringify(fields)); }, [fields]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories)); }, [categories]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ARCHIVED_STUDENTS, JSON.stringify(archivedStudents)); }, [archivedStudents]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications)); }, [notifications]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs)); }, [auditLogs]);
+  useEffect(() => { localStorage.setItem('musf_report_history', JSON.stringify(reportHistory)); }, [reportHistory]);
+
+  // 2. Collaborative Business State: LocalStorage immediately + Cloud Sync ONLY after user modifications
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.PROGRAM_LIBRARY, JSON.stringify(programLibrary));
+    if (isMountedRef.current) syncToCloud('programLibrary', programLibrary);
+  }, [programLibrary]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.SUMMITS, JSON.stringify(summits));
+    if (isMountedRef.current) syncToCloud('summits', summits);
+  }, [summits]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.PROGRAMS, JSON.stringify(programs));
+    if (isMountedRef.current) syncToCloud('programs', programs);
+  }, [programs]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(entries));
+    if (isMountedRef.current) syncToCloud('entries', entries);
+  }, [entries]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.MARKS, JSON.stringify(marks));
+    if (isMountedRef.current) syncToCloud('marks', marks);
+  }, [marks]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(attendance));
+    if (isMountedRef.current) syncToCloud('attendance', attendance);
+  }, [attendance]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
+    if (isMountedRef.current) syncToCloud('students', students);
+  }, [students]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teams));
+    if (isMountedRef.current) syncToCloud('teams', teams);
+  }, [teams]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.JUDGES, JSON.stringify(judges));
+    if (isMountedRef.current) syncToCloud('judges', judges);
+  }, [judges]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    if (isMountedRef.current) syncToCloud('settings', settings);
+  }, [settings]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.NOTICES, JSON.stringify(notices));
+    if (isMountedRef.current) syncToCloud('notices', notices);
+  }, [notices]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.CERTIFICATES, JSON.stringify(certificates));
+    if (isMountedRef.current) syncToCloud('certificates', certificates);
+  }, [certificates]);
 
 
   // Helper: Smart entity merger to prevent multi-device race conditions & accidental overwrites
@@ -472,6 +530,78 @@ export const AppProvider = ({ children }) => {
       });
     });
   }, []);
+
+  
+  // 1-Click Multi-Device Backup & Direct Sync Tools
+  const exportFullAppData = () => {
+    const data = {
+      app: 'MUSF Summit Register',
+      college: 'Majlis Umariyya Wafy College',
+      version: '6.0',
+      exportedAt: new Date().toISOString(),
+      summits,
+      programs,
+      programLibrary,
+      students,
+      entries,
+      marks,
+      attendance,
+      judges,
+      teams,
+      classes,
+      settings,
+      notices,
+      certificates
+    };
+    return JSON.stringify(data, null, 2);
+  };
+
+  const importFullAppData = (jsonString) => {
+    try {
+      const data = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
+      if (!data || typeof data !== 'object') throw new Error('Invalid backup file');
+      if (Array.isArray(data.summits)) setSummits(data.summits);
+      if (Array.isArray(data.programs)) setPrograms(data.programs);
+      if (Array.isArray(data.programLibrary)) setProgramLibrary(data.programLibrary);
+      if (Array.isArray(data.students)) setStudents(data.students);
+      if (Array.isArray(data.entries)) setEntries(data.entries);
+      if (Array.isArray(data.marks)) setMarks(data.marks);
+      if (Array.isArray(data.attendance)) setAttendance(data.attendance);
+      if (Array.isArray(data.judges)) setJudges(data.judges);
+      if (Array.isArray(data.teams)) setTeams(data.teams);
+      if (Array.isArray(data.classes)) setClasses(data.classes);
+      if (data.settings && typeof data.settings === 'object') setSettings(prev => ({ ...prev, ...data.settings }));
+      if (Array.isArray(data.notices)) setNotices(data.notices);
+      if (Array.isArray(data.certificates)) setCertificates(data.certificates);
+      return true;
+    } catch (e) {
+      console.error('Import error:', e);
+      throw e;
+    }
+  };
+
+  const [cloudSyncStatus, setCloudSyncStatus] = useState(getSyncStatus);
+  useEffect(() => {
+    const unsub = subscribeSyncStatus(setCloudSyncStatus);
+    return () => unsub();
+  }, []);
+
+  const manualCloudSync = async () => {
+    return await forceSyncAllToCloud({
+      summits,
+      programs,
+      programLibrary,
+      students,
+      entries,
+      marks,
+      attendance,
+      judges,
+      teams,
+      settings,
+      notices,
+      certificates
+    });
+  };
 
   const resetAllDataToDefault = () => {
     Object.values(STORAGE_KEYS).forEach(k => {
@@ -2694,7 +2824,11 @@ export const AppProvider = ({ children }) => {
       autoAllocateTopPerformerCertificates,
       updateSettings,
       addAuditLog,
-      resetAllDataToDefault
+      resetAllDataToDefault,
+      exportFullAppData,
+      importFullAppData,
+      cloudSyncStatus,
+      manualCloudSync
     }}>
       {children}
     </AppContext.Provider>

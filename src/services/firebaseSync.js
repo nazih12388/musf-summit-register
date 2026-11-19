@@ -8,6 +8,62 @@ const lastSyncedStrings = {};
 const lastReceivedStrings = {};
 const debounceTimers = {};
 
+// Cloud Sync Status Tracking
+let currentStatus = {
+  state: 'idle', // 'idle' | 'syncing' | 'synced' | 'quota_exhausted' | 'error'
+  message: 'Cloud sync ready',
+  lastSyncedAt: null,
+  quotaExhausted: false,
+  errorCount: 0
+};
+
+const statusListeners = new Set();
+
+const notifyStatus = () => {
+  const snapshot = { ...currentStatus };
+  statusListeners.forEach((cb) => {
+    try {
+      cb(snapshot);
+    } catch (e) {
+      console.error('[Firestore Sync] Status listener callback error:', e);
+    }
+  });
+};
+
+export const getSyncStatus = () => ({ ...currentStatus });
+
+export const subscribeSyncStatus = (cb) => {
+  statusListeners.add(cb);
+  cb(getSyncStatus());
+  return () => statusListeners.delete(cb);
+};
+
+const handleSyncError = (key, err) => {
+  const msg = err?.message || String(err);
+  const isQuota = msg.includes('RESOURCE_EXHAUSTED') || msg.includes('Quota exceeded') || err?.code === 'resource-exhausted';
+  
+  if (isQuota) {
+    currentStatus = {
+      state: 'quota_exhausted',
+      message: 'Firebase Spark daily quota reached. Direct Device Transfer is active.',
+      lastSyncedAt: currentStatus.lastSyncedAt,
+      quotaExhausted: true,
+      errorCount: currentStatus.errorCount + 1
+    };
+    console.warn(`[Firestore Sync] Quota exceeded on ${key}. App continues safely in Local & Direct Transfer mode.`);
+  } else {
+    currentStatus = {
+      state: 'error',
+      message: msg,
+      lastSyncedAt: currentStatus.lastSyncedAt,
+      quotaExhausted: currentStatus.quotaExhausted,
+      errorCount: currentStatus.errorCount + 1
+    };
+    console.warn(`[Firestore Sync] Failed to sync ${key} to cloud:`, msg);
+  }
+  notifyStatus();
+};
+
 /**
  * Synchronize a state slice to Cloud Firestore
  * Deduplicates identical payloads and debounces writes to prevent quota exhaustion and loops.
@@ -25,6 +81,13 @@ export const syncToCloud = (key, data) => {
 
     if (debounceTimers[key]) clearTimeout(debounceTimers[key]);
 
+    currentStatus = {
+      ...currentStatus,
+      state: 'syncing',
+      message: `Syncing ${key}...`
+    };
+    notifyStatus();
+
     debounceTimers[key] = setTimeout(async () => {
       try {
         lastSyncedStrings[key] = json;
@@ -33,13 +96,67 @@ export const syncToCloud = (key, data) => {
           payload: json,
           updatedAt: new Date().toISOString()
         }, { merge: true });
+
+        currentStatus = {
+          state: 'synced',
+          message: 'All changes saved to cloud',
+          lastSyncedAt: new Date().toISOString(),
+          quotaExhausted: false,
+          errorCount: 0
+        };
+        notifyStatus();
       } catch (err) {
-        console.warn(`[Firestore Sync] Failed to sync ${key} to cloud:`, err.message);
+        handleSyncError(key, err);
       }
-    }, 600);
+    }, 1200);
   } catch (err) {
     console.warn(`[Firestore Sync] Error serializing ${key}:`, err);
   }
+};
+
+/**
+ * Force manual sync of essential state to Cloud
+ */
+export const forceSyncAllToCloud = async (stateMap) => {
+  if (!db || !stateMap) return false;
+
+  currentStatus = {
+    ...currentStatus,
+    state: 'syncing',
+    message: 'Manual cloud sync in progress...'
+  };
+  notifyStatus();
+
+  let hasError = false;
+  for (const [key, data] of Object.entries(stateMap)) {
+    if (data === undefined) continue;
+    try {
+      const json = JSON.stringify(data);
+      lastSyncedStrings[key] = json;
+      const docRef = doc(db, COLLECTION_NAME, key);
+      await setDoc(docRef, {
+        payload: json,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (err) {
+      hasError = true;
+      handleSyncError(key, err);
+      break;
+    }
+  }
+
+  if (!hasError) {
+    currentStatus = {
+      state: 'synced',
+      message: 'Cloud sync complete',
+      lastSyncedAt: new Date().toISOString(),
+      quotaExhausted: false,
+      errorCount: 0
+    };
+    notifyStatus();
+    return true;
+  }
+  return false;
 };
 
 /**
