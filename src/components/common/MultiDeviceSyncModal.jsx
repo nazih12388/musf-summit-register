@@ -179,16 +179,26 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
               </div>
             </div>
           ) : (
-            <div className="p-2.5 rounded-xl bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/50 flex items-center justify-between text-xs text-teal-900 dark:text-teal-200">
+            <div className="p-2.5 rounded-xl bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/50 flex items-center justify-between gap-2 text-xs text-teal-900 dark:text-teal-200">
               <div className="flex items-center gap-2">
-                <Cloud className="w-4 h-4 text-[#0E7C86] dark:text-teal-400" />
+                <Cloud className="w-4 h-4 text-[#0E7C86] dark:text-teal-400 shrink-0" />
                 <span className="font-medium">ക്ലൗഡ് കണക്ഷൻ പ്രവർത്തനക്ഷമമാണ്</span>
               </div>
-              <span className="text-[10px] font-mono text-teal-700 dark:text-teal-400">
-                {cloudSyncStatus?.lastSyncedAt
-                  ? `Last sync: ${new Date(cloudSyncStatus.lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                  : 'Real-time'}
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCloudUsageOpen(true)}
+                  className="px-2.5 py-1 rounded-lg bg-[#0E7C86] text-white hover:bg-[#0B636B] text-[11px] font-bold flex items-center gap-1 shadow-xs transition active:scale-95 shrink-0"
+                >
+                  <Activity className="w-3.5 h-3.5" />
+                  <span>Cloud Tracking</span>
+                </button>
+                <span className="text-[10px] font-mono text-teal-700 dark:text-teal-400 hidden sm:inline">
+                  {cloudSyncStatus?.lastSyncedAt
+                    ? `Last sync: ${new Date(cloudSyncStatus.lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                    : 'Real-time'}
+                </span>
+              </div>
             </div>
           )}
         </div>

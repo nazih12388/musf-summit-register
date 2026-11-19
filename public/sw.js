@@ -9,7 +9,7 @@
  * 4. Cache bust and prompt for updates.
  */
 
-const CACHE_NAME = 'musf-summit-v2';
+const CACHE_NAME = 'musf-summit-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

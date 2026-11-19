@@ -4,7 +4,9 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
 import { ChangePasswordModal } from '../auth/ChangePasswordModal';
 import { MultiDeviceSyncModal } from './MultiDeviceSyncModal';
+import { CloudUsageModal } from '../admin/CloudUsageModal';
 import {
+  Activity,
   Bell,
   Moon,
   Sun,
@@ -58,6 +60,7 @@ export const Navbar = ({
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [internalDrawerOpen, setInternalDrawerOpen] = useState(false);
+  const [isCloudUsageOpen, setIsCloudUsageOpen] = useState(false);
 
   const mobileDrawerOpen = externalDrawerOpen !== undefined ? externalDrawerOpen : internalDrawerOpen;
   const setMobileDrawerOpen = setExternalDrawerOpen || setInternalDrawerOpen;
@@ -124,6 +127,18 @@ export const Navbar = ({
               ) : (
                 <span className="hidden sm:inline text-[11px] font-medium">Sync</span>
               )}
+            </button>
+
+            {/* Direct Cloud Tracking Button in Header */}
+            <button
+              type="button"
+              onClick={() => setIsCloudUsageOpen(true)}
+              className="min-h-[44px] px-2.5 rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/70 transition active:scale-95 flex items-center justify-center gap-1.5 text-xs font-semibold"
+              title="Cloud Usage Tracking / ലൈവ് ക്ലൗഡ് ഉപയോഗ കണക്കുകൾ"
+              aria-label="Cloud Tracking"
+            >
+              <Activity className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <span className="hidden md:inline text-[11px] font-bold">Cloud Tracking</span>
             </button>
 
             {/* Notification Bell with Dropdown */}
@@ -363,6 +378,11 @@ export const Navbar = ({
       <MultiDeviceSyncModal
         isOpen={isSyncModalOpen}
         onClose={() => setIsSyncModalOpen(false)}
+      />
+
+      <CloudUsageModal
+        isOpen={isCloudUsageOpen}
+        onClose={() => setIsCloudUsageOpen(false)}
       />
 
       {/* Mobile Navigation Drawer */}
