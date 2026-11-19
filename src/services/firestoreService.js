@@ -73,6 +73,13 @@ if (typeof window !== 'undefined') {
     isOffline = true;
     notifySyncStatus();
   });
+
+  // Automatically flush pending writes every 45s without requiring user action
+  setInterval(() => {
+    if (pendingWriteQueue.length > 0 && !isOffline) {
+      retryPendingWrites();
+    }
+  }, 45000);
 }
 
 const trackReads = (count) => {
