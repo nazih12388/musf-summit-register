@@ -619,15 +619,16 @@ export const syncScreenData = (screen, role, user, currentSummitId, handlers = {
       }
       sub(COLLECTIONS.STUDENTS, [limit(30)], handlers.setStudents);
     } else if (screen === 'students' || screen === 'teams') {
-      // STUDENTS & TEAMS SCREEN: limit 150
-      sub(COLLECTIONS.STUDENTS, [limit(150)], handlers.setStudents);
+      // STUDENTS & TEAMS SCREEN: covers all 129 students
+      sub(COLLECTIONS.STUDENTS, [limit(200)], handlers.setStudents);
     } else if (screen === 'programs') {
       if (currentSummitId) {
         sub(COLLECTIONS.PROGRAMS, [where('summitId', '==', currentSummitId)], handlers.setPrograms);
       } else {
-        sub(COLLECTIONS.PROGRAMS, [limit(40)], handlers.setPrograms);
+        sub(COLLECTIONS.PROGRAMS, [limit(100)], handlers.setPrograms);
       }
-      sub(COLLECTIONS.PROGRAM_LIBRARY, [limit(50)], handlers.setProgramLibrary);
+      // Covers all 101 library programs
+      sub(COLLECTIONS.PROGRAM_LIBRARY, [limit(150)], handlers.setProgramLibrary);
       sub(COLLECTIONS.JUDGES, [limit(20)], handlers.setJudges);
     } else if (screen === 'marks') {
       // MARKS SCREEN: scoped to current summit
@@ -636,31 +637,42 @@ export const syncScreenData = (screen, role, user, currentSummitId, handlers = {
         sub(COLLECTIONS.ENTRIES, [where('summitId', '==', currentSummitId)], handlers.setEntries);
         sub(COLLECTIONS.PROGRAMS, [where('summitId', '==', currentSummitId)], handlers.setPrograms);
       } else {
-        sub(COLLECTIONS.MARKS, [limit(60)], handlers.setMarks);
-        sub(COLLECTIONS.PROGRAMS, [limit(30)], handlers.setPrograms);
+        sub(COLLECTIONS.MARKS, [limit(100)], handlers.setMarks);
+        sub(COLLECTIONS.PROGRAMS, [limit(60)], handlers.setPrograms);
       }
-      sub(COLLECTIONS.STUDENTS, [limit(100)], handlers.setStudents);
+      sub(COLLECTIONS.STUDENTS, [limit(200)], handlers.setStudents);
     } else if (screen === 'attendance') {
       // ATTENDANCE SCREEN: scoped strictly to selected summit!
       if (currentSummitId) {
         sub(COLLECTIONS.ATTENDANCE, [where('summitId', '==', currentSummitId)], handlers.setAttendance);
       } else {
-        sub(COLLECTIONS.ATTENDANCE, [limit(60)], handlers.setAttendance);
+        sub(COLLECTIONS.ATTENDANCE, [limit(100)], handlers.setAttendance);
       }
-      sub(COLLECTIONS.STUDENTS, [limit(100)], handlers.setStudents);
+      sub(COLLECTIONS.STUDENTS, [limit(200)], handlers.setStudents);
     } else if (screen === 'settings' || screen === 'audit') {
       // AUDIT TRAIL: strictly limited to latest 30!
       sub(COLLECTIONS.AUDIT_LOGS, [orderBy('timestamp', 'desc'), limit(30)], handlers.setAuditLogs);
       sub(COLLECTIONS.JUDGES, [limit(20)], handlers.setJudges);
     } else if (screen === 'certificates') {
       sub(COLLECTIONS.CERTIFICATES, [limit(50)], handlers.setCertificates);
-      sub(COLLECTIONS.STUDENTS, [limit(100)], handlers.setStudents);
+      sub(COLLECTIONS.STUDENTS, [limit(200)], handlers.setStudents);
     } else if (screen === 'reports') {
       sub(COLLECTIONS.REPORT_HISTORY, [limit(20)], handlers.setReportHistory);
-      sub(COLLECTIONS.STUDENTS, [limit(100)], handlers.setStudents);
+      sub(COLLECTIONS.STUDENTS, [limit(200)], handlers.setStudents);
       if (currentSummitId) {
         sub(COLLECTIONS.MARKS, [where('summitId', '==', currentSummitId)], handlers.setMarks);
       }
+    }
+  }
+
+  // === PUBLIC / LEADERBOARD ROLE ===
+  if (role === 'public') {
+    if (currentSummitId) {
+      sub(COLLECTIONS.PROGRAMS, [where('summitId', '==', currentSummitId)], handlers.setPrograms);
+      sub(COLLECTIONS.MARKS, [where('summitId', '==', currentSummitId)], handlers.setMarks);
+    } else {
+      sub(COLLECTIONS.PROGRAMS, [limit(50)], handlers.setPrograms);
+      sub(COLLECTIONS.MARKS, [limit(100)], handlers.setMarks);
     }
   }
 
