@@ -1691,7 +1691,7 @@ export const ProgramManagement = () => {
                       type="text"
                       value={groupNameInput}
                       onChange={(e) => setGroupNameInput(e.target.value)}
-                      placeholder="e.g. Al-Bayan Senior Debaters"
+                      placeholder="e.g. Team A Senior Debaters"
                       className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold"
                     />
                   </div>

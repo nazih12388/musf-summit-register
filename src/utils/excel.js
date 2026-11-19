@@ -7,38 +7,38 @@ export function downloadStudentTemplate() {
   const sampleData = [
     {
       "Name": "Ahmad Faris",
-      "CIC Number": "WAFY-2024-201",
+      "CIC Number": "23980",
       "Class": "Class 1",
-      "Group": "Al-Bayan",
-      "Field": "Foundational Academic"
+      "Group": "A",
+      "Field": "General"
     },
     {
       "Name": "Muhammed Sinan",
-      "CIC Number": "WAFY-2024-202",
+      "CIC Number": "22934",
       "Class": "Class 2",
-      "Group": "Al-Furqan",
-      "Field": "Foundational Academic"
+      "Group": "B",
+      "Field": "General"
     },
     {
       "Name": "Ammar Farooq",
-      "CIC Number": "WAFY-2024-203",
+      "CIC Number": "21724",
       "Class": "Class 3",
-      "Group": "Al-Ihsan",
+      "Group": "C",
       "Field": "Communicative"
     },
     {
       "Name": "Rashid Hashmi",
-      "CIC Number": "WAFY-2024-204",
+      "CIC Number": "21015",
       "Class": "Class 4",
-      "Group": "Al-Hikmah",
-      "Field": "Creative"
+      "Group": "A",
+      "Field": "Creative & Media"
     },
     {
       "Name": "Rayyan Shafi",
-      "CIC Number": "WAFY-2024-205",
+      "CIC Number": "20194",
       "Class": "Class 5",
-      "Group": "Al-Bayan",
-      "Field": "Communicative"
+      "Group": "C",
+      "Field": "Management & Psychological"
     }
   ];
 

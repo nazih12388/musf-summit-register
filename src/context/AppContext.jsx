@@ -44,22 +44,46 @@ export const AppProvider = ({ children }) => {
   // Safe helper to parse stored arrays with fallback and seamless migration from legacy keys
   const safeParseArray = (key, fallback) => {
     try {
+      const isOfficialVersion = localStorage.getItem('musf_official_v2026_11') === 'true';
+      if (!isOfficialVersion) {
+        // Enforce the new official collegiate data for teams, students, classes, fields, programLibrary
+        if (
+          key === STORAGE_KEYS.TEAMS ||
+          key === STORAGE_KEYS.STUDENTS ||
+          key === STORAGE_KEYS.PROGRAM_LIBRARY ||
+          key === STORAGE_KEYS.CLASSES ||
+          key === STORAGE_KEYS.FIELDS
+        ) {
+          return fallback;
+        }
+      }
+
       const raw = localStorage.getItem(key);
       if (raw !== null) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed;
-      }
-      // Check legacy v5 key before falling back to initial defaults so entered data is NEVER lost
-      const legacyKeyV5 = key.replace('_v6', '_v5');
-      const rawV5 = localStorage.getItem(legacyKeyV5);
-      if (rawV5 !== null) {
-        try {
-          const parsedV5 = JSON.parse(rawV5);
-          if (Array.isArray(parsedV5) && parsedV5.length > 0) {
-            localStorage.setItem(key, rawV5);
-            return parsedV5;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // If checking teams, make sure it's Team A, B, C, not demo teams like Badr or Al-Bayan
+          if (key === STORAGE_KEYS.TEAMS) {
+            const hasDemoNames = parsed.some(t =>
+              t.name?.includes('Al-Bayan') ||
+              t.name?.includes('Al-Furqan') ||
+              t.name?.includes('Al-Ihsan') ||
+              t.name?.includes('Al-Hikmah') ||
+              t.name?.includes('Badr') ||
+              t.name?.includes('Uhud')
+            );
+            if (hasDemoNames || parsed.length !== 3) return fallback;
           }
-        } catch {}
+          // If checking students, ensure full official list is present
+          if (key === STORAGE_KEYS.STUDENTS && parsed.length < 100) {
+            return fallback;
+          }
+          // If checking programLibrary, ensure official library is present
+          if (key === STORAGE_KEYS.PROGRAM_LIBRARY && parsed.length < 50) {
+            return fallback;
+          }
+          return parsed;
+        }
       }
       return fallback;
     } catch {
@@ -121,6 +145,19 @@ export const AppProvider = ({ children }) => {
         if (Array.isArray(rawAudit)) {
           const cleaned = rawAudit.filter(a => a.id !== 'al-1' && a.id !== 'al-2' && a.id !== 'al-3');
           localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(cleaned));
+        }
+      } catch {}
+
+      // Official collegiate dataset enforcement (Teams A, B, C, 129 students, 101 programs)
+      try {
+        const isOfficial = localStorage.getItem('musf_official_v2026_11') === 'true';
+        if (!isOfficial) {
+          localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(INITIAL_TEAMS));
+          localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(INITIAL_CLASSES));
+          localStorage.setItem(STORAGE_KEYS.FIELDS, JSON.stringify(INITIAL_FIELDS));
+          localStorage.setItem(STORAGE_KEYS.PROGRAM_LIBRARY, JSON.stringify(INITIAL_PROGRAM_LIBRARY));
+          localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(INITIAL_STUDENTS));
+          localStorage.setItem('musf_official_v2026_11', 'true');
         }
       } catch {}
     } catch {}
@@ -1199,6 +1236,7 @@ export const AppProvider = ({ children }) => {
     })).filter(p => p.name.length > 0);
 
     setProgramLibrary(prev => [...prev, ...newItems]);
+    batchSaveDocs(COLLECTIONS.PROGRAM_LIBRARY, newItems);
     addAuditLog(actor, 'BULK_IMPORT_PROGRAMS', `Bulk imported ${newItems.length} programs to master library`);
     return { count: newItems.length };
   };

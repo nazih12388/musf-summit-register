@@ -2178,7 +2178,7 @@ export const TeamAndClassManagement = () => {
                       required
                       value={quickTeamName}
                       onChange={(e) => setQuickTeamName(e.target.value)}
-                      placeholder="e.g. Team Al-Furqan"
+                      placeholder="e.g. Team A"
                       className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-sm text-[#0F2A4A] dark:text-white"
                     />
                   </div>

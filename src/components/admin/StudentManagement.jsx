@@ -83,7 +83,7 @@ export const StudentManagement = () => {
     name: '',
     cicNo: '',
     classId: classes[0]?.id || 'c1',
-    teamId: teams[0]?.id || 't1',
+    teamId: teams[0]?.id || 'team_a',
     fieldId: '',
     chestNo: '',
     password: ''
@@ -157,7 +157,7 @@ export const StudentManagement = () => {
       name: '',
       cicNo: '',
       classId: classes[0]?.id || 'c1',
-      teamId: teams[0]?.id || 't1',
+      teamId: teams[0]?.id || 'team_a',
       fieldId: '',
       chestNo: '',
       password: 'student123'
@@ -202,7 +202,7 @@ export const StudentManagement = () => {
           "Name": parts[0]?.trim(),
           "CIC Number": parts[1]?.trim(),
           "Class": parts[2]?.trim() || "Class 1",
-          "Group": parts[3]?.trim() || teams[0]?.name || "Al-Bayan",
+          "Group": parts[3]?.trim() || teams[0]?.name || "Team A",
           "Field": parts[4]?.trim() || ""
         });
       }
@@ -242,11 +242,15 @@ export const StudentManagement = () => {
         c?.id?.toLowerCase() === String(className || '').toLowerCase()
       ) || classes[0] || { id: 'c1', name: 'Class 1', sectionId: 'thamheediyya' };
 
-      // Match team/group
+      // Match team/group (matches "A", "Team A", "team_a", etc.)
+      const rawGroup = String(teamName || '').trim().toLowerCase();
       const matchedTeam = (teams || []).find(t =>
-        t?.name?.toLowerCase().includes(String(teamName || '').toLowerCase()) ||
-        t?.id?.toLowerCase() === String(teamName || '').toLowerCase()
-      ) || teams[0] || { id: 't1', name: 'Team Al-Bayan', color: '#0E7C86' };
+        t?.id?.toLowerCase() === rawGroup ||
+        t?.name?.toLowerCase() === rawGroup ||
+        t?.name?.toLowerCase() === `team ${rawGroup}` ||
+        t?.name?.toLowerCase().endsWith(` ${rawGroup}`) ||
+        rawGroup.includes(t?.name?.toLowerCase())
+      ) || teams[0] || { id: 'team_a', name: 'Team A', color: '#0E7C86' };
 
       const isAliya = matchedClass.sectionId === 'aliya';
       let matchedField = null;
@@ -1023,7 +1027,7 @@ export const StudentManagement = () => {
                 rows="5"
                 value={pastedText}
                 onChange={(e) => setPastedText(e.target.value)}
-                placeholder="Ahmad Faris, WAFY-2024-201, Class 1, Al-Bayan&#10;Ammar Farooq, WAFY-2024-203, Class 3, Al-Ihsan, Communicative&#10;Rashid Hashmi, WAFY-2024-204, Class 4, Al-Hikmah, Creative"
+                placeholder="Ahmad Faris, 23980, Class 1, A, General&#10;Ammar Farooq, 21724, Class 3, C, Communicative&#10;Rashid Hashmi, 21015, Class 4, A, Creative & Media"
                 className="w-full p-3 font-mono text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
               />
               <button
