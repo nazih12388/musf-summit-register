@@ -121,6 +121,17 @@ export async function verifyPassword(candidate, storedHash, salt = DEFAULT_SALT)
       return true;
     }
 
+    // 3b. Direct unsalted SHA-256 fallback
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(trimmedCandidate);
+      const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+      const unsalted = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      if (unsalted.toLowerCase() === rawStored.toLowerCase()) {
+        return true;
+      }
+    } catch {}
+
     if (rawCandidate !== trimmedCandidate) {
       const rawCandidateHash = await hashPassword(rawCandidate, salt);
       if (rawCandidateHash && rawCandidateHash.toLowerCase() === rawStored.toLowerCase()) {
