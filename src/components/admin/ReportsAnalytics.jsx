@@ -49,26 +49,26 @@ import {
 
 export const ReportsAnalytics = () => {
   const {
-    summits,
-    sections,
-    fields,
-    programs,
-    entries,
-    students,
-    teams,
-    classes,
-    judges,
-    marks,
-    attendance,
-    settings,
-    studentAttendanceMap,
-    programResultsMap,
-    studentStandings,
-    top10Rankings,
-    teamStandings,
-    fieldPerformanceMap,
-    classEvaluations,
-    reportHistory,
+    summits = [],
+    sections = [],
+    fields = [],
+    programs = [],
+    entries = [],
+    students = [],
+    teams = [],
+    classes = [],
+    judges = [],
+    marks = [],
+    attendance = [],
+    settings = {},
+    studentAttendanceMap = {},
+    programResultsMap = {},
+    studentStandings = [],
+    top10Rankings = [],
+    teamStandings = [],
+    fieldPerformanceMap = {},
+    classEvaluations = [],
+    reportHistory = [],
     addReportHistory,
     checkSummitRegistrationDeadlines
   } = useApp();
@@ -1289,11 +1289,11 @@ export const ReportsAnalytics = () => {
                     ) : (
                       activeTop10List.map((st, idx) => (
                       <tr key={st.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                        <td className="p-2.5 font-bold">
-                          {idx === 0 ? <span className="text-amber-500 font-bold">🥇 Rank #1</span>
-                            : idx === 1 ? <span className="text-slate-400 font-bold">🥈 Rank #2</span>
-                            : idx === 2 ? <span className="text-amber-700 font-bold">🥉 Rank #3</span>
-                            : `#${idx + 1}`}
+                        <td className="p-2.5 font-semibold text-xs">
+                          {idx === 0 ? <span className="text-[#C9A227] font-bold">#1</span>
+                            : idx === 1 ? <span className="text-slate-600 dark:text-slate-300 font-semibold">#2</span>
+                            : idx === 2 ? <span className="text-slate-600 dark:text-slate-300 font-semibold">#3</span>
+                            : <span className="text-slate-500 font-mono">#{idx + 1}</span>}
                         </td>
                         <td className="p-2.5 font-bold text-[#0F2A4A] dark:text-white">{st.name}</td>
                         <td className="p-2.5 font-mono text-[11px] text-slate-500">{st.cicNo}</td>

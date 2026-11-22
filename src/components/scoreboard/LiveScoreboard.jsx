@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 export const LiveScoreboard = () => {
-  const { teamStandings, programResultsMap, programs, settings, notices } = useApp();
+  const { teamStandings = [], programResultsMap = {}, programs = [], settings = {}, notices = [] } = useApp();
   const { t } = useLanguage();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -135,7 +135,7 @@ export const LiveScoreboard = () => {
               FLASH
             </span>
             <marquee className="font-medium">
-              📢 {latestNotice.title}: {latestNotice.message} ({latestNotice.date})
+              {latestNotice.title}: {latestNotice.message} ({latestNotice.date})
             </marquee>
           </div>
         )}
@@ -147,7 +147,7 @@ export const LiveScoreboard = () => {
           {/* 2nd Place */}
           <div className="flex flex-col items-center">
             <div className="w-full bg-slate-100 dark:bg-slate-800/80 rounded-2xl p-3 sm:p-4 border-t-4 border-slate-400 shadow-md text-center flex flex-col items-center transition hover:scale-102">
-              <span className="text-xl sm:text-3xl font-black text-slate-400 mb-1">🥈 2nd</span>
+              <span className="text-base sm:text-lg font-bold text-slate-500 dark:text-slate-400 mb-1">2nd Place</span>
               <div 
                 className="w-4 h-4 rounded-full mb-1" 
                 style={{ backgroundColor: teamStandings[1].color }} 
@@ -170,7 +170,7 @@ export const LiveScoreboard = () => {
               <span className="absolute -top-4 px-3 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-extrabold uppercase tracking-widest shadow-md">
                 CHAMPION
               </span>
-              <span className="text-2xl sm:text-4xl font-black text-amber-500 mb-1">🥇 1st</span>
+              <span className="text-lg sm:text-xl font-bold text-[#C9A227] mb-1">1st Place</span>
               <div 
                 className="w-5 h-5 rounded-full mb-1" 
                 style={{ backgroundColor: teamStandings[0].color }} 
@@ -190,7 +190,7 @@ export const LiveScoreboard = () => {
           {/* 3rd Place */}
           <div className="flex flex-col items-center">
             <div className="w-full bg-slate-100 dark:bg-slate-800/80 rounded-2xl p-3 sm:p-4 border-t-4 border-amber-700 shadow-md text-center flex flex-col items-center transition hover:scale-102">
-              <span className="text-xl sm:text-3xl font-black text-amber-700 mb-1">🥉 3rd</span>
+              <span className="text-base sm:text-lg font-bold text-slate-500 dark:text-slate-400 mb-1">3rd Place</span>
               <div 
                 className="w-4 h-4 rounded-full mb-1" 
                 style={{ backgroundColor: teamStandings[2].color }} 
@@ -354,11 +354,10 @@ export const LiveScoreboard = () => {
                             className="flex items-center justify-between text-xs p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80"
                           >
                             <div className="flex items-center gap-2">
-                              <span className={`font-black ${
-                                rIdx === 0 ? 'text-amber-500' :
-                                rIdx === 1 ? 'text-slate-400' : 'text-amber-700'
+                              <span className={`text-xs font-semibold ${
+                                rIdx === 0 ? 'text-[#C9A227]' : 'text-slate-500'
                               }`}>
-                                {rIdx === 0 ? '🥇' : rIdx === 1 ? '🥈' : '🥉'}
+                                #{rIdx + 1}
                               </span>
                               <span className="font-semibold text-slate-800 dark:text-slate-200">
                                 {r.participantName}

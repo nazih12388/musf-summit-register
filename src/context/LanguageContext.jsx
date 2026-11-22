@@ -2,9 +2,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const translations = {
   en: {
-    appTitle: "MUSF Summit Register",
+    appTitle: "MUSF Students' Union",
+    unionFullName: "Majlis Umariyya Students' Federation",
     collegeName: "Majlis Umariyya Wafy College",
-    tagline: "Academic, Leadership & Talent Summit Management",
+    tagline: "Academic, Leadership & Union Governance System",
     loginSubtitle: "Sign in with your official college credentials",
     roles: {
       admin: "Administrator",
@@ -110,9 +111,10 @@ const translations = {
     }
   },
   ml: {
-    appTitle: "മുസ്ഫ് സമ്മിറ്റ് രജിസ്റ്റർ",
+    appTitle: "MUSF സ്റ്റുഡന്റ്സ് യൂണിയൻ",
+    unionFullName: "മജ്‌ലിസ് ഉമരിയ്യ സ്റ്റുഡന്റ്സ് ഫെഡറേഷൻ",
     collegeName: "മജ്‌ലിസ് ഉമരിയ്യ വാഫി കോളേജ്",
-    tagline: "അക്കാദമിക് & ലീഡർഷിപ്പ് സമ്മിറ്റ് മാനേജ്‌മെന്റ്",
+    tagline: "വിദ്യാർത്ഥി യൂണിയൻ മാനേജ്‌മെന്റ് സിസ്റ്റം",
     loginSubtitle: "നിങ്ങളുടെ ഔദ്യോഗിക വിവരങ്ങൾ ഉപയോഗിച്ച് പ്രവേശിക്കുക",
     roles: {
       admin: "അഡ്മിനിസ്ട്രേറ്റർ",
@@ -236,8 +238,11 @@ export const LanguageProvider = ({ children }) => {
 
   const t = translations[lang] || translations.en;
 
+  // Translation helper: always returns clean English when lang === 'en', and Malayalam only when lang === 'ml'
+  const tr = (enText, mlText) => (lang === 'ml' ? (mlText || enText) : enText);
+
   return (
-    <LanguageContext.Provider value={{ lang, setLang, toggleLanguage, t }}>
+    <LanguageContext.Provider value={{ lang, setLang, toggleLanguage, t, tr }}>
       {children}
     </LanguageContext.Provider>
   );

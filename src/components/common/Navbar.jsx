@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
-import { ChangePasswordModal } from '../auth/ChangePasswordModal';
-import { MultiDeviceSyncModal } from './MultiDeviceSyncModal';
 import { CloudUsageModal } from '../admin/CloudUsageModal';
+import { Instagram } from './InstagramIcon';
 import {
   Activity,
   Bell,
@@ -32,8 +31,17 @@ import {
   Settings,
   LayoutDashboard,
   Trash2,
-  Share2
+  Share2,
+  Folder,
+  Palette,
+  Trophy,
+  Award,
+  Lock,
+  FileText,
+  Sparkles
 } from 'lucide-react';
+import { useReducedMotionPreference } from '../../utils/motion';
+import { resolveConvenerWing } from '../../utils/wingHelper';
 
 export const Navbar = ({
   isDark,
@@ -44,19 +52,20 @@ export const Navbar = ({
   setMobileDrawerOpen: setExternalDrawerOpen
 }) => {
   const { currentUser, logout } = useAuth();
-  const { lang, toggleLanguage, t } = useLanguage();
+  const { lang, toggleLanguage, t, tr: ctxTr } = useLanguage();
+  const tr = ctxTr || ((en, ml) => (lang === 'ml' ? (ml || en) : en));
   const {
-    notifications,
+    notifications = [],
     markNotificationRead,
     markAllNotificationsRead,
     deleteNotification,
     clearAllNotifications,
-    settings,
-    cloudSyncStatus
+    settings = {},
+    cloudSyncStatus,
+    wings = [],
+    unionOfficials = []
   } = useApp();
 
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
-  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [internalDrawerOpen, setInternalDrawerOpen] = useState(false);
@@ -64,15 +73,37 @@ export const Navbar = ({
 
   const mobileDrawerOpen = externalDrawerOpen !== undefined ? externalDrawerOpen : internalDrawerOpen;
   const setMobileDrawerOpen = setExternalDrawerOpen || setInternalDrawerOpen;
+  const { reduceMotion, toggleReduceMotion } = useReducedMotionPreference();
 
   // Filter notifications for current user (or general/all)
-  const myNotifications = notifications.filter(
-    n => n.userId === currentUser?.id || n.userId === 'all' || currentUser?.role === 'admin'
-  );
-  const unreadCount = myNotifications.filter(n => !n.read).length;
+  const myNotifications = notifications.filter(n => {
+    return !n.userId ||
+      n.userId === 'all' ||
+      n.userId === currentUser?.id ||
+      n.userId === currentUser?.studentId ||
+      n.userId === currentUser?.username ||
+      n.userId === currentUser?.role ||
+      (n.userId === 'students' && currentUser?.role === 'student') ||
+      (n.userId === 'leaders' && currentUser?.role === 'leader') ||
+      currentUser?.role === 'admin';
+  });
+
+  const isNotifUnread = (n) => {
+    const readBy = Array.isArray(n.readBy) ? n.readBy : [];
+    const hasRead = readBy.includes(currentUser?.id) ||
+      readBy.includes(currentUser?.studentId) ||
+      readBy.includes(currentUser?.username);
+    const isBroadcast = !n.userId || n.userId === 'all' || n.userId === 'students' || n.userId === 'leaders';
+    return isBroadcast ? !hasRead : (!n.read && !hasRead);
+  };
+
+  const unreadCount = myNotifications.filter(isNotifUnread).length;
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0B1522]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 pt-[env(safe-area-inset-top,0px)]">
+    <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0B1522]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 pt-[env(safe-area-inset-top,0px)] shadow-xs">
+      {/* Radiant Multi-Hue Iridescent Brand Top Accent Bar */}
+      <div className="h-1 w-full bg-gradient-to-r from-[#0E7C86] via-indigo-500 via-amber-400 via-rose-500 to-[#0E7C86] bg-[length:200%_100%] animate-shimmer" />
+
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
         <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Left: Mobile Menu Trigger & Brand */}
@@ -81,7 +112,7 @@ export const Navbar = ({
               <button
                 type="button"
                 onClick={() => setMobileDrawerOpen(true)}
-                className="md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-95"
+                className="md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-700 dark:text-slate-200 hover:bg-teal-50 dark:hover:bg-slate-800 transition active:scale-95"
                 title="Open All Navigation Sections"
                 aria-label="Navigation Menu"
               >
@@ -89,57 +120,32 @@ export const Navbar = ({
               </button>
             )}
 
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden border border-[#0E7C86]/50 shadow-xs shrink-0 bg-[#0F2A4A] relative">
-              <img src="/college-campus.jpg" alt="Logo" className="w-full h-full object-cover" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden ring-2 ring-[#0E7C86]/60 dark:ring-teal-400/60 shadow-sm shrink-0 bg-white relative">
+              <img
+                src="/amu-crest-square.png"
+                alt="Majlis Umariyya Wafy College"
+                className="w-full h-full object-cover"
+                onError={(e) => { e.currentTarget.src = '/college-campus.jpg'; }}
+              />
             </div>
 
             <div className="min-w-0 flex-1">
-              <h1 className="text-xs sm:text-sm font-bold text-[#0F2A4A] dark:text-white leading-tight truncate">
-                {settings.collegeName}
-              </h1>
-              <p className="text-[10px] sm:text-[11px] font-semibold text-[#0E7C86] dark:text-teal-400 truncate">
-                {t.appTitle}
+              <div className="flex items-center gap-2">
+                <h1 className="sm:hidden text-sm font-bold text-[#0F2A4A] dark:text-white leading-tight">
+                  MUSF Union
+                </h1>
+                <h1 className="hidden sm:block text-xs sm:text-sm font-bold text-[#0F2A4A] dark:text-white leading-tight truncate">
+                  {settings.collegeName || "Majlis Umariyya Wafy College"}
+                </h1>
+              </div>
+              <p className="hidden sm:block text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
+                {t.unionFullName || "Majlis Umariyya Students' Federation"}
               </p>
             </div>
           </div>
 
-          {/* Right Action Icons: Sync, Notification Bell, Language, Dark Mode, User Profile */}
+          {/* Right Action Icons: Notification Bell, Language, Dark Mode, User Profile */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-            {/* Multi-Device Cloud Sync Button */}
-            <button
-              type="button"
-              onClick={() => setIsSyncModalOpen(true)}
-              className={`min-h-[44px] px-2.5 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-semibold transition active:scale-95 ${
-                cloudSyncStatus?.quotaExhausted
-                  ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300'
-                  : cloudSyncStatus?.state === 'syncing'
-                  ? 'border-blue-400 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300'
-                  : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-              }`}
-              title="Multi-Device Sync / ക്രോസ്-ഡിവൈസ് ഡാറ്റ സമന്വയം"
-              aria-label="Multi-Device Sync"
-            >
-              <Share2 className="w-3.5 h-3.5 text-[#0E7C86] dark:text-teal-400 shrink-0" />
-              {cloudSyncStatus?.quotaExhausted ? (
-                <span className="hidden sm:inline text-[11px] font-bold text-amber-700 dark:text-amber-400">Direct Sync</span>
-              ) : cloudSyncStatus?.state === 'syncing' ? (
-                <span className="hidden sm:inline text-[11px] text-blue-700 dark:text-blue-400">Syncing...</span>
-              ) : (
-                <span className="hidden sm:inline text-[11px] font-medium">Sync</span>
-              )}
-            </button>
-
-            {/* Direct Cloud Tracking Button in Header */}
-            <button
-              type="button"
-              onClick={() => setIsCloudUsageOpen(true)}
-              className="min-h-[44px] px-2.5 rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/70 transition active:scale-95 flex items-center justify-center gap-1.5 text-xs font-semibold"
-              title="Cloud Usage Tracking / ലൈവ് ക്ലൗഡ് ഉപയോഗ കണക്കുകൾ"
-              aria-label="Cloud Tracking"
-            >
-              <Activity className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-              <span className="hidden md:inline text-[11px] font-bold">Cloud Tracking</span>
-            </button>
 
             {/* Notification Bell with Dropdown */}
             <div className="relative">
@@ -149,13 +155,13 @@ export const Navbar = ({
                   setNotifDropdownOpen(prev => !prev);
                   setUserDropdownOpen(false);
                 }}
-                className="relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-95"
+                className="relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-teal-50 dark:hover:bg-slate-800 transition active:scale-95"
                 title="Notifications"
                 aria-label="Notifications"
               >
                 <Bell className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center">
+                  <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-gradient-to-tr from-rose-600 to-pink-500 text-white text-[9px] font-bold flex items-center justify-center shadow-xs animate-pulse">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -170,113 +176,101 @@ export const Navbar = ({
                     onClick={() => setNotifDropdownOpen(false)}
                     onTouchStart={() => setNotifDropdownOpen(false)}
                   />
-                  <div 
+                  <div
                     className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-96 max-w-full bg-white dark:bg-[#0F1B2B] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 py-2 text-xs z-50 animate-in fade-in max-h-[80vh] flex flex-col"
                     onClick={(e) => e.stopPropagation()}
                   >
-                  <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 dark:border-slate-800">
-                    <span className="font-bold text-[#0F2A4A] dark:text-white flex items-center gap-1.5">
-                      <Bell className="w-3.5 h-3.5 text-[#0E7C86]" />
-                      <span>Notifications ({unreadCount} new)</span>
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {unreadCount > 0 && (
-                        <button
-                          onClick={() => markAllNotificationsRead(currentUser?.id)}
-                          className="text-[11px] text-[#0E7C86] hover:underline flex items-center gap-1 font-semibold"
-                          title="Mark all as read"
-                        >
-                          <CheckCheck className="w-3 h-3" />
-                          <span>Mark read</span>
-                        </button>
-                      )}
-                      {myNotifications.length > 0 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm('Clear all notifications?')) {
-                              clearAllNotifications(currentUser?.role === 'admin' ? null : currentUser?.id);
-                            }
-                          }}
-                          className="text-[11px] text-rose-500 hover:text-rose-700 hover:underline flex items-center gap-1 font-semibold"
-                          title="Clear all notifications"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          <span>Clear</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
-                    {myNotifications.length === 0 ? (
-                      <div className="p-6 text-center text-slate-400">
-                        No notifications yet.
-                      </div>
-                    ) : (
-                      myNotifications.map(n => (
-                        <div
-                          key={n.id}
-                          onClick={() => markNotificationRead(n.id)}
-                          className={`p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition flex items-start justify-between gap-2.5 group ${
-                            !n.read ? 'bg-teal-50/50 dark:bg-teal-950/20' : ''
-                          }`}
-                        >
-                          <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                            <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.read ? 'bg-[#0E7C86]' : 'bg-transparent'}`} />
-                            <div className="space-y-0.5 flex-1 min-w-0">
-                              <div className="font-semibold text-slate-900 dark:text-white leading-tight truncate">
-                                {n.title}
-                              </div>
-                              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug break-words">
-                                {n.message}
-                              </p>
-                              <span className="text-[10px] text-slate-400 block pt-0.5 font-mono">
-                                {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                          </div>
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 dark:border-slate-800">
+                      <span className="font-bold text-[#0F2A4A] dark:text-white flex items-center gap-1.5">
+                        <Bell className="w-3.5 h-3.5 text-[#0E7C86]" />
+                        <span>Notifications ({unreadCount} new)</span>
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={() => markAllNotificationsRead(currentUser?.id)}
+                            className="text-[11px] text-[#0E7C86] hover:underline flex items-center gap-1 font-semibold"
+                            title="Mark all as read"
+                          >
+                            <CheckCheck className="w-3 h-3" />
+                            <span>Mark read</span>
+                          </button>
+                        )}
+                        {myNotifications.length > 0 && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              deleteNotification(n.id);
+                              if (window.confirm('Clear all notifications?')) {
+                                clearAllNotifications(currentUser?.role === 'admin' ? null : currentUser?.id);
+                              }
                             }}
-                            className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0"
-                            title="Delete notification"
+                            className="text-[11px] text-rose-500 hover:text-rose-700 hover:underline flex items-center gap-1 font-semibold"
+                            title="Clear all notifications"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3 h-3" />
+                            <span>Clear</span>
                           </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                      {myNotifications.length === 0 ? (
+                        <div className="p-6 text-center text-slate-400">
+                          No notifications yet.
                         </div>
-                      ))
-                    )}
+                      ) : (
+                        myNotifications.map(n => {
+                          const unread = isNotifUnread(n);
+                          return (
+                            <div
+                              key={n.id}
+                              onClick={() => {
+                                markNotificationRead(n.id, currentUser?.id || currentUser?.username);
+                                setNotifDropdownOpen(false);
+                                window.dispatchEvent(new CustomEvent('musf:open-notifications', { detail: { notifId: n.id } }));
+                              }}
+                              className={`p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition flex items-start justify-between gap-2.5 group ${unread ? 'bg-teal-50/50 dark:bg-teal-950/20' : ''
+                                }`}
+                            >
+                              <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                                <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${unread ? 'bg-[#0E7C86] animate-ping' : 'bg-transparent'}`} />
+                                <div className="space-y-0.5 flex-1 min-w-0">
+                                  <div className="font-semibold text-slate-900 dark:text-white leading-tight truncate">
+                                    {n.title}
+                                  </div>
+                                  {n.author && (
+                                    <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold block">
+                                      {n.author} {n.wingName ? `• ${n.wingName}` : (n.authorDesignation ? `• ${n.authorDesignation}` : '')}
+                                    </span>
+                                  )}
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug break-words">
+                                    {n.message}
+                                  </p>
+                                  <span className="text-[10px] text-slate-400 block pt-0.5 font-mono">
+                                    {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteNotification(n.id);
+                                }}
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0"
+                                title="Delete notification"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
             </div>
-
-            {/* Language Toggle (Desktop Header) */}
-            <button
-              type="button"
-              onClick={toggleLanguage}
-              className="hidden md:flex min-w-[44px] min-h-[44px] px-2.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 transition items-center justify-center gap-1.5 active:scale-95"
-              title="Toggle Language / ഭാഷ മാറ്റുക"
-              aria-label="Toggle Language"
-            >
-              <Globe className="w-4 h-4 text-[#0E7C86]" />
-              <span>{lang === 'en' ? 'മലയാളം' : 'English'}</span>
-            </button>
-
-            {/* Dark Mode Toggle (Desktop Header) */}
-            <button
-              type="button"
-              onClick={() => setIsDark(prev => !prev)}
-              className="hidden md:flex min-w-[44px] min-h-[44px] p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shadow-xs items-center justify-center active:scale-95"
-              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              aria-label="Toggle Theme"
-            >
-              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-[#334E73]" />}
-            </button>
 
             {/* User Profile Pill & Dropdown */}
             {currentUser && (
@@ -287,40 +281,43 @@ export const Navbar = ({
                     setUserDropdownOpen(prev => !prev);
                     setNotifDropdownOpen(false);
                   }}
-                  className="min-h-[44px] flex items-center gap-1.5 sm:gap-2 py-1.5 px-2 sm:px-2.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-semibold hover:bg-slate-100 transition active:scale-95"
+                  className="min-h-[44px] flex items-center gap-2 py-1.5 px-2.5 rounded-xl border border-teal-200/80 dark:border-teal-800/60 bg-gradient-to-r from-teal-50/50 via-white to-indigo-50/30 dark:from-[#0F1B2B] dark:to-[#112338] text-xs hover:border-teal-400 dark:hover:border-teal-600 transition active:scale-95 shadow-2xs"
                   aria-label="User Profile Menu"
                 >
-                  <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg bg-[#0F2A4A] dark:bg-[#0E7C86] text-white flex items-center justify-center font-bold text-xs sm:text-[10px]">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0E7C86] via-[#14919D] to-[#1E3A8A] text-white flex items-center justify-center font-bold text-xs shadow-xs ring-1 ring-white dark:ring-slate-700">
                     {currentUser.name.charAt(0)}
                   </div>
-                  <span className="hidden md:inline font-bold text-slate-900 dark:text-slate-100 max-w-[120px] truncate">
-                    {currentUser.name}
-                  </span>
-                  <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded font-bold uppercase bg-[#334E73] text-white">
-                    {currentUser.role}
-                  </span>
+                  <div className="hidden md:flex flex-col text-left">
+                    <span className="font-semibold text-slate-900 dark:text-slate-100 max-w-[120px] truncate leading-tight">
+                      {currentUser.name}
+                    </span>
+                    <span className="text-[10px] text-[#0E7C86] dark:text-teal-400 font-bold uppercase tracking-wider leading-none">
+                      {currentUser.role}
+                    </span>
+                  </div>
                 </button>
 
                 {/* Dropdown Menu */}
                 {userDropdownOpen && (
                   <div
-                    className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#0F1B2B] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 py-2 text-xs z-50 animate-in fade-in"
+                    className="absolute right-0 mt-2 w-60 bg-white dark:bg-[#0F1B2B] rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 py-2 text-xs z-50 animate-in fade-in"
                     onClick={() => setUserDropdownOpen(false)}
                   >
-                    <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800">
-                      <div className="font-bold text-slate-900 dark:text-white truncate">{currentUser.name}</div>
-                      <div className="text-[11px] text-slate-400 font-mono">@{currentUser.username} • <span className="uppercase text-[#0E7C86] font-bold">{currentUser.role}</span></div>
+                    <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800">
+                      <div className="font-semibold text-slate-900 dark:text-white truncate">{currentUser.name}</div>
+                      <div className="text-xs text-slate-500 capitalize">{currentUser.designation || currentUser.role || 'Member'}</div>
                     </div>
 
-                    {/* Quick Mobile Preferences: Language & Theme */}
-                    <div className="md:hidden px-3 py-2 border-b border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-1.5">
+                    {/* Integrated Preferences: Language & Theme */}
+                    <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-1.5">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleLanguage();
                         }}
-                        className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-[11px] flex items-center justify-center gap-1.5 text-slate-700 dark:text-slate-200 active:scale-95"
+                        className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 font-semibold text-[11px] flex items-center justify-center gap-1.5 text-slate-700 dark:text-slate-200 active:scale-95 transition hover:bg-slate-200 dark:hover:bg-slate-700"
+                        title={lang === 'ml' ? 'Switch to English' : 'മലയാളത്തിലേക്ക് മാറ്റുക'}
                       >
                         <Globe className="w-3.5 h-3.5 text-[#0E7C86]" />
                         <span>{lang === 'en' ? 'മലയാളം' : 'English'}</span>
@@ -332,7 +329,8 @@ export const Navbar = ({
                           e.stopPropagation();
                           setIsDark(prev => !prev);
                         }}
-                        className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-[11px] flex items-center justify-center gap-1.5 text-slate-700 dark:text-slate-200 active:scale-95"
+                        className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 font-semibold text-[11px] flex items-center justify-center gap-1.5 text-slate-700 dark:text-slate-200 active:scale-95 transition hover:bg-slate-200 dark:hover:bg-slate-700"
+                        title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
                       >
                         {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-[#334E73]" />}
                         <span>{isDark ? 'Light' : 'Dark'}</span>
@@ -340,19 +338,19 @@ export const Navbar = ({
                     </div>
 
                     <button
-                      onClick={() => setIsSyncModalOpen(true)}
-                      className="w-full text-left px-4 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold flex items-center gap-2 text-slate-700 dark:text-slate-300 min-h-[44px]"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleReduceMotion();
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold flex items-center justify-between text-slate-700 dark:text-slate-300 text-xs"
                     >
-                      <Share2 className="w-4 h-4 text-[#0E7C86]" />
-                      <span>ഡിവൈസ് സമന്വയം (Device Sync)</span>
-                    </button>
-
-                    <button
-                      onClick={() => setIsChangePasswordOpen(true)}
-                      className="w-full text-left px-4 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold flex items-center gap-2 text-slate-700 dark:text-slate-300 min-h-[44px]"
-                    >
-                      <KeyRound className="w-4 h-4 text-[#0E7C86]" />
-                      <span>{t.nav.changePassword}</span>
+                      <span>Reduce Animations</span>
+                      <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                        reduceMotion ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
+                      }`}>
+                        {reduceMotion ? 'ON' : 'OFF'}
+                      </span>
                     </button>
 
                     <button
@@ -369,16 +367,6 @@ export const Navbar = ({
           </div>
         </div>
       </div>
-
-      <ChangePasswordModal
-        isOpen={isChangePasswordOpen}
-        onClose={() => setIsChangePasswordOpen(false)}
-      />
-
-      <MultiDeviceSyncModal
-        isOpen={isSyncModalOpen}
-        onClose={() => setIsSyncModalOpen(false)}
-      />
 
       <CloudUsageModal
         isOpen={isCloudUsageOpen}
@@ -399,8 +387,13 @@ export const Navbar = ({
           <div className="relative w-[85%] max-w-xs h-[100dvh] bg-white dark:bg-[#0B1522] shadow-2xl flex flex-col z-50 overflow-hidden">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-[#0B1522]">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg overflow-hidden border border-[#0E7C86]/50 shadow-xs shrink-0 bg-[#0F2A4A]">
-                  <img src="/college-campus.jpg" alt="Logo" className="w-full h-full object-cover" />
+                <div className="w-8 h-8 rounded-lg overflow-hidden border border-[#0E7C86]/50 shadow-xs shrink-0 bg-white">
+                  <img
+                    src="/amu-crest-square.png"
+                    alt="Majlis Umariyya Wafy College"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.src = '/college-campus.jpg'; }}
+                  />
                 </div>
                 <div className="min-w-0">
                   <h3 className="font-bold text-xs text-[#0F2A4A] dark:text-white leading-tight truncate">
@@ -428,49 +421,73 @@ export const Navbar = ({
 
               {(() => {
                 const adminNav = [
-                  { id: 'dashboard', label: 'Overview Dashboard', icon: LayoutDashboard },
-                  { id: 'students', label: 'Students & Bulk Import', icon: Users, badge: 'Key' },
-                  { id: 'attendance', label: 'Attendance Tracker', icon: Clock },
-                  { id: 'programs', label: 'Summit Program Matrix', icon: Layers },
-                  { id: 'marks', label: 'Marks & Scoring Console', icon: Scale },
-                  { id: 'certificates', label: 'Academic Certificates (സർട്ടിഫിക്കറ്റ്)', icon: FileCheck, badge: 'Certificates' },
-                  { id: 'settings', label: 'System Settings & Audit Log (ഓഡിറ്റിംഗ്)', icon: Settings, badge: 'Auditing' },
-                  { id: 'reports', label: 'Reports & Academic Audit', icon: BarChart3 },
-                  { id: 'summits', label: 'Summits Calendar (48 Wks)', icon: Calendar },
-                  { id: 'library', label: 'Program Library & Fields', icon: BookOpen },
-                  { id: 'teams', label: 'Team Management & Houses', icon: Shield, badge: 'Teams' },
-                  { id: 'leaders', label: 'Team Leaders (2/Team)', icon: Crown },
-                  { id: 'judges', label: 'Judges & Evaluators', icon: Gavel },
-                  { id: 'notices', label: 'Notifications & Notices', icon: Bell }
+                  { id: 'dashboard', label: tr('Union Home', 'യൂണിയൻ ഹോം'), icon: LayoutDashboard },
+                  { id: 'wings', label: tr('Union Wings', 'യൂണിയൻ വിംഗുകൾ'), icon: Folder },
+                  { id: 'meetings', label: tr('Meetings & Resolutions', 'മീറ്റിംഗുകളും തീരുമാനങ്ങളും'), icon: Lock },
+                  { id: 'reports', label: tr('Official Reports', 'ഔദ്യോഗിക റിപ്പോർട്ടുകൾ'), icon: FileText },
+                  { id: 'students', label: tr('Students Directory', 'വിദ്യാർത്ഥി പട്ടിക'), icon: Users },
+                  { id: 'officials', label: tr('Union Office Bearers', 'യൂണിയൻ ഭാരവാഹികൾ'), icon: Crown },
+                  { id: 'notices', label: tr('Announcements & Notices', 'അറിയിപ്പുകൾ'), icon: Bell },
+                  { id: 'settings', label: tr('Settings & Audit Log', 'സെറ്റിംഗ്സ്'), icon: Settings }
+                ];
+
+                const executiveNav = [
+                  { id: 'dashboard', label: tr('Union Executive Home', 'എക്സിക്യൂട്ടീവ് ഹോം'), icon: Crown },
+                  { id: 'exec_panel', label: tr('Executive Panel', 'എക്സിക്യൂട്ടീവ് പാനൽ'), icon: Sparkles },
+                  { id: 'programs', label: tr('General Programs', 'പൊതുപരിപാടികൾ'), icon: Layers },
+                  { id: 'competitions', label: tr('Competitions & Results', 'മത്സരങ്ങൾ'), icon: Trophy },
+                  { id: 'meetings', label: tr('Meetings & Resolutions', 'മീറ്റിംഗുകളും തീരുമാനങ്ങളും'), icon: Lock },
+                  { id: 'officials', label: tr('Office Bearers Roster', 'ഭാരവാഹികളുടെ പട്ടിക'), icon: Users },
+                  { id: 'reports', label: tr('Official Reports', 'ഔദ്യോഗിക റിപ്പോർട്ടുകൾ'), icon: FileText }
+                ];
+
+                const currentWing = resolveConvenerWing(currentUser, wings, unionOfficials);
+                const isFineArtsConvener = currentUser?.role === 'convener' && (currentWing?.id === 'fine_arts' || currentWing?.isSummitModule);
+                const isSportsConvener = currentUser?.role === 'convener' && currentWing?.id === 'sports';
+
+                const convenerNav = [
+                  ...(isFineArtsConvener ? [{ id: 'summit_register', label: tr('Summit Register (Arts)', 'സമ്മിറ്റ് രജിസ്റ്റർ'), icon: Palette }] : []),
+                  ...(isSportsConvener ? [
+                    { id: 'college_sports', label: tr('College Sports (Teams & Points)', 'കോളേജ് സ്പോർട്സ്'), icon: Trophy },
+                    { id: 'add_events', label: tr('Add Events (Single & Bulk)', 'ഇവന്റുകൾ ചേർക്കുക'), icon: Plus }
+                  ] : []),
+                  { id: 'dashboard', label: tr(`${currentWing?.shortName || 'Wing'} Console`, 'വിംഗ് കൺസോൾ'), icon: LayoutDashboard },
+                  { id: 'programs', label: isSportsConvener ? tr('Sports Programs & Matches', 'സ്പോർട്സ് മത്സരങ്ങൾ') : isFineArtsConvener ? tr('Fine Arts Programs', 'ഫൈൻ ആർട്സ് പരിപാടികൾ') : tr(`${currentWing?.shortName || 'Wing'} Activities & Events`, 'പ്രവർത്തനങ്ങൾ'), icon: Layers },
+                  ...(!isSportsConvener ? [{ id: 'competitions', label: tr('Competition Winners', 'വിജയികൾ'), icon: Trophy }] : []),
+                  { id: 'certificates', label: isSportsConvener ? tr('Sports Certificates', 'സ്പോർട്സ് സർട്ടിഫിക്കറ്റുകൾ') : tr('Wing Certificates', 'സർട്ടിഫിക്കറ്റുകൾ'), icon: Award },
+                  { id: 'reports', label: tr('Official Report', 'ഔദ്യോഗിക റിപ്പോർട്ട്'), icon: FileText }
                 ];
 
                 const leaderNav = [
-                  { id: 'overview', label: 'House Overview', icon: LayoutDashboard },
-                  { id: 'nominations', label: 'Program Nominations', icon: Layers, badge: 'Action' },
+                  { id: 'overview', label: 'House Standings & Roster', icon: LayoutDashboard },
+                  { id: 'nominations', label: 'Summit Event Nominations', icon: Layers },
                   { id: 'members', label: 'House Members List', icon: Users },
-                  { id: 'attendance', label: 'Team Attendance', icon: Clock },
-                  { id: 'results', label: 'Results & Standings', icon: BarChart3 },
-                  { id: 'reports', label: 'Monthly Report PDF', icon: FileCheck },
-                  { id: 'notices', label: 'Notices & Broadcasts', icon: Bell }
+                  { id: 'attendance', label: 'Take Attendance', icon: Clock },
+                  { id: 'mark_upload', label: 'Upload Event Marks', icon: Scale },
+                  { id: 'results', label: 'Published Marks', icon: Award }
                 ];
 
                 const judgeNav = [
-                  { id: 'evaluation', label: 'Evaluation Scoring Console', icon: Gavel, badge: 'Live' },
+                  { id: 'evaluation', label: 'Evaluation Scoring Console', icon: Gavel },
                   { id: 'history', label: 'Scoring History & Audit', icon: Scale },
                   { id: 'notices', label: 'Notices & Announcements', icon: Bell }
                 ];
 
                 const studentNav = [
-                  { id: 'overview', label: 'My Student Dashboard', icon: LayoutDashboard },
-                  { id: 'programs', label: 'My Programs & Schedule', icon: Layers },
-                  { id: 'attendance', label: 'My Attendance Record', icon: Clock },
-                  { id: 'certificates', label: 'Merit Certificates (സർട്ടിഫിക്കറ്റ്)', icon: FileCheck, badge: 'Awards' },
-                  { id: 'notices', label: 'Announcements & Notices', icon: Bell }
+                  { id: 'overview', label: tr('Student Home', 'ഹോം'), icon: LayoutDashboard },
+                  { id: 'sports', label: tr('College Sports', 'കോളേജ് സ്പോർട്സ്'), icon: Trophy },
+                  { id: 'wings', label: tr('Union Wings', 'വിംഗുകൾ'), icon: Folder },
+                  { id: 'fine_arts_summit', label: tr('Fine Arts Summit', 'സമ്മിറ്റ്'), icon: Palette },
+                  { id: 'executives', label: tr('Union Executives', 'ഭാരവാഹികൾ'), icon: Crown },
+                  { id: 'union_prizes', label: tr('My Achievements', 'നേട്ടങ്ങൾ'), icon: Award },
+                  { id: 'profile', label: tr('About Me', 'എന്റെ വിവരങ്ങൾ'), icon: User }
                 ];
 
                 const navItems = currentUser?.role === 'admin' ? adminNav :
-                  currentUser?.role === 'leader' ? leaderNav :
-                  currentUser?.role === 'judge' ? judgeNav : studentNav;
+                  currentUser?.role === 'executive' ? executiveNav :
+                    currentUser?.role === 'convener' ? convenerNav :
+                      currentUser?.role === 'leader' ? leaderNav :
+                        currentUser?.role === 'judge' ? judgeNav : studentNav;
 
                 return navItems.map(tab => {
                   const Icon = tab.icon;
@@ -482,26 +499,15 @@ export const Navbar = ({
                         setActiveTab(tab.id);
                         setMobileDrawerOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${
-                        isActive
-                          ? 'bg-[#0F2A4A] dark:bg-[#0E7C86] text-white shadow-xs'
-                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                      }`}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${isActive
+                        ? 'bg-[#0F2A4A] dark:bg-[#0E7C86] text-white shadow-xs'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-teal-300' : 'text-slate-400'}`} />
                         <span className="truncate">{tab.label}</span>
                       </div>
-                      {tab.badge && (
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold shrink-0 ml-1.5 ${
-                          tab.badge === 'Certificates' ? 'bg-amber-500 text-slate-950 font-black' :
-                          tab.badge === 'Auditing' ? 'bg-teal-600 text-white' :
-                          tab.badge === 'Key' ? 'bg-emerald-500 text-white' :
-                          'bg-indigo-500 text-white'
-                        }`}>
-                          {tab.badge}
-                        </span>
-                      )}
                     </button>
                   );
                 });

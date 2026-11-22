@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { subscribeSyncStatus, retryPendingWrites } from '../../services/firestoreService';
 import { migrateLocalDataToCloud } from '../../services/migrationService';
 import { STORAGE_KEYS } from '../../services/firebase';
+import { useLanguage } from '../../context/LanguageContext';
 import { AlertTriangle, RefreshCw, X, HardDrive, Cloud, Upload, CheckCircle2 } from 'lucide-react';
 
 export const QuotaBanner = ({ onOpenDirectSync, onOpenCloudUsage }) => {
+  const { lang, tr } = useLanguage();
   const [syncStatus, setSyncStatus] = useState({
     state: 'synced',
     quotaExhausted: false,
@@ -42,19 +44,19 @@ export const QuotaBanner = ({ onOpenDirectSync, onOpenCloudUsage }) => {
         <span className="leading-tight">
           {syncStatus.firestoreError ? (
             <>
-              <strong>ക്ലൗഡ് കണക്ഷൻ ശ്രദ്ധിക്കുക:</strong> {syncStatus.firestoreError === 'permission-denied' ? 'Permission denied in Firestore rules. Please sign in.' : syncStatus.firestoreError}
+              <strong>{tr('Cloud Connection Alert:', 'ക്ലൗഡ് കണക്ഷൻ ശ്രദ്ധിക്കുക:')}</strong> {syncStatus.firestoreError === 'permission-denied' ? 'Permission denied in Firestore rules. Please sign in.' : syncStatus.firestoreError}
             </>
           ) : syncStatus.quotaExhausted ? (
             <>
-              <strong>ക്വാട്ട പരിധി (429 Quota Paused):</strong> മാറ്റങ്ങൾ ലോക്കലായി ക്യൂവിൽ സുരക്ഷിതമാണ് ({syncStatus.pendingWritesCount} pending).
+              <strong>{tr('Quota Paused (429):', 'ക്വാട്ട പരിധി (429):')}</strong> {tr(`Changes queued safely locally (${syncStatus.pendingWritesCount} pending).`, `മാറ്റങ്ങൾ ലോക്കലായി ക്യൂവിൽ സുരക്ഷിതമാണ് (${syncStatus.pendingWritesCount} pending).`)}
             </>
           ) : syncStatus.isOffline ? (
             <>
-              <strong>ഓഫ്‌ലൈൻ മോഡ്:</strong> ഇന്റർനെറ്റ് ലഭ്യമല്ല. മാറ്റങ്ങൾ ലോക്കൽ കാഷെയിൽ സുരക്ഷിതമാണ്.
+              <strong>{tr('Offline Mode:', 'ഓഫ്‌ലൈൻ മോഡ്:')}</strong> {tr('Internet unavailable. Changes saved to local cache.', 'ഇന്റർനെറ്റ് ലഭ്യമല്ല. മാറ്റങ്ങൾ ലോക്കൽ കാഷെയിൽ സുരക്ഷിതമാണ്.')}
             </>
           ) : (
             <>
-              <strong>സമന്വയിപ്പിക്കുന്നു:</strong> {syncStatus.pendingWritesCount} മാറ്റങ്ങൾ ക്ലൗഡിലേക്ക് അയക്കുന്നു...
+              <strong>{tr('Syncing:', 'സമന്വയിപ്പിക്കുന്നു:')}</strong> {tr(`Sending ${syncStatus.pendingWritesCount} changes to cloud...`, `${syncStatus.pendingWritesCount} മാറ്റങ്ങൾ ക്ലൗഡിലേക്ക് അയക്കുന്നു...`)}
             </>
           )}
         </span>
@@ -78,7 +80,7 @@ export const QuotaBanner = ({ onOpenDirectSync, onOpenCloudUsage }) => {
             className="min-h-[30px] px-2.5 py-1 rounded-lg bg-amber-600/30 hover:bg-amber-600/50 text-slate-950 text-[11px] font-bold transition flex items-center gap-1 active:scale-95"
           >
             <HardDrive className="w-3 h-3" />
-            <span>Direct Sync / ബാക്കപ്പ്</span>
+            <span>{tr('Direct Sync / Backup', 'Direct Sync / ബാക്കപ്പ്')}</span>
           </button>
         )}
 

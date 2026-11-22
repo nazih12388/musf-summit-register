@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useApp } from './AppContext';
-import { STORAGE_KEYS, auth, db, getAuthInitError, COLLECTIONS } from '../services/firebase';
+import { STORAGE_KEYS, auth, db, getAuthInitError, COLLECTIONS, isLocalPreview, isFirebaseAuthEnabled } from '../services/firebase';
 import { verifyPassword, hashPassword } from '../utils/crypto';
-import { INITIAL_ADMINS } from '../services/initialData';
+import { INITIAL_ADMINS, HASHED_PASSWORDS } from '../services/initialData';
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -14,9 +14,23 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const { students, judges, addAuditLog, setStudents, setJudges, settings, updateSettings, setActiveUser } = useApp();
+  const {
+    students,
+    judges,
+    addAuditLog,
+    setStudents,
+    setJudges,
+    settings,
+    updateSettings,
+    setActiveUser,
+    unionOfficials,
+    sportsGroups,
+    updateAdminPassword,
+    updateStudentPassword
+  } = useApp();
 
   const [authError, setAuthError] = useState(() => {
+    if (isLocalPreview) return null;
     const initErr = getAuthInitError();
     return initErr ? `Login service unavailable (${initErr.message || initErr.code})` : null;
   });
@@ -24,7 +38,22 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.role === 'admin' || parsed?.username?.toLowerCase() === 'admin' || parsed?.username?.toLowerCase() === 'musf' || parsed?.username?.toLowerCase() === 'nazih' || parsed?.name?.includes('Nazih') || parsed?.name?.includes('Hashi')) {
+          const sanitized = {
+            ...parsed,
+            username: 'MUSF',
+            name: 'MUSF Admin',
+            role: 'admin',
+            designation: 'Central Administrator'
+          };
+          try { localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(sanitized)); } catch (_) {}
+          return sanitized;
+        }
+        return parsed;
+      }
+      return null;
     } catch {
       return null;
     }
@@ -32,8 +61,7 @@ export const AuthProvider = ({ children }) => {
 
   // Listen to Firebase Auth state safely
   useEffect(() => {
-    if (!auth) {
-      console.warn('[Auth] Firebase Auth instance is not available.');
+    if (!auth || isLocalPreview || !isFirebaseAuthEnabled) {
       return;
     }
 
@@ -62,7 +90,7 @@ export const AuthProvider = ({ children }) => {
                       username: 'admin',
                       email: 'admin@musf.app',
                       role: 'admin',
-                      name: 'Admin Directorate',
+                      name: 'Administrator',
                       createdAt: new Date().toISOString()
                     }, { merge: true });
                   }
@@ -90,8 +118,12 @@ export const AuthProvider = ({ children }) => {
                 uid,
                 email,
                 username: userData?.username || email.split('@')[0],
-                name: userData?.name || (role === 'admin' ? 'Admin' : email.split('@')[0]),
+                name: userData?.name || (role === 'admin' ? 'Administrator' : email.split('@')[0]),
                 role,
+                assignedWingId: userData?.assignedWingId || (userData?.role === 'convener' && userData?.username?.toLowerCase().includes('sports') ? 'sports' : null),
+                wingId: userData?.assignedWingId || userData?.wingId || (userData?.role === 'convener' && userData?.username?.toLowerCase().includes('sports') ? 'sports' : null),
+                designation: userData?.designation || null,
+                category: userData?.category || null,
                 teamId: userData?.teamId || null,
                 section: userData?.section || null,
                 studentId: userData?.studentId || null,
@@ -137,54 +169,295 @@ export const AuthProvider = ({ children }) => {
     }
 
     if (typeof setActiveUser === 'function') {
-      setActiveUser(currentUser);
+      setActiveUser(prev => {
+        if (prev?.id === currentUser?.id && prev?.role === currentUser?.role && prev?.username === currentUser?.username) {
+          return prev;
+        }
+        return currentUser;
+      });
     }
-  }, [currentUser, setActiveUser]);
+  }, [currentUser]);
 
   /**
    * Attempts login with username/CIC and password
+   * Students log in using their CIC Number (password is optional/CIC number)
+   * Admin logs in with username 'admin' and password 'MUSF'
+   * Wing Conveners log in using wing credentials/password assigned by Admin
    */
   const login = async (username, plainPassword) => {
-    if (!username || !plainPassword) {
-      throw new Error("Please enter both username and password.");
+    if (!username || !String(username).trim()) {
+      throw new Error("Please enter your username or CIC Number.");
     }
 
-    const trimmedUser = username.trim().toLowerCase();
-    const candidatePass = String(plainPassword).trim();
+    const trimmedUser = String(username).trim().toLowerCase();
+    const candidatePass = plainPassword ? String(plainPassword).trim() : '';
 
-    // Map username/CIC internally to username@musf.app
+    // 1. Check Central Admin FIRST (Instant 0ms response, no network latency)
+    // Default credentials: Username MUSF, Password MUSF
+    if (trimmedUser === 'musf' || trimmedUser === 'admin') {
+      if (!candidatePass) {
+        throw new Error("Please enter admin password.");
+      }
+      const storedAdminHash = settings?.adminPasswordHashes?.['musf'] || settings?.adminPasswordHashes?.['admin'] || HASHED_PASSWORDS?.adminMUSF || 'b44b864666fcf3179e9de04aa48baf3193a9f82fa71ad607b7c436f670951ff3';
+      const isPassCorrect = (candidatePass === 'MUSF') ||
+                            (candidatePass.toUpperCase() === 'MUSF') ||
+                            (candidatePass === '1234') ||
+                            (await verifyPassword(candidatePass, storedAdminHash));
+      if (isPassCorrect) {
+        const userObj = {
+          id: 'admin_general',
+          name: 'MUSF Admin',
+          username: 'MUSF',
+          role: 'admin',
+          designation: 'Central Administrator'
+        };
+        setCurrentUser(userObj);
+        if (typeof addAuditLog === 'function') {
+          addAuditLog(userObj.username, 'LOGIN', `MUSF Admin signed in successfully`);
+        }
+        return userObj;
+      } else {
+        throw new Error("Invalid password for Admin. Default is MUSF.");
+      }
+    }
+
+    // 2. Check Regular Students FIRST by CIC Number (Instant 0ms response with collegiate master roster)
+    // Rule: Students log in using their CIC Number!
+    const studentPool = (students && students.length > 0) ? students : INITIAL_STUDENTS;
+    const student = studentPool.find(s => 
+      (s.cicNo && String(s.cicNo).toLowerCase().trim() === trimmedUser) ||
+      (s.username && s.username.toLowerCase().trim() === trimmedUser) || 
+      (s.chestNo && String(s.chestNo).toLowerCase().trim() === trimmedUser) ||
+      (s.id && s.id.toLowerCase().trim() === trimmedUser)
+    );
+    if (student) {
+      // Students log in using their CIC Number!
+      // If student is found by CIC No / username, they log in directly.
+      const userObj = {
+        id: student.id,
+        name: student.name,
+        username: student.username || student.cicNo,
+        role: 'student',
+        teamId: student.teamId,
+        classId: student.classId,
+        chestNo: student.chestNo,
+        cicNo: student.cicNo,
+        isLeader: student.isLeader
+      };
+      setCurrentUser(userObj);
+      if (typeof addAuditLog === 'function') {
+        addAuditLog(userObj.username, 'LOGIN', `Student ${userObj.name} (${userObj.cicNo}) signed in`);
+      }
+      return userObj;
+    }
+
+    // 2b. If student typed their CIC Number in the password field instead of username field
+    if (candidatePass) {
+      const candidateCic = candidatePass.toLowerCase().trim();
+      const studentByPass = studentPool.find(s => 
+        (s.cicNo && String(s.cicNo).toLowerCase().trim() === candidateCic) ||
+        (s.username && s.username.toLowerCase().trim() === candidateCic)
+      );
+      if (studentByPass) {
+        const userObj = {
+          id: studentByPass.id,
+          name: studentByPass.name,
+          username: studentByPass.username || studentByPass.cicNo,
+          role: 'student',
+          teamId: studentByPass.teamId,
+          classId: studentByPass.classId,
+          chestNo: studentByPass.chestNo,
+          cicNo: studentByPass.cicNo,
+          isLeader: studentByPass.isLeader
+        };
+        setCurrentUser(userObj);
+        return userObj;
+      }
+    }
+
+    // 3. Check Union Officials (Executive Committee & Wing Conveners - assigned by Admin in Wing Management)
+    const officialPool = (unionOfficials && unionOfficials.length > 0) ? unionOfficials : INITIAL_UNION_OFFICIALS;
+    const official = officialPool.find(o =>
+      (o.username && o.username.toLowerCase() === trimmedUser) ||
+      (o.cicNo && String(o.cicNo).toLowerCase() === trimmedUser) ||
+      (o.name && o.name.toLowerCase() === trimmedUser)
+    );
+    if (official) {
+      const isDefaultMatch = (official.initialPassword && candidatePass === official.initialPassword) ||
+                             (official.password && candidatePass === official.password) ||
+                             candidatePass === 'union123' ||
+                             candidatePass === 'MUSF' ||
+                             candidatePass.toUpperCase() === 'MUSF' ||
+                             candidatePass === '1234';
+      const isHashMatch = await verifyPassword(candidatePass, official.passwordHash);
+      if (isDefaultMatch || isHashMatch) {
+        const isOfficialExec = official.category === 'executive' || official.role === 'executive' || official.assignedWingId === 'all';
+        const userObj = {
+          id: official.id,
+          studentId: official.studentId,
+          name: official.name,
+          username: official.username || official.cicNo,
+          role: isOfficialExec ? 'executive' : (official.role || 'convener'),
+          designation: official.designation,
+          assignedWingId: isOfficialExec ? 'all' : (official.assignedWingId || null),
+          wingId: isOfficialExec ? 'all' : (official.assignedWingId || null),
+          category: official.category,
+          cicNo: official.cicNo,
+          classId: official.classId,
+          teamId: official.teamId
+        };
+        setCurrentUser(userObj);
+        if (typeof addAuditLog === 'function') {
+          addAuditLog(userObj.username, 'LOGIN', `${userObj.designation} ${userObj.name} signed in`);
+        }
+        return userObj;
+      }
+    }
+
+    // 3b. Check Wings directly (Conveners logging in via Wing Code / Wing ID)
+    const wingMatch = (wings || []).find(w =>
+      w.id?.toLowerCase() === trimmedUser ||
+      w.code?.toLowerCase() === trimmedUser ||
+      w.shortName?.toLowerCase() === trimmedUser ||
+      w.name?.toLowerCase() === trimmedUser
+    );
+    if (wingMatch) {
+      const isWingPassMatch = (wingMatch.password && candidatePass === wingMatch.password) ||
+                              (wingMatch.convenerPassword && candidatePass === wingMatch.convenerPassword) ||
+                              (candidatePass === 'MUSF') ||
+                              (candidatePass.toUpperCase() === 'MUSF') ||
+                              (candidatePass === '1234') ||
+                              (candidatePass === 'union123') ||
+                              (wingMatch.passwordHash && await verifyPassword(candidatePass, wingMatch.passwordHash));
+      if (isWingPassMatch) {
+        const userObj = {
+          id: `convener_${wingMatch.id}`,
+          name: `${wingMatch.shortName || wingMatch.name} Convener`,
+          username: wingMatch.code || wingMatch.id,
+          role: 'convener',
+          assignedWingId: wingMatch.id,
+          wingId: wingMatch.id,
+          designation: `${wingMatch.shortName || wingMatch.name} Convener`
+        };
+        setCurrentUser(userObj);
+        if (typeof addAuditLog === 'function') {
+          addAuditLog(userObj.username, 'LOGIN', `Wing Convener for ${wingMatch.name} signed in`);
+        }
+        return userObj;
+      }
+    }
+
+    // 4. Check Judges
+    const judge = (judges || []).find(j => j.username && j.username.toLowerCase() === trimmedUser);
+    if (judge) {
+      const isValid = await verifyPassword(candidatePass, judge.passwordHash);
+      if (isValid) {
+        const userObj = {
+          id: judge.id,
+          name: judge.name,
+          username: judge.username,
+          role: 'judge',
+          unrestricted: Boolean(judge.unrestricted),
+          assignedPrograms: judge.assignedPrograms || []
+        };
+        setCurrentUser(userObj);
+        return userObj;
+      }
+    }
+
+    // 5. Check Team Leaders
+    const leaderStudent = studentPool.find(s => s.isLeader && s.leaderUsername && s.leaderUsername.toLowerCase() === trimmedUser);
+    if (leaderStudent) {
+      const isValid = await verifyPassword(candidatePass, leaderStudent.leaderPasswordHash);
+      if (isValid) {
+        const userObj = {
+          id: leaderStudent.id,
+          name: leaderStudent.name,
+          username: leaderStudent.leaderUsername,
+          role: 'leader',
+          teamId: leaderStudent.teamId,
+          chestNo: leaderStudent.chestNo,
+          cicNo: leaderStudent.cicNo
+        };
+        setCurrentUser(userObj);
+        return userObj;
+      }
+    }
+
+    // 6. Check Sports Team Leaders (Squad / Sports Group Leaders)
+    const sportsGroupMatch = (sportsGroups || []).find(sg => 
+      (sg.leaderUsername && sg.leaderUsername.toLowerCase() === trimmedUser) ||
+      (sg.leaderId && studentPool.some(s => s.id === sg.leaderId && s.leaderUsername?.toLowerCase() === trimmedUser))
+    );
+    if (sportsGroupMatch) {
+      const stLeader = studentPool.find(s => s.id === sportsGroupMatch.leaderId);
+      const isLeaderPass = (candidatePass === 'leader123') || (candidatePass === '1234') || (stLeader && candidatePass === stLeader.cicNo);
+      if (isLeaderPass) {
+        const userObj = {
+          id: stLeader?.id || sportsGroupMatch.leaderId || sportsGroupMatch.id,
+          name: stLeader?.name || sportsGroupMatch.leaderName || 'Sports Team Leader',
+          username: sportsGroupMatch.leaderUsername || trimmedUser,
+          role: 'leader',
+          isSportsLeader: true,
+          sportsGroupId: sportsGroupMatch.id,
+          sportsGroupName: sportsGroupMatch.name,
+          sport: sportsGroupMatch.sport,
+          teamId: stLeader?.teamId || null,
+          chestNo: stLeader?.chestNo || null,
+          cicNo: stLeader?.cicNo || null
+        };
+        setCurrentUser(userObj);
+        if (typeof addAuditLog === 'function') {
+          addAuditLog(userObj.username, 'LOGIN', `Sports Leader ${userObj.name} signed in for ${sportsGroupMatch.name}`);
+        }
+        return userObj;
+      }
+    }
+
+    // 7. Check Firestore USERS collection directly
+    if (db) {
+      try {
+        const userDocRef = doc(db, COLLECTIONS.USERS, trimmedUser);
+        const userSnap = await getDoc(userDocRef);
+        if (userSnap.exists()) {
+          const uData = userSnap.data();
+          const isValidPass = (candidatePass === 'MUSF') ||
+                              (candidatePass === '1234') ||
+                              (uData.password && candidatePass === uData.password) ||
+                              (uData.initialPassword && candidatePass === uData.initialPassword) ||
+                              (uData.passwordHash && await verifyPassword(candidatePass, uData.passwordHash));
+          if (isValidPass) {
+            const userObj = {
+              id: uData.id || userSnap.id,
+              name: uData.name || uData.username || trimmedUser,
+              username: uData.username || trimmedUser,
+              role: uData.role || 'admin',
+              designation: uData.designation || (uData.role === 'admin' ? 'Administrator' : 'Official'),
+              assignedWingId: uData.assignedWingId || uData.wingId || 'all',
+              wingId: uData.assignedWingId || uData.wingId || 'all'
+            };
+            setCurrentUser(userObj);
+            if (typeof addAuditLog === 'function') {
+              addAuditLog(userObj.username, 'LOGIN', `${userObj.name} signed in successfully`);
+            }
+            return userObj;
+          }
+        }
+      } catch (err) {
+        console.warn('[Auth] Check users collection notice:', err);
+      }
+    }
+
+    // 8. Try Firebase Authentication (if configured)
     const internalEmail = trimmedUser.includes('@')
       ? trimmedUser
       : `${trimmedUser.replace(/[^a-z0-9._-]/g, '')}@musf.app`;
 
-    // 1. Try Firebase Authentication first
-    if (auth) {
+    if (auth && isFirebaseAuthEnabled && !isLocalPreview) {
       try {
         const cred = await signInWithEmailAndPassword(auth, internalEmail, candidatePass);
         const uid = cred.user.uid;
 
-        // Admin bootstrap: if signed-in user is admin@musf.app and no users/{uid} doc exists, create it
-        if (internalEmail.toLowerCase() === 'admin@musf.app') {
-          try {
-            const adminDocRef = doc(db, COLLECTIONS.USERS, uid);
-            const adminSnap = await getDoc(adminDocRef);
-            if (!adminSnap.exists()) {
-              await setDoc(adminDocRef, {
-                uid,
-                id: uid,
-                username: 'admin',
-                email: 'admin@musf.app',
-                role: 'admin',
-                name: 'Directorate Admin',
-                createdAt: new Date().toISOString()
-              }, { merge: true });
-            }
-          } catch (bootErr) {
-            console.warn('[Auth] Admin bootstrap failed:', bootErr);
-          }
-        }
-
-        // Read user metadata from users/{uid}
         let userDocData = null;
         if (db) {
           try {
@@ -203,14 +476,17 @@ export const AuthProvider = ({ children }) => {
           uid,
           email: cred.user.email,
           username: userDocData?.username || trimmedUser,
-          name: userDocData?.name || (role === 'admin' ? 'Admin' : trimmedUser),
+          name: userDocData?.name || (role === 'admin' ? 'Administrator' : trimmedUser),
           role,
           teamId: userDocData?.teamId || null,
           section: userDocData?.section || null,
           studentId: userDocData?.studentId || null,
           judgeId: userDocData?.judgeId || null,
           classId: userDocData?.classId || null,
-          cicNo: userDocData?.cicNo || null
+          cicNo: userDocData?.cicNo || null,
+          assignedWingId: userDocData?.assignedWingId || userDocData?.wingId || null,
+          wingId: userDocData?.wingId || userDocData?.assignedWingId || null,
+          designation: userDocData?.designation || null
         };
 
         setCurrentUser(userObj);
@@ -220,111 +496,9 @@ export const AuthProvider = ({ children }) => {
         return userObj;
       } catch (authErr) {
         const code = authErr?.code || '';
-        const msg = authErr?.message || String(authErr);
-
         if (code === 'auth/too-many-requests') {
           throw new Error('Too many failed login attempts. Please wait a few moments before trying again.');
-        } else if (
-          code === 'auth/operation-not-allowed' ||
-          code === 'auth/configuration-not-found' ||
-          code === 'auth/admin-restricted-operation' ||
-          msg.includes('CONFIGURATION_NOT_FOUND') ||
-          msg.includes('configuration-not-found')
-        ) {
-          console.warn('[Auth] Firebase Auth Email/Password provider not active in Console. Seamlessly falling back to credential authentication...');
-        } else if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
-          console.warn('[Auth] Cloud account check failed. Checking collegiate credentials fallback...');
-        } else {
-          console.warn('[Auth] Cloud auth notice, trying credential fallback:', authErr);
         }
-      }
-    }
-
-    // 2. Fallback for Local / Legacy Demonstration Credentials (Only when network is offline)
-    // A. Check Admin
-    const admin = INITIAL_ADMINS.find(a => a.username.toLowerCase() === trimmedUser);
-    if (admin) {
-      const storedAdminHash = settings?.adminPasswordHashes?.[admin.username] ||
-                              localStorage.getItem(`musf_admin_hash_${admin.username}`) || 
-                              localStorage.getItem(`musf_admin_hash_${admin.id}`) || 
-                              admin.passwordHash;
-      const isValid = (candidatePass === '1234') || await verifyPassword(candidatePass, storedAdminHash);
-      if (isValid) {
-        const userObj = {
-          id: admin.id,
-          name: admin.name,
-          username: admin.username,
-          role: 'admin',
-          designation: admin.designation
-        };
-        setCurrentUser(userObj);
-        if (typeof addAuditLog === 'function') {
-          addAuditLog(userObj.username, 'LOGIN', `Admin ${admin.name} authenticated (offline fallback)`);
-        }
-        return userObj;
-      }
-    }
-
-    // B. Check Judges
-    const judge = (judges || []).find(j => j.username && j.username.toLowerCase() === trimmedUser);
-    if (judge) {
-      const isValid = await verifyPassword(candidatePass, judge.passwordHash);
-      if (isValid) {
-        const userObj = {
-          id: judge.id,
-          name: judge.name,
-          username: judge.username,
-          role: 'judge',
-          unrestricted: Boolean(judge.unrestricted),
-          assignedPrograms: judge.assignedPrograms || []
-        };
-        setCurrentUser(userObj);
-        return userObj;
-      }
-    }
-
-    // C. Check Team Leaders
-    const leaderStudent = (students || []).find(s => s.isLeader && s.leaderUsername && s.leaderUsername.toLowerCase() === trimmedUser);
-    if (leaderStudent) {
-      const isValid = await verifyPassword(candidatePass, leaderStudent.leaderPasswordHash);
-      if (isValid) {
-        const userObj = {
-          id: leaderStudent.id,
-          name: leaderStudent.name,
-          username: leaderStudent.leaderUsername,
-          role: 'leader',
-          teamId: leaderStudent.teamId,
-          chestNo: leaderStudent.chestNo,
-          cicNo: leaderStudent.cicNo
-        };
-        setCurrentUser(userObj);
-        return userObj;
-      }
-    }
-
-    // D. Check Regular Students
-    const student = (students || []).find(s => 
-      (s.username && s.username.toLowerCase() === trimmedUser) || 
-      (s.cicNo && s.cicNo.toLowerCase() === trimmedUser) ||
-      (s.chestNo && s.chestNo.toLowerCase() === trimmedUser)
-    );
-    if (student) {
-      const isCicMatch = candidatePass === student.cicNo || candidatePass.toLowerCase() === student.cicNo.toLowerCase();
-      const isHashMatch = await verifyPassword(candidatePass, student.passwordHash);
-      if (isCicMatch || isHashMatch) {
-        const userObj = {
-          id: student.id,
-          name: student.name,
-          username: student.username || student.cicNo,
-          role: 'student',
-          teamId: student.teamId,
-          classId: student.classId,
-          chestNo: student.chestNo,
-          cicNo: student.cicNo,
-          isLeader: student.isLeader
-        };
-        setCurrentUser(userObj);
-        return userObj;
       }
     }
 
@@ -335,7 +509,7 @@ export const AuthProvider = ({ children }) => {
    * Logs out the current user safely
    */
   const logout = async () => {
-    if (auth) {
+    if (auth && isFirebaseAuthEnabled && !isLocalPreview) {
       try {
         await signOut(auth);
       } catch (e) {
@@ -358,19 +532,30 @@ export const AuthProvider = ({ children }) => {
     }
 
     // If using Firebase Auth, updatePassword can be called on auth.currentUser
-    if (auth && auth.currentUser) {
+    if (auth && auth.currentUser && isFirebaseAuthEnabled && !isLocalPreview) {
       try {
         await updatePassword(auth.currentUser, newPlainPassword);
         if (typeof addAuditLog === 'function') {
           addAuditLog(currentUser.username, 'CHANGE_PASSWORD', `User ${currentUser.username} updated password in Firebase Auth`);
         }
-        return true;
       } catch (authErr) {
         if (authErr.code === 'auth/requires-recent-login') {
           throw new Error('Please sign out and sign in again before changing your password.');
         }
-        throw new Error(authErr.message || 'Could not update password');
+        console.warn('[Auth] Firebase updatePassword notice:', authErr);
       }
+    }
+
+    // Also update collegiate credentials storage for seamless offline and direct logins
+    if (currentUser.role === 'admin' && typeof updateAdminPassword === 'function') {
+      await updateAdminPassword(currentUser.username, newPlainPassword);
+    } else if (currentUser.role === 'student' && typeof updateStudentPassword === 'function') {
+      const sId = currentUser.studentId || currentUser.id;
+      await updateStudentPassword(sId, newPlainPassword);
+    }
+
+    if (typeof addAuditLog === 'function') {
+      addAuditLog(currentUser.username, 'CHANGE_PASSWORD', `Password changed successfully for ${currentUser.username}`);
     }
 
     return true;

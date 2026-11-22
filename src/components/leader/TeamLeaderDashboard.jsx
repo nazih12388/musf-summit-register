@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -7,6 +7,9 @@ import { exportMonthlyReportExcel } from '../../utils/excel';
 import { generateComprehensiveAcademicReportPDF } from '../../utils/comprehensivePdfReport';
 import { computeComprehensiveReport, formatMonthLabel } from '../../utils/reportCalculations';
 import { Modal } from '../common/Modal';
+import { StatCard } from '../cards/StatCard';
+import { InstagramPosterGallery } from '../instagram/InstagramPosterGallery';
+import { SportsWingManager } from '../sports/SportsWingManager';
 import {
   Shield,
   Users,
@@ -30,18 +33,19 @@ import {
 
 export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
   const {
-    teams,
-    students,
-    classes,
-    sections,
-    fields,
-    programs,
-    entries,
-    marks,
-    summits,
-    programResultsMap,
-    teamStandings,
-    studentAttendanceMap,
+    teams = [],
+    students = [],
+    classes = [],
+    sections = [],
+    fields = [],
+    programs = [],
+    entries = [],
+    marks = [],
+    summits = [],
+    programResultsMap = {},
+    teamStandings = [],
+    studentAttendanceMap = {},
+    sportsGroups = [],
     submitLeaderMarksBatch,
     nominateStudentForProgram,
     removeStudentEntry
@@ -49,7 +53,24 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
   const { currentUser } = useAuth();
   const { t } = useLanguage();
 
-  // Find leader's team
+  // Check if current user is a Sports Team Leader or Team Manager
+  const sportsGroup = useMemo(() => {
+    if (currentUser?.sportsGroupId) {
+      return (sportsGroups || []).find(sg => sg.id === currentUser.sportsGroupId);
+    }
+    return (sportsGroups || []).find(sg => 
+      sg.leaderId === currentUser?.id || 
+      sg.leaderId === currentUser?.studentId || 
+      sg.managerId === currentUser?.id ||
+      sg.managerId === currentUser?.studentId ||
+      (sg.leaderUsername && currentUser?.username && sg.leaderUsername.toLowerCase() === currentUser.username.toLowerCase()) ||
+      (sg.managerUsername && currentUser?.username && sg.managerUsername.toLowerCase() === currentUser.username.toLowerCase())
+    );
+  }, [sportsGroups, currentUser]);
+
+  const isSportsLeader = Boolean(currentUser?.isSportsLeader || currentUser?.isSportsManager || sportsGroup);
+
+  // Find leader's summit house team (for Fine Arts Summit)
   const myTeam = useMemo(() => {
     return (teams || []).find(t => t?.id === currentUser?.teamId) || teams?.[0] || null;
   }, [teams, currentUser]);
@@ -60,7 +81,7 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
     };
   }, [teamStandings, myTeam]);
 
-  // My members only
+  // My house members only
   const myMembers = useMemo(() => {
     return (students || []).filter(s => s?.teamId === myTeam?.id);
   }, [students, myTeam]);
@@ -109,6 +130,41 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
   const [groupNameInput, setGroupNameInput] = useState('');
   const [nominationError, setNominationError] = useState('');
   const [nominationSuccess, setNominationSuccess] = useState('');
+  const [memberFilterStatus, setMemberFilterStatus] = useState('all');
+  const [groupNomineeFilter, setGroupNomineeFilter] = useState('all');
+
+  // Calculates whether each house member already has programs allotted in this summit or overall
+  const memberProgramStats = useMemo(() => {
+    const stats = {};
+    (myMembers || []).forEach(m => {
+      const studentEntries = (entries || []).filter(e => {
+        if (e.studentId === m.id) return true;
+        if (Array.isArray(e.memberIds) && e.memberIds.includes(m.id)) return true;
+        return false;
+      });
+
+      const summitEntries = studentEntries.filter(e => {
+        const prog = (programs || []).find(p => p.id === e.programId);
+        if (nominationSummitId && prog?.summitId) {
+          return prog.summitId === nominationSummitId;
+        }
+        return true;
+      });
+
+      const progNames = summitEntries.map(e => {
+        const p = (programs || []).find(prog => prog.id === e.programId);
+        return p?.name || 'Program';
+      });
+
+      stats[m.id] = {
+        totalCount: studentEntries.length,
+        summitCount: summitEntries.length,
+        hasProgram: summitEntries.length > 0,
+        programNames: progNames
+      };
+    });
+    return stats;
+  }, [myMembers, entries, programs, nominationSummitId]);
 
   // Keep nominationSummitId valid if publishedSummits changes
   useEffect(() => {
@@ -269,59 +325,76 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
     });
   };
 
+  // If currentUser is a Sports Leader or Team Manager, render the strictly scoped Sports Wing Leader Dashboard
+  if (isSportsLeader && sportsGroup) {
+    const isManager = sportsGroup.managerId === currentUser?.id || 
+      sportsGroup.managerId === currentUser?.studentId || 
+      (sportsGroup.managerUsername && currentUser?.username && sportsGroup.managerUsername.toLowerCase() === currentUser.username.toLowerCase());
+
+    return (
+      <div className="space-y-6">
+        <SportsWingManager 
+          isLeaderView={true} 
+          isManagerView={isManager} 
+          leaderGroupId={sportsGroup.id} 
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Team Header Banner */}
-      <div 
-        className="p-4 sm:p-6 rounded-2xl text-white shadow-md relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
-        style={{
-          background: `linear-gradient(135deg, #0F2A4A 0%, ${myTeam.color} 100%)`
-        }}
-      >
-        <div className="space-y-1 relative z-10">
-          <div className="flex flex-wrap items-center gap-1.5 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
-              <Shield className="w-3.5 h-3.5" />
-              <span>House Console</span>
+      {/* Radiant Team Header Hero Banner */}
+      <div className="relative overflow-hidden p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-[#0F2A4A] via-[#1E3A8A] to-[#0E7C86] text-white shadow-xl shadow-teal-900/15 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+        {/* Ambient Glow Orbs */}
+        <div className="absolute -top-10 -right-10 w-64 h-64 rounded-full bg-cyan-400/20 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-10 right-1/3 w-60 h-60 rounded-full bg-amber-400/15 blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-white text-xs font-bold uppercase tracking-wider border border-white/20">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: myTeam.color || '#0E7C86' }} />
+              <Shield className="w-3.5 h-3.5 text-amber-300" />
+              <span>House Captain Console</span>
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] sm:text-[11px] font-black uppercase tracking-wider">
+            <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-teal-100 text-[10px] font-bold uppercase tracking-wider">
               {currentUser.leaderRole === 'leader2' ? 'Leader 2' : 'Leader 1'}
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2">
             <span>{myTeam.name}</span>
           </h2>
-          <p className="text-[11px] sm:text-xs text-slate-200">
-            Leader: <strong>{currentUser.name}</strong> • 
-            Members: <strong>{myMembers.length} Students</strong>
+          <p className="text-xs sm:text-sm text-teal-100/90 font-medium">
+            Leader: <strong className="text-white">{currentUser.name}</strong> &bull;
+            Members: <strong className="text-white">{myMembers.length} Students</strong>
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 relative z-10 w-full sm:w-auto">
+        <div className="relative z-10 grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2.5 w-full sm:w-auto">
           <button
             type="button"
             onClick={handleDownloadTeamMonthlyReport}
-            className="min-h-[44px] px-3.5 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-98"
+            className="min-h-[42px] px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/30 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-black/10 transition active:scale-95 cursor-pointer"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-4 h-4 text-emerald-300" />
             <span>Monthly Team PDF</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('nominations')}
-            className="min-h-[44px] px-3.5 py-2.5 rounded-xl bg-white text-[#0F2A4A] font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition hover:bg-slate-100 active:scale-98"
+            className="min-h-[42px] px-3.5 py-2 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
           >
-            <UserPlus className="w-4 h-4 text-[#0E7C86]" />
+            <UserPlus className="w-4 h-4 text-cyan-200" />
             <span>Summit Nominations</span>
           </button>
 
           <button
             type="button"
             onClick={handleExportTeamReport}
-            className="min-h-[44px] px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-98"
+            className="min-h-[42px] px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/30 text-white hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5 text-amber-300" />
             <span>Export Roster</span>
           </button>
         </div>
@@ -330,40 +403,41 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
       {/* VIEW 1: Overview & Roster */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {/* 4 Summary Metric Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">House Standings</span>
-              <div className="text-xl font-bold text-[#0F2A4A] dark:text-white flex items-center gap-1.5">
-                <Trophy className="w-4 h-4 text-[#C9A227]" />
-                <span>Rank #{myTeamStanding.rank}</span>
-              </div>
-              <span className="text-[10px] text-slate-400">Total: {myTeamStanding.totalPoints.toFixed(1)} pts</span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Thamheediyya Points</span>
-              <div className="text-xl font-bold text-[#0E7C86] font-mono">
-                {myTeamStanding.thamheediyyaPoints != null ? myTeamStanding.thamheediyyaPoints.toFixed(1) : '0.0'}
-              </div>
-              <span className="text-[10px] text-slate-400">Class 1 &amp; 2 Division</span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Aliya Points</span>
-              <div className="text-xl font-bold text-[#C9A227] font-mono">
-                {myTeamStanding.aliyaPoints != null ? myTeamStanding.aliyaPoints.toFixed(1) : '0.0'}
-              </div>
-              <span className="text-[10px] text-slate-400">Class 3 to 5 Division</span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Average Attendance</span>
-              <div className="text-xl font-bold text-emerald-600 font-mono">
-                {myTeamStanding.avgAttendancePct.toFixed(0)}%
-              </div>
-              <span className="text-[10px] text-slate-400">Mandatory Sessions</span>
-            </div>
+          {/* 4 Summary Metric Cards with Vivid Themes */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+            <StatCard
+              icon={Trophy}
+              colorTheme="amber"
+              label="House Standings"
+              value={myTeamStanding.rank}
+              prefix="Rank #"
+              deltaLabel={`Total: ${myTeamStanding.totalPoints.toFixed(1)} pts`}
+            />
+            <StatCard
+              icon={Users}
+              colorTheme="indigo"
+              label="Thamheediyya Points"
+              value={myTeamStanding.thamheediyyaPoints || 0}
+              decimals={1}
+              deltaLabel="Class 1 & 2 Division"
+            />
+            <StatCard
+              icon={Award}
+              colorTheme="purple"
+              label="Aliya Points"
+              value={myTeamStanding.aliyaPoints || 0}
+              decimals={1}
+              deltaLabel="Class 3 to 5 Division"
+            />
+            <StatCard
+              icon={Clock}
+              colorTheme="emerald"
+              label="Average Attendance"
+              value={myTeamStanding.avgAttendancePct || 0}
+              suffix="%"
+              decimals={0}
+              deltaLabel="Mandatory Sessions"
+            />
           </div>
 
           {/* Members Table */}
@@ -473,11 +547,10 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
 
             <div className="flex items-center gap-2">
               {activeNominationSummit && (
-                <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${
-                  activeNominationSummit.registrationLocked
+                <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${activeNominationSummit.registrationLocked
                     ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
                     : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                }`}>
+                  }`}>
                   {activeNominationSummit.registrationLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                   <span>{activeNominationSummit.registrationLocked ? 'Registration Locked by Admin' : 'Nomination Window Open'}</span>
                 </span>
@@ -512,11 +585,10 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
                           {sec?.name?.split(' ')[0] || prog.sectionId} • {fld?.name || 'Field'}
                         </span>
 
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold flex items-center gap-1 ${
-                          isFilled
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold flex items-center gap-1 ${isFilled
                             ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60'
                             : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300/80'
-                        }`}>
+                          }`}>
                           {isFilled ? 'Slots Filled' : 'Slots Unfilled'} ({progEntries.length}/{allowedCount})
                         </span>
                       </div>
@@ -537,8 +609,8 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
                           Nominated House Participants:
                         </span>
                         {progEntries.length === 0 ? (
-                          <p className="text-amber-600 dark:text-amber-400 italic text-[11px]">
-                            ⚠️ No member nominated yet. ({allowedCount} empty slot{allowedCount > 1 ? 's' : ''} available)
+                          <p className="text-amber-600 dark:text-amber-400 text-[11px] font-medium flex items-center gap-1.5">
+                            <span>No member nominated yet ({allowedCount} empty slot{allowedCount > 1 ? 's' : ''} available)</span>
                           </p>
                         ) : (
                           <div className="space-y-1.5">
@@ -604,46 +676,112 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
       {/* VIEW 3: Members Only List */}
       {activeTab === 'members' && (
         <div className="space-y-4">
-          <h3 className="text-base font-bold text-[#0F2A4A] dark:text-white">
-            House Members &amp; Program Enrolment
-          </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-[#0F2A4A] dark:text-white flex items-center gap-2">
+                <span>House Members &amp; Program Status</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-mono text-slate-600 dark:text-slate-300">
+                  {myMembers.length} Members
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500">
+                Identify who already has allotted programs in this Summit and who is available for assignment.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1.5 self-start sm:self-center">
+              <button
+                type="button"
+                onClick={() => setMemberFilterStatus('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                  memberFilterStatus === 'all'
+                    ? 'bg-[#0F2A4A] text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                All ({myMembers.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setMemberFilterStatus('free')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                  memberFilterStatus === 'free'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                }`}
+              >
+                Free Only ({myMembers.filter(m => !memberProgramStats[m.id]?.hasProgram).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setMemberFilterStatus('busy')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                  memberFilterStatus === 'busy'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                }`}
+              >
+                Has Programs ({myMembers.filter(m => memberProgramStats[m.id]?.hasProgram).length})
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {myMembers.map(m => {
-              const enrolledProgs = programs.filter(p => {
-                if (p.status === 'draft' || p.status === 'planned') return false;
-                if (p.summitId && !publishedSummitIds.has(p.summitId)) return false;
-                const pEntries = entries.filter(e => e.programId === p.id);
-                return pEntries.some(e => e.studentId === m.id || (e.memberIds && e.memberIds.includes(m.id)));
-              });
+            {myMembers
+              .filter(m => {
+                const st = memberProgramStats[m.id];
+                if (memberFilterStatus === 'free') return !st?.hasProgram;
+                if (memberFilterStatus === 'busy') return st?.hasProgram;
+                return true;
+              })
+              .map(m => {
+                const st = memberProgramStats[m.id] || { hasProgram: false, summitCount: 0, programNames: [] };
+                const enrolledProgs = programs.filter(p => {
+                  if (p.status === 'draft' || p.status === 'planned') return false;
+                  if (p.summitId && !publishedSummitIds.has(p.summitId)) return false;
+                  const pEntries = entries.filter(e => e.programId === p.id);
+                  return pEntries.some(e => e.studentId === m.id || (e.memberIds && e.memberIds.includes(m.id)));
+                });
 
-              return (
-                <div key={m.id} className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">{m.name}</h4>
-                      <p className="text-xs text-slate-400">CIC: {m.cicNo}</p>
+                return (
+                  <div key={m.id} className="p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-xs">
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">{m.name}</h4>
+                        <p className="text-xs text-slate-400">CIC: {m.cicNo}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
+                          {classesMap[m.classId]?.name}
+                        </span>
+                        {st.hasProgram ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                            ● Has {st.summitCount} Program{st.summitCount > 1 ? 's' : ''}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            ✓ Free / Available
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
-                      {classesMap[m.classId]?.name}
-                    </span>
-                  </div>
 
-                  <div className="pt-2 border-t text-xs space-y-1">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Enrolled Programs:</span>
-                    {enrolledProgs.length === 0 ? (
-                      <p className="text-slate-400 italic text-[11px]">No programs enrolled yet.</p>
-                    ) : (
-                      enrolledProgs.map(p => (
-                        <div key={p.id} className="flex justify-between text-slate-600 dark:text-slate-300">
-                          <span>{p.name}</span>
-                          <span className="text-[10px] font-mono text-slate-400">{p.date}</span>
-                        </div>
-                      ))
-                    )}
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-xs space-y-1">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Enrolled Programs:</span>
+                      {enrolledProgs.length === 0 ? (
+                        <p className="text-slate-400 italic text-[11px]">No programs enrolled yet.</p>
+                      ) : (
+                        enrolledProgs.map(p => (
+                          <div key={p.id} className="flex justify-between text-slate-600 dark:text-slate-300">
+                            <span>{p.name}</span>
+                            <span className="text-[10px] font-mono text-slate-400">{p.date}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         </div>
       )}
@@ -800,9 +938,8 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
             {teamStandings.map(t => (
               <div
                 key={t.id}
-                className={`p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border-2 space-y-2 ${
-                  t.id === myTeam.id ? 'ring-2 ring-[#0E7C86]' : ''
-                }`}
+                className={`p-4 rounded-xl bg-white dark:bg-[#0F1B2B] border-2 space-y-2 ${t.id === myTeam.id ? 'ring-2 ring-[#0E7C86]' : ''
+                  }`}
                 style={{ borderColor: `${t.color}50` }}
               >
                 <div className="flex justify-between items-center">
@@ -864,24 +1001,88 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
                     value={groupNameInput}
                     onChange={(e) => setGroupNameInput(e.target.value)}
                     placeholder={`e.g. ${myTeam.name} Ensemble`}
-                    className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold"
+                    className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1">
-                    Select Group Members (Only {nominatingProgram.sectionId === 'aliya' ? 'Aliya' : 'Thamheediyya'} Students from {myTeam.name}):
-                  </label>
-                  <div className="max-h-40 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl divide-y">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="font-semibold text-xs">
+                      Select Group Members (Eligible {nominatingProgram.sectionId === 'aliya' ? 'Aliya' : 'Thamheediyya'} Students):
+                    </label>
+                    <div className="flex items-center gap-1 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => setGroupNomineeFilter('all')}
+                        className={`px-2 py-0.5 rounded-md font-bold transition ${
+                          groupNomineeFilter === 'all'
+                            ? 'bg-[#0E7C86] text-white'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                        }`}
+                      >
+                        All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGroupNomineeFilter('free')}
+                        className={`px-2 py-0.5 rounded-md font-bold transition ${
+                          groupNomineeFilter === 'free'
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-slate-100 dark:bg-slate-800 text-emerald-600'
+                        }`}
+                      >
+                        Free
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGroupNomineeFilter('busy')}
+                        className={`px-2 py-0.5 rounded-md font-bold transition ${
+                          groupNomineeFilter === 'busy'
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-slate-100 dark:bg-slate-800 text-amber-600'
+                        }`}
+                      >
+                        Has Program
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl divide-y">
                     {myMembers
                       .filter(m => nominatingProgram.sectionId === 'both' || m.sectionId === nominatingProgram.sectionId)
+                      .filter(m => {
+                        const st = memberProgramStats[m.id];
+                        if (groupNomineeFilter === 'free') return !st?.hasProgram;
+                        if (groupNomineeFilter === 'busy') return st?.hasProgram;
+                        return true;
+                      })
                       .map(m => {
                         const isChecked = selectedGroupNominees.includes(m.id);
+                        const st = memberProgramStats[m.id] || { hasProgram: false, summitCount: 0, programNames: [] };
                         return (
-                          <label key={m.id} className="p-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer min-h-[44px]">
-                            <span className="font-semibold text-slate-800 dark:text-slate-200">
-                              {m.name} ({classesMap[m.classId]?.name})
-                            </span>
+                          <label
+                            key={m.id}
+                            className={`p-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer min-h-[44px] transition ${
+                              isChecked ? 'bg-teal-50/60 dark:bg-teal-950/40' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0 pr-2">
+                              <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs truncate">
+                                {m.name} <span className="text-[11px] text-slate-400 font-normal">({classesMap[m.classId]?.name})</span>
+                              </span>
+                              {st.hasProgram ? (
+                                <span
+                                  className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 shrink-0"
+                                  title={`Enrolled in: ${st.programNames.join(', ')}`}
+                                >
+                                  Has {st.summitCount} Prog
+                                </span>
+                              ) : (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 shrink-0">
+                                  Free
+                                </span>
+                              )}
+                            </div>
                             <input
                               type="checkbox"
                               checked={isChecked}
@@ -889,7 +1090,7 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
                                 if (e.target.checked) setSelectedGroupNominees(prev => [...prev, m.id]);
                                 else setSelectedGroupNominees(prev => prev.filter(x => x !== m.id));
                               }}
-                              className="rounded text-[#0E7C86] focus:ring-[#0E7C86]"
+                              className="rounded text-[#0E7C86] focus:ring-[#0E7C86] shrink-0"
                             />
                           </label>
                         );
@@ -898,24 +1099,64 @@ export const TeamLeaderDashboard = ({ activeTab, setActiveTab }) => {
                 </div>
               </div>
             ) : (
-              <div>
-                <label className="block font-semibold mb-1">
+              <div className="space-y-2">
+                <label className="block font-semibold text-xs">
                   Select Member to Nominate (Eligible {nominatingProgram.sectionId === 'aliya' ? 'Aliya' : 'Thamheediyya'} Members):
                 </label>
                 <select
                   value={selectedNomineeId}
                   onChange={(e) => setSelectedNomineeId(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold text-xs"
                 >
                   <option value="">-- Choose Member --</option>
                   {myMembers
                     .filter(m => nominatingProgram.sectionId === 'both' || m.sectionId === nominatingProgram.sectionId)
-                    .map(m => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} ({classesMap[m.classId]?.name})
-                      </option>
-                    ))}
+                    .map(m => {
+                      const st = memberProgramStats[m.id];
+                      return (
+                        <option key={m.id} value={m.id}>
+                          {m.name} ({classesMap[m.classId]?.name}) — {st?.hasProgram ? `⚠️ Has ${st.summitCount} Program${st.summitCount > 1 ? 's' : ''}` : `✓ Free / No Program`}
+                        </option>
+                      );
+                    })}
                 </select>
+
+                {/* Candidate Detailed Program Status Card */}
+                {selectedNomineeId && (() => {
+                  const nominee = myMembers.find(m => m.id === selectedNomineeId);
+                  const st = memberProgramStats[selectedNomineeId] || { hasProgram: false, summitCount: 0, programNames: [] };
+                  return (
+                    <div className={`p-3 rounded-xl border text-xs flex flex-col gap-1.5 transition ${
+                      st.hasProgram
+                        ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
+                        : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
+                    }`}>
+                      <div className="flex items-center justify-between font-bold">
+                        <span className="flex items-center gap-1.5">
+                          {st.hasProgram ? (
+                            <>
+                              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                              <span>Already Assigned: {st.summitCount} Program{st.summitCount > 1 ? 's' : ''} in this Summit</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span>Available: 0 Programs Assigned in this Summit (Free to Nominate)</span>
+                            </>
+                          )}
+                        </span>
+                        <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/70 dark:bg-slate-900/60">
+                          CIC: {nominee?.cicNo} • {classesMap[nominee?.classId]?.name}
+                        </span>
+                      </div>
+                      {st.hasProgram && st.programNames.length > 0 && (
+                        <div className="text-[11px] font-medium text-amber-800/90 dark:text-amber-300/90 pl-5.5">
+                          Currently enrolled in: <span className="font-semibold">{st.programNames.join(', ')}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 

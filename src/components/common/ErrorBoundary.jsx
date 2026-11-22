@@ -40,6 +40,14 @@ export class ErrorBoundary extends React.Component {
     }
   };
 
+  handleClearCacheAndReload = () => {
+    try {
+      localStorage.removeItem('musf_current_user_v1');
+      sessionStorage.clear();
+    } catch {}
+    window.location.href = '/';
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -96,6 +104,16 @@ export class ErrorBoundary extends React.Component {
                     <span>Copy error details</span>
                   </>
                 )}
+              </button>
+
+              <button
+                type="button"
+                onClick={this.handleClearCacheAndReload}
+                className="min-h-[42px] px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs rounded-xl flex items-center gap-2 transition active:scale-98 cursor-pointer"
+                title="Reset session and return to Login"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Reset Session & Return to Login</span>
               </button>
 
               <button

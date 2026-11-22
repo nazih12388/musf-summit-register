@@ -22,6 +22,8 @@ import {
   limit
 } from 'firebase/firestore';
 import { db, COLLECTIONS } from './firebase.js';
+import { touchSyncModule } from './syncManager.js';
+export { touchSyncModule };
 
 // Global Session Usage Telemetry
 let sessionReads = 0;
@@ -114,6 +116,8 @@ const notifyUsage = () => {
   });
 };
 
+let lastNotifiedSyncSnapshot = null;
+
 const notifySyncStatus = () => {
   const state = isQuotaExhausted
     ? 'quota_exhausted'
@@ -125,6 +129,19 @@ const notifySyncStatus = () => {
     ? 'syncing'
     : 'synced';
 
+  // Only notify if meaningful state actually changed
+  if (
+    lastNotifiedSyncSnapshot &&
+    lastNotifiedSyncSnapshot.state === state &&
+    lastNotifiedSyncSnapshot.isOffline === isOffline &&
+    lastNotifiedSyncSnapshot.quotaExhausted === isQuotaExhausted &&
+    lastNotifiedSyncSnapshot.pendingWritesCount === pendingWriteQueue.length &&
+    lastNotifiedSyncSnapshot.activeListenersCount === sharedListeners.size &&
+    lastNotifiedSyncSnapshot.firestoreError === lastFirestoreError
+  ) {
+    return;
+  }
+
   const snapshot = {
     state,
     isOffline,
@@ -134,6 +151,8 @@ const notifySyncStatus = () => {
     firestoreError: lastFirestoreError,
     lastWriteAt: new Date().toISOString()
   };
+
+  lastNotifiedSyncSnapshot = snapshot;
 
   syncStatusListeners.forEach((cb) => {
     try { cb(snapshot); } catch (e) { console.error(e); }
@@ -269,8 +288,8 @@ export const saveDoc = async (collectionName, id, data, merge = true) => {
   if (!db || !collectionName || id === undefined || id === null) return;
   const docId = String(id);
 
-  // Preserve quota: keep high-frequency audit logs & notifications local-only
-  if (collectionName === COLLECTIONS.AUDIT_LOGS || collectionName === COLLECTIONS.NOTIFICATIONS) {
+  // Preserve quota: keep high-frequency audit logs local-only
+  if (collectionName === COLLECTIONS.AUDIT_LOGS) {
     return true;
   }
 
@@ -285,6 +304,9 @@ export const saveDoc = async (collectionName, id, data, merge = true) => {
     isQuotaExhausted = false;
     notifyUsage();
     notifySyncStatus();
+
+    // Touch single sync pointer in background so all other clients auto-sync in real time
+    touchSyncModule(collectionName).catch(() => {});
     return true;
   } catch (err) {
     handleWriteFailure(err, { type: 'set', collectionName, id: docId, data: cleanData });
@@ -306,6 +328,9 @@ export const removeDoc = async (collectionName, id) => {
     isQuotaExhausted = false;
     notifyUsage();
     notifySyncStatus();
+
+    // Touch single sync pointer so other clients auto-sync deletion
+    touchSyncModule(collectionName).catch(() => {});
     return true;
   } catch (err) {
     handleWriteFailure(err, { type: 'delete', collectionName, id: docId });
@@ -349,6 +374,8 @@ export const batchSaveDocs = async (collectionName, items, chunkSize = 400) => {
     }
   }
 
+  // Touch single sync pointer for this collection
+  touchSyncModule(collectionName).catch(() => {});
   return totalWritten;
 };
 
@@ -545,6 +572,13 @@ export const syncScreenData = (screen, role, user, currentSummitId, handlers = {
   // Notices (limit 10 -> ~2-4 reads)
   sub(COLLECTIONS.NOTICES, [limit(10)], handlers.setNotices);
 
+  // Multi-Wing Union System & Instagram Live (Shared across all devices in real-time)
+  if (handlers.setWings) sub(COLLECTIONS.WINGS, [limit(50)], handlers.setWings);
+  if (handlers.setUnionOfficials) sub(COLLECTIONS.UNION_OFFICIALS, [limit(50)], handlers.setUnionOfficials);
+  if (handlers.setWingPrograms) sub(COLLECTIONS.WING_PROGRAMS, [limit(200)], handlers.setWingPrograms);
+  if (handlers.setInstagramPosts) sub(COLLECTIONS.INSTAGRAM_POSTS, [limit(50)], handlers.setInstagramPosts);
+  if (handlers.setBanners) sub(COLLECTIONS.BANNERS, [limit(30)], handlers.setBanners);
+
   // -------------------------------------------------------------
   // 2. ROLE & SCREEN-SPECIFIC SCOPING
   // -------------------------------------------------------------
@@ -617,64 +651,58 @@ export const syncScreenData = (screen, role, user, currentSummitId, handlers = {
     return () => cleanups.forEach((c) => { try { c(); } catch (e) {} });
   }
 
-  // === ADMIN ROLE (LAZY SCREEN ATTRIBUTION) ===
-  if (role === 'admin') {
-    if (screen === 'dashboard') {
-      // DASHBOARD: < 80 reads total!
+  // === ADMIN & UNION OFFICIALS (Admin, Chairman, General Secretary, Wing Conveners) ===
+  if (role === 'admin' || role === 'executive' || role === 'convener') {
+    // Keep full 129 college students synchronized in real-time
+    sub(COLLECTIONS.STUDENTS, [limit(250)], handlers.setStudents);
+
+    if (screen === 'dashboard' || screen === 'overview') {
       if (currentSummitId) {
         sub(COLLECTIONS.PROGRAMS, [where('summitId', '==', currentSummitId)], handlers.setPrograms);
-        sub(COLLECTIONS.ENTRIES, [where('summitId', '==', currentSummitId), limit(40)], handlers.setEntries);
-        sub(COLLECTIONS.MARKS, [where('summitId', '==', currentSummitId), limit(40)], handlers.setMarks);
+        sub(COLLECTIONS.ENTRIES, [where('summitId', '==', currentSummitId), limit(50)], handlers.setEntries);
+        sub(COLLECTIONS.MARKS, [where('summitId', '==', currentSummitId), limit(50)], handlers.setMarks);
       } else {
-        sub(COLLECTIONS.PROGRAMS, [limit(25)], handlers.setPrograms);
-        sub(COLLECTIONS.MARKS, [limit(30)], handlers.setMarks);
+        sub(COLLECTIONS.PROGRAMS, [limit(50)], handlers.setPrograms);
+        sub(COLLECTIONS.MARKS, [limit(50)], handlers.setMarks);
       }
-      sub(COLLECTIONS.STUDENTS, [limit(30)], handlers.setStudents);
     } else if (screen === 'students' || screen === 'teams') {
-      // STUDENTS & TEAMS SCREEN: covers all 129 students
-      sub(COLLECTIONS.STUDENTS, [limit(200)], handlers.setStudents);
+      // Already covered by STUDENTS subscription above
     } else if (screen === 'programs') {
       if (currentSummitId) {
         sub(COLLECTIONS.PROGRAMS, [where('summitId', '==', currentSummitId)], handlers.setPrograms);
       } else {
-        sub(COLLECTIONS.PROGRAMS, [limit(100)], handlers.setPrograms);
+        sub(COLLECTIONS.PROGRAMS, [limit(150)], handlers.setPrograms);
       }
       // Covers all 101 library programs
       sub(COLLECTIONS.PROGRAM_LIBRARY, [limit(150)], handlers.setProgramLibrary);
-      sub(COLLECTIONS.JUDGES, [limit(20)], handlers.setJudges);
+      sub(COLLECTIONS.JUDGES, [limit(30)], handlers.setJudges);
     } else if (screen === 'marks') {
-      // MARKS SCREEN: scoped to current summit
       if (currentSummitId) {
         sub(COLLECTIONS.MARKS, [where('summitId', '==', currentSummitId)], handlers.setMarks);
         sub(COLLECTIONS.ENTRIES, [where('summitId', '==', currentSummitId)], handlers.setEntries);
         sub(COLLECTIONS.PROGRAMS, [where('summitId', '==', currentSummitId)], handlers.setPrograms);
       } else {
-        sub(COLLECTIONS.MARKS, [limit(100)], handlers.setMarks);
-        sub(COLLECTIONS.PROGRAMS, [limit(60)], handlers.setPrograms);
+        sub(COLLECTIONS.MARKS, [limit(150)], handlers.setMarks);
+        sub(COLLECTIONS.PROGRAMS, [limit(100)], handlers.setPrograms);
       }
-      sub(COLLECTIONS.STUDENTS, [limit(200)], handlers.setStudents);
     } else if (screen === 'attendance') {
-      // ATTENDANCE SCREEN: scoped strictly to selected summit!
       if (currentSummitId) {
         sub(COLLECTIONS.ATTENDANCE, [where('summitId', '==', currentSummitId)], handlers.setAttendance);
       } else {
-        sub(COLLECTIONS.ATTENDANCE, [limit(100)], handlers.setAttendance);
+        sub(COLLECTIONS.ATTENDANCE, [limit(150)], handlers.setAttendance);
       }
-      sub(COLLECTIONS.STUDENTS, [limit(200)], handlers.setStudents);
     } else if (screen === 'settings' || screen === 'audit') {
-      // AUDIT TRAIL: strictly limited to latest 30!
       sub(COLLECTIONS.AUDIT_LOGS, [orderBy('timestamp', 'desc'), limit(30)], handlers.setAuditLogs);
-      sub(COLLECTIONS.JUDGES, [limit(20)], handlers.setJudges);
+      sub(COLLECTIONS.JUDGES, [limit(30)], handlers.setJudges);
     } else if (screen === 'certificates') {
       sub(COLLECTIONS.CERTIFICATES, [limit(50)], handlers.setCertificates);
-      sub(COLLECTIONS.STUDENTS, [limit(200)], handlers.setStudents);
     } else if (screen === 'reports') {
-      sub(COLLECTIONS.REPORT_HISTORY, [limit(20)], handlers.setReportHistory);
-      sub(COLLECTIONS.STUDENTS, [limit(200)], handlers.setStudents);
+      sub(COLLECTIONS.REPORT_HISTORY, [limit(30)], handlers.setReportHistory);
       if (currentSummitId) {
         sub(COLLECTIONS.MARKS, [where('summitId', '==', currentSummitId)], handlers.setMarks);
       }
     }
+    return () => cleanups.forEach((c) => { try { c(); } catch (e) {} });
   }
 
   // === PUBLIC / LEADERBOARD ROLE ===

@@ -64,14 +64,18 @@ export const LoginModal = ({ isOpen, onClose }) => {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-            {t.common.password}
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+              {t.common.password}
+            </label>
+            <span className="text-[11px] text-slate-400">
+              (Students: optional)
+            </span>
+          </div>
           <div className="relative">
             <KeyRound className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="password"
-              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -104,11 +108,11 @@ export const LoginModal = ({ isOpen, onClose }) => {
           <div className="grid grid-cols-2 gap-2 text-xs">
             <button
               type="button"
-              onClick={() => handleQuickDemo('admin', 'admin123')}
+              onClick={() => handleQuickDemo('MUSF', 'MUSF')}
               className="p-2 text-left rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800/50 transition"
             >
-              <div className="font-bold text-emerald-800 dark:text-emerald-300">Admin</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">admin / admin123</div>
+              <div className="font-bold text-emerald-800 dark:text-emerald-300">MUSF Admin</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">MUSF / MUSF</div>
             </button>
 
             <button

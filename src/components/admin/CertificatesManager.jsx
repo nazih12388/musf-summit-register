@@ -26,12 +26,14 @@ import {
 
 export const CertificatesManager = () => {
   const {
-    certificates,
-    students,
-    classes,
-    teams,
-    summits,
-    settings,
+    certificates = [],
+    students = [],
+    classes = [],
+    teams = [],
+    summits = [],
+    settings = {},
+    unionOfficials = [],
+    wings = [],
     addCertificate,
     updateCertificate,
     deleteCertificate,
@@ -57,7 +59,7 @@ export const CertificatesManager = () => {
   }, [summits]);
 
   const [selectedMonth, setSelectedMonth] = useState(availableMonths[0] || '2026-11');
-  const [activeTabFilter, setActiveTabFilter] = useState('all'); // 'all', 'top_performer', 'class_topper', 'published', 'draft'
+  const [activeTabFilter, setActiveTabFilter] = useState('all'); // 'all', 'top_performer', 'class_topper', 'committee', 'published', 'draft'
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMsg, setToastMsg] = useState('');
 
@@ -67,6 +69,8 @@ export const CertificatesManager = () => {
   const [deletingCertId, setDeletingCertId] = useState(null);
 
   // Allocate / Edit Form State
+  const [formRecipientType, setFormRecipientType] = useState('student'); // 'student' or 'official'
+  const [formOfficialId, setFormOfficialId] = useState('');
   const [formStudentId, setFormStudentId] = useState('');
   const [formCategory, setFormCategory] = useState('TOP_PERFORMER_MONTH');
   const [formMonth, setFormMonth] = useState(selectedMonth);
@@ -87,6 +91,7 @@ export const CertificatesManager = () => {
       // Tab Category Filter
       if (activeTabFilter === 'top_performer' && c.category !== 'TOP_PERFORMER_MONTH') return false;
       if (activeTabFilter === 'class_topper' && c.category !== 'CLASS_TOPPER') return false;
+      if (activeTabFilter === 'committee' && !(c.category === 'COMMITTEE_HONOR' || c.category === 'WING_CONVENER_APPRECIATION' || c.isCommittee)) return false;
       if (activeTabFilter === 'published' && !c.isPublished) return false;
       if (activeTabFilter === 'draft' && c.isPublished) return false;
 
@@ -116,6 +121,7 @@ export const CertificatesManager = () => {
       total: list.length,
       topMonth: list.filter(c => c.category === 'TOP_PERFORMER_MONTH').length,
       classToppers: list.filter(c => c.category === 'CLASS_TOPPER').length,
+      committee: list.filter(c => c.category === 'COMMITTEE_HONOR' || c.category === 'WING_CONVENER_APPRECIATION' || c.isCommittee).length,
       published: list.filter(c => c.isPublished).length,
       drafts: list.filter(c => !c.isPublished).length
     };
@@ -150,13 +156,20 @@ export const CertificatesManager = () => {
   // Open Edit Modal
   const openEditModal = (cert) => {
     setEditingCert(cert);
-    setFormStudentId(cert.studentId);
-    setFormCategory(cert.category || 'TOP_PERFORMER_MONTH');
+    const isOfficial = cert.isCommittee || cert.category === 'COMMITTEE_HONOR' || cert.category === 'WING_CONVENER_APPRECIATION';
+    setFormRecipientType(isOfficial ? 'official' : 'student');
+    if (isOfficial) {
+      const offId = cert.studentId?.replace('official_', '') || '';
+      setFormOfficialId(offId || unionOfficials[0]?.id || '');
+    } else {
+      setFormStudentId(cert.studentId);
+    }
+    setFormCategory(cert.category || (isOfficial ? 'COMMITTEE_HONOR' : 'TOP_PERFORMER_MONTH'));
     setFormMonth(cert.month);
     setFormAwardTitle(cert.awardTitle || '');
     setFormCitation(cert.citation || '');
-    setFormMarksPct(String(cert.marksPercentage || 95));
-    setFormAttendancePct(String(cert.attendancePercentage || 100));
+    setFormMarksPct(String(cert.marksPercentage ?? 95));
+    setFormAttendancePct(String(cert.attendancePercentage ?? 100));
     setFormGrade(cert.grade || 'A');
     setFormIssueDate(cert.issueDate || new Date().toISOString().slice(0, 10));
     setFormIsPublished(Boolean(cert.isPublished));
@@ -165,8 +178,11 @@ export const CertificatesManager = () => {
   // Open Add Modal
   const openAddModal = () => {
     const defaultStudent = students[0];
+    const defaultOfficial = unionOfficials[0];
     setEditingCert(null);
+    setFormRecipientType('student');
     setFormStudentId(defaultStudent?.id || '');
+    setFormOfficialId(defaultOfficial?.id || '');
     setFormCategory('TOP_PERFORMER_MONTH');
     setFormMonth(selectedMonth !== 'all' ? selectedMonth : '2026-11');
     setFormAwardTitle('Top Performer of the Month (1st Rank)');
@@ -182,30 +198,67 @@ export const CertificatesManager = () => {
   // Save Add or Edit Certificate Form
   const handleSaveForm = (e) => {
     e.preventDefault();
-    const st = students.find(s => s.id === formStudentId);
-    if (!st) return;
+    const isOfficial = formRecipientType === 'official';
+    
+    let studentId = '';
+    let studentName = '';
+    let cicNo = '';
+    let chestNo = '';
+    let classId = '';
+    let className = '';
+    let teamId = '';
+    let teamName = '';
+    let sectionId = 'leadership';
+    
+    if (isOfficial) {
+      const off = unionOfficials.find(o => o.id === formOfficialId) || unionOfficials[0];
+      if (!off) return;
+      const wing = wings.find(w => w.id === off.wingId);
+      studentId = `official_${off.id}`;
+      studentName = off.name;
+      cicNo = off.cicNo || off.username || 'OFFICIAL';
+      chestNo = 'EXECUTIVE';
+      classId = off.wingId || 'union';
+      className = off.designation || 'Union Executive';
+      teamId = off.wingId || 'executive';
+      teamName = wing ? wing.name : 'Students Union Executive';
+      sectionId = 'executive';
+    } else {
+      const st = students.find(s => s.id === formStudentId);
+      if (!st) return;
+      const cl = classes.find(c => c.id === st.classId);
+      const tm = teams.find(t => t.id === st.teamId);
+      studentId = st.id;
+      studentName = st.name;
+      cicNo = st.cicNo;
+      chestNo = st.chestNo;
+      classId = st.classId;
+      className = cl?.name || st.classId;
+      teamId = st.teamId;
+      teamName = tm?.name || 'House Team';
+      sectionId = st.sectionId || cl?.sectionId || 'thamheediyya';
+    }
 
-    const cl = classes.find(c => c.id === st.classId);
-    const tm = teams.find(t => t.id === st.teamId);
     const mLabel = formatMonthLabel(formMonth);
 
     const payload = {
       month: formMonth,
       monthLabel: mLabel,
-      studentId: st.id,
-      studentName: st.name,
-      cicNo: st.cicNo,
-      chestNo: st.chestNo,
-      classId: st.classId,
-      className: cl?.name || st.classId,
-      teamId: st.teamId,
-      teamName: tm?.name || 'House Team',
-      sectionId: st.sectionId || cl?.sectionId || 'thamheediyya',
+      studentId,
+      studentName,
+      cicNo,
+      chestNo,
+      classId,
+      className,
+      teamId,
+      teamName,
+      sectionId,
       category: formCategory,
+      isCommittee: isOfficial,
       awardTitle: formAwardTitle,
       citation: formCitation,
-      marksPercentage: Number(formMarksPct) || 0,
-      attendancePercentage: Number(formAttendancePct) || 0,
+      marksPercentage: isOfficial ? 100 : (Number(formMarksPct) || 0),
+      attendancePercentage: isOfficial ? 100 : (Number(formAttendancePct) || 0),
       grade: formGrade,
       issueDate: formIssueDate,
       isPublished: formIsPublished
@@ -213,11 +266,11 @@ export const CertificatesManager = () => {
 
     if (editingCert) {
       updateCertificate(editingCert.id, payload, currentUser?.username || 'admin');
-      triggerToast(`Updated certificate for ${st.name}`);
+      triggerToast(`Updated certificate for ${studentName}`);
       setEditingCert(null);
     } else {
       addCertificate(payload, currentUser?.username || 'admin');
-      triggerToast(`Allocated new certificate to ${st.name}`);
+      triggerToast(`Allocated new certificate to ${studentName}`);
       setIsAllocateOpen(false);
     }
   };
@@ -349,6 +402,17 @@ export const CertificatesManager = () => {
             <span>Class Toppers ({monthStats.classToppers})</span>
           </button>
           <button
+            onClick={() => setActiveTabFilter('committee')}
+            className={`px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1 ${
+              activeTabFilter === 'committee'
+                ? 'bg-white dark:bg-[#0F1B2B] text-teal-700 dark:text-teal-300 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+            }`}
+          >
+            <Shield className="w-3.5 h-3.5 text-teal-600" />
+            <span>Committee ({monthStats.committee || 0})</span>
+          </button>
+          <button
             onClick={() => setActiveTabFilter('published')}
             className={`px-3 py-1.5 rounded-lg font-semibold transition ${
               activeTabFilter === 'published'
@@ -394,16 +458,20 @@ export const CertificatesManager = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCertificates.map(cert => {
+            const isCommittee = cert.isCommittee || cert.category === 'COMMITTEE_HONOR' || cert.category === 'WING_CONVENER_APPRECIATION';
             const isTopMonth = cert.category === 'TOP_PERFORMER_MONTH';
+            const isConvener = cert.category === 'WING_CONVENER_APPRECIATION';
 
             return (
               <div
                 key={cert.id}
                 className={`p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border-2 shadow-xs space-y-3 transition flex flex-col justify-between ${
                   cert.isPublished
-                    ? isTopMonth
-                      ? 'border-amber-400/50 hover:border-amber-500'
-                      : 'border-blue-400/50 hover:border-blue-500'
+                    ? isCommittee
+                      ? 'border-teal-400/50 hover:border-teal-500'
+                      : isTopMonth
+                        ? 'border-amber-400/50 hover:border-amber-500'
+                        : 'border-blue-400/50 hover:border-blue-500'
                     : 'border-dashed border-slate-300 dark:border-slate-700 opacity-90'
                 }`}
               >
@@ -411,12 +479,30 @@ export const CertificatesManager = () => {
                   {/* Category & Publish Status Badges */}
                   <div className="flex items-center justify-between gap-2">
                     <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                      isTopMonth
-                        ? 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700'
-                        : 'bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-200 border border-blue-300 dark:border-blue-700'
+                      isCommittee
+                        ? isConvener
+                          ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-950 dark:text-indigo-200 border border-indigo-300 dark:border-indigo-700'
+                          : 'bg-teal-100 text-teal-900 dark:bg-teal-950 dark:text-teal-200 border border-teal-300 dark:border-teal-700'
+                        : isTopMonth
+                          ? 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700'
+                          : 'bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-200 border border-blue-300 dark:border-blue-700'
                     }`}>
-                      {isTopMonth ? <Sparkles className="w-3 h-3 text-amber-500" /> : <GraduationCap className="w-3 h-3 text-blue-500" />}
-                      <span>{isTopMonth ? 'Top Performer (Month)' : 'Class Topper'}</span>
+                      {isCommittee ? (
+                        <Shield className="w-3 h-3 text-teal-600" />
+                      ) : isTopMonth ? (
+                        <Sparkles className="w-3 h-3 text-amber-500" />
+                      ) : (
+                        <GraduationCap className="w-3 h-3 text-blue-500" />
+                      )}
+                      <span>
+                        {isConvener
+                          ? 'Convener Appreciation'
+                          : isCommittee
+                            ? 'Committee Leadership'
+                            : isTopMonth
+                              ? 'Top Performer (Month)'
+                              : 'Class Topper'}
+                      </span>
                     </span>
 
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
@@ -522,25 +608,87 @@ export const CertificatesManager = () => {
           maxWidth="max-w-lg"
         >
           <form onSubmit={handleSaveForm} className="space-y-3.5 text-xs">
-            {/* Student Selector */}
-            <div>
-              <label className="block font-semibold mb-1">Recipient Student</label>
-              <select
-                required
-                value={formStudentId}
-                onChange={(e) => setFormStudentId(e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
-              >
-                {students.map(s => {
-                  const cl = classes.find(c => c.id === s.classId);
-                  return (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.cicNo}) • {cl?.name || s.classId}
-                    </option>
-                  );
-                })}
-              </select>
+            {/* Recipient Type Toggle */}
+            <div className="space-y-1">
+              <label className="block font-bold text-slate-700 dark:text-slate-300">Recipient Type</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormRecipientType('student');
+                    setFormCategory('TOP_PERFORMER_MONTH');
+                    setFormAwardTitle('Top Performer of the Month (1st Rank)');
+                    setFormCitation('Conferred in recognition of exemplary academic distinction, eloquent summit presentations, and leadership.');
+                  }}
+                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                    formRecipientType === 'student'
+                      ? 'border-[#0E7C86] bg-teal-50 dark:bg-teal-950/40 text-[#0E7C86] dark:text-teal-300 ring-2 ring-[#0E7C86]/20'
+                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Student Participant</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormRecipientType('official');
+                    setFormCategory('COMMITTEE_HONOR');
+                    setFormAwardTitle('Certificate of Leadership & Distinguished Service');
+                    setFormCitation('Conferred in grateful recognition of outstanding leadership, dedication, and exemplary service to the MUSF Students Union and its summits.');
+                  }}
+                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                    formRecipientType === 'official'
+                      ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/20'
+                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                  }`}
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Committee / Convener</span>
+                </button>
+              </div>
             </div>
+
+            {/* Recipient Dropdown (Student vs Official) */}
+            {formRecipientType === 'student' ? (
+              <div>
+                <label className="block font-semibold mb-1">Recipient Student</label>
+                <select
+                  required
+                  value={formStudentId}
+                  onChange={(e) => setFormStudentId(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                >
+                  {students.map(s => {
+                    const cl = classes.find(c => c.id === s.classId);
+                    return (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.cicNo}) • {cl?.name || s.classId}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="block font-semibold mb-1">Recipient Committee Member / Wing Convener</label>
+                <select
+                  required
+                  value={formOfficialId}
+                  onChange={(e) => setFormOfficialId(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold"
+                >
+                  {(unionOfficials || []).map(off => {
+                    const wing = wings.find(w => w.id === off.wingId);
+                    return (
+                      <option key={off.id} value={off.id}>
+                        {off.name} — {off.designation || 'Executive'} {wing ? `(${wing.name})` : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Category */}
@@ -548,11 +696,36 @@ export const CertificatesManager = () => {
                 <label className="block font-semibold mb-1">Honor Category</label>
                 <select
                   value={formCategory}
-                  onChange={(e) => setFormCategory(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormCategory(val);
+                    if (val === 'COMMITTEE_HONOR') {
+                      setFormAwardTitle('Certificate of Leadership & Distinguished Service');
+                      setFormCitation('Conferred in grateful recognition of outstanding leadership, dedication, and exemplary service to the MUSF Students Union and its summits.');
+                    } else if (val === 'WING_CONVENER_APPRECIATION') {
+                      setFormAwardTitle('Certificate of Convener Appreciation & Excellence');
+                      setFormCitation('Conferred in recognition and sincere appreciation of distinguished execution, diligent organization, and passionate leadership in wing activities.');
+                    } else if (val === 'CLASS_TOPPER') {
+                      setFormAwardTitle('Class-Wise Academic & Summit Topper (1st Position)');
+                      setFormCitation('Awarded in high appreciation of exceptional academic excellence, scholastic rigor, and stellar summit presentations.');
+                    } else {
+                      setFormAwardTitle('Top Performer of the Month (1st Rank)');
+                      setFormCitation('Conferred in recognition of exemplary academic distinction, eloquent summit presentations, and leadership.');
+                    }
+                  }}
                   className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold"
                 >
-                  <option value="TOP_PERFORMER_MONTH">🌟 Top Performer of the Month</option>
-                  <option value="CLASS_TOPPER">🎓 Class-Wise Topper</option>
+                  {formRecipientType === 'student' ? (
+                    <>
+                      <option value="TOP_PERFORMER_MONTH">Top Performer of the Month</option>
+                      <option value="CLASS_TOPPER">Class-Wise Topper</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="COMMITTEE_HONOR">Union Executive / Committee Leadership Honor</option>
+                      <option value="WING_CONVENER_APPRECIATION">Wing Convener Appreciation Award</option>
+                    </>
+                  )}
                 </select>
               </div>
 

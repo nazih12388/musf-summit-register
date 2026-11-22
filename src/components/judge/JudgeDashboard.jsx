@@ -24,22 +24,23 @@ import {
   ShieldCheck,
   Layers
 } from 'lucide-react';
+import { StatusBadge } from '../common/Badge';
 
 export const JudgeDashboard = ({ activeTab = 'evaluation', setActiveTab }) => {
   const {
-    programs,
-    entries,
-    marks,
-    teams,
-    students,
-    classes,
-    fields,
-    classesMap,
-    fieldsMap,
-    teamsMap,
-    judges,
-    summits,
-    settings,
+    programs = [],
+    entries = [],
+    marks = [],
+    teams = [],
+    students = [],
+    classes = [],
+    fields = [],
+    classesMap = {},
+    fieldsMap = {},
+    teamsMap = {},
+    judges = [],
+    summits = [],
+    settings = {},
     submitJudgeMark
   } = useApp();
   const { currentUser } = useAuth();
@@ -339,59 +340,50 @@ export const JudgeDashboard = ({ activeTab = 'evaluation', setActiveTab }) => {
   }, [myEvaluationHistory, historySummitFilter, historySearch, programs, entries, students, teamsMap, teams]);
 
   return (
-    <div className="space-y-5">
-      {/* Top Banner */}
-      <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-[#0F2A4A] via-[#1E3A5F] to-[#0E7C86] text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1.5">
+    <div className="space-y-6">
+      {/* Radiant Judge Header Hero Banner */}
+      <div className="relative overflow-hidden p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-[#0F2A4A] via-[#1E3A8A] to-[#0E7C86] text-white shadow-xl shadow-teal-900/15 flex flex-col md:flex-row md:items-center justify-between gap-5">
+        {/* Ambient Glow Orbs */}
+        <div className="absolute -top-10 -right-10 w-64 h-64 rounded-full bg-cyan-400/20 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-10 right-1/3 w-60 h-60 rounded-full bg-amber-400/15 blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[11px] font-bold uppercase tracking-wider">
-              <Gavel className="w-3.5 h-3.5" />
-              <span>Judge Console</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-white border border-white/20 text-xs font-bold uppercase tracking-wider">
+              <Gavel className="w-3.5 h-3.5 text-amber-300" />
+              <span>Official Jury Panel</span>
             </div>
 
-            {/* Summit Scope Badge */}
-            {isUnrestricted ? (
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 text-[11px] font-bold">
-                <Sparkles className="w-3 h-3 text-emerald-300" />
-                <span>All Summits & Programs</span>
+            {/* Status badge */}
+            {!canEditMarks ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/20 backdrop-blur-md text-amber-200 border border-amber-300/40 text-xs font-bold">
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-300" />
+                <span>Mark Editing Restricted</span>
               </div>
             ) : (
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/30 text-blue-200 border border-blue-400/30 text-[11px] font-bold">
-                <Calendar className="w-3 h-3 text-blue-300" />
-                <span>{publishedSummits.length} Allocated Summit(s)</span>
-              </div>
-            )}
-
-            {/* Mark Editing Permission Badge */}
-            {canEditMarks ? (
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 text-[11px] font-bold">
-                <ShieldCheck className="w-3 h-3 text-emerald-300" />
-                <span>Mark Editing: Unrestricted</span>
-              </div>
-            ) : (
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/30 text-amber-200 border border-amber-400/30 text-[11px] font-bold">
-                <ShieldAlert className="w-3 h-3 text-amber-300" />
-                <span>Mark Editing: Restricted</span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-400/20 backdrop-blur-md text-emerald-200 border border-emerald-300/40 text-xs font-bold">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Mark Editing Enabled</span>
               </div>
             )}
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-bold">{currentUser?.name}</h2>
-          <p className="text-xs text-slate-200">
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{currentUser?.name}</h2>
+          <p className="text-xs sm:text-sm text-teal-100/90 font-medium">
             {isUnrestricted
-              ? 'Unrestricted Evaluator • Full access to all college summits and events'
+              ? 'Unrestricted Evaluator &bull; Full access to all college summits and events'
               : `Allocated to ${publishedSummits.length} published summit(s) and ${assignedPrograms.length} active event(s)`}
-            {!canEditMarks && ' • Submitted marks are locked from editing by Admin policy'}
           </p>
         </div>
 
         {/* View Switcher Buttons */}
-        <div className="flex items-center gap-2 bg-black/20 p-1 rounded-xl self-start md:self-auto shrink-0">
+        <div className="relative z-10 flex items-center gap-1 bg-white/15 backdrop-blur-md p-1.5 rounded-2xl self-start md:self-auto shrink-0 border border-white/20 shadow-md shadow-black/10">
           <button
+            type="button"
             onClick={() => handleTabChange('evaluation')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+            className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
               currentTab === 'evaluation'
-                ? 'bg-white text-[#0F2A4A] shadow-xs'
+                ? 'bg-white text-[#0F2A4A] shadow-md'
                 : 'text-white/80 hover:text-white hover:bg-white/10'
             }`}
           >
@@ -399,15 +391,16 @@ export const JudgeDashboard = ({ activeTab = 'evaluation', setActiveTab }) => {
             <span>Scoring Console</span>
           </button>
           <button
+            type="button"
             onClick={() => handleTabChange('history')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+            className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
               currentTab === 'history'
-                ? 'bg-white text-[#0F2A4A] shadow-xs'
+                ? 'bg-white text-[#0F2A4A] shadow-md'
                 : 'text-white/80 hover:text-white hover:bg-white/10'
             }`}
           >
             <History className="w-3.5 h-3.5" />
-            <span>Evaluation History ({myEvaluationHistory.length})</span>
+            <span>History ({myEvaluationHistory.length})</span>
           </button>
         </div>
       </div>
@@ -549,10 +542,11 @@ export const JudgeDashboard = ({ activeTab = 'evaluation', setActiveTab }) => {
                       <span className="font-semibold">{currentProgram.stage || 'Auditorium'} • {currentProgram.time || '10:00 AM'}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Status</span>
-                      <span className={`font-bold ${isLocked ? 'text-rose-600' : 'text-emerald-600'}`}>
-                        {isLocked ? "Evaluation Closed / Locked by Admin" : "Open for Scoring"}
-                      </span>
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-1">Status</span>
+                      <StatusBadge
+                        status={isLocked ? 'danger' : 'info'}
+                        label={isLocked ? 'Locked / Closed' : 'Open for Scoring'}
+                      />
                     </div>
                   </div>
 
@@ -659,7 +653,7 @@ export const JudgeDashboard = ({ activeTab = 'evaluation', setActiveTab }) => {
                                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                                   : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
                               }`}>
-                                {hasSubmitted ? (isEditingRestricted ? '🔒 Locked' : 'Saved') : 'Pending'}
+                                {hasSubmitted ? (isEditingRestricted ? 'Locked' : 'Saved') : 'Pending'}
                               </span>
                             </div>
                           </div>
@@ -963,7 +957,7 @@ export const JudgeDashboard = ({ activeTab = 'evaluation', setActiveTab }) => {
                                               : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300')
                                           : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
                                       }`}>
-                                        {hasSubmitted ? (isEditingRestricted ? `🔒 Locked (${val}/10)` : `Evaluated (${val}/10)`) : 'Pending'}
+                                        {hasSubmitted ? (isEditingRestricted ? `Locked (${val}/10)` : `Evaluated (${val}/10)`) : 'Pending'}
                                       </span>
                                     </div>
                                   </div>

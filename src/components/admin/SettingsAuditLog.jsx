@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { migrateLocalDataToCloud } from '../../services/migrationService';
-import { CloudUsageModal } from './CloudUsageModal';
+import { useLanguage } from '../../context/LanguageContext';
 import {
   Settings,
   ShieldCheck,
@@ -13,25 +12,18 @@ import {
   CalendarCheck2,
   TrendingUp,
   Percent,
-  Download,
   Filter,
   GraduationCap,
   Lock,
   Unlock,
   Trash2,
-  Share2,
-  Copy,
-  Upload,
-  RefreshCw,
-  FileJson,
   Check,
   AlertTriangle,
-  Cloud,
-  Database,
-  Activity
+  Download
 } from 'lucide-react';
 
 export const SettingsAuditLog = () => {
+  const { lang, tr } = useLanguage();
   const {
     settings,
     updateSettings,
@@ -40,33 +32,28 @@ export const SettingsAuditLog = () => {
     clearAuditLogs,
     students,
     studentAttendanceMap,
-    exportFullAppData,
-    importFullAppData,
-    cloudSyncStatus,
-    manualCloudSync,
     summits,
     programs,
     marks,
-    entries
+    entries,
+    exportFullAppData,
+    wings = [],
+    unionOfficials = [],
+    wingPrograms = [],
+    sportsFixtures = []
   } = useApp();
   const { currentUser } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('settings'); // 'settings', 'attendance', 'ops', 'audit', 'sync'
+  const [activeTab, setActiveTab] = useState('settings'); // 'settings', 'attendance', 'ops', 'audit'
   const [auditSearch, setAuditSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('all');
   const [saveToast, setSaveToast] = useState(false);
-  const [syncCopied, setSyncCopied] = useState(false);
-  const [importText, setImportText] = useState('');
-  const [importMsg, setImportMsg] = useState(null);
-  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
-  const [cloudMsg, setCloudMsg] = useState(null);
-  const [migrationProgress, setMigrationProgress] = useState(null);
-  const [isCloudUsageOpen, setIsCloudUsageOpen] = useState(false);
 
   // Form local state for immediate response
   const [formData, setFormData] = useState({
     collegeName: settings.collegeName || 'Majlis Umariyya Wafy College',
-    appTitle: settings.appTitle || 'MUSF Summit Register',
+    appTitle: settings.appTitle || "MUSF Students' Union",
+    academicYear: settings.academicYear || '2025–2026',
     fairJudgingMode: !!settings.fairJudgingMode,
     enforceJudgeRestrictions: settings.enforceJudgeRestrictions !== false,
     lateCountsAsPresent: settings.lateCountsAsPresent !== false,
@@ -157,6 +144,24 @@ export const SettingsAuditLog = () => {
     document.body.removeChild(link);
   };
 
+  const handleExportFullJSON = () => {
+    try {
+      const jsonStr = exportFullAppData();
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `MUSF_Union_Data_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to export data');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Tab Switcher */}
@@ -212,19 +217,6 @@ export const SettingsAuditLog = () => {
           <History className="w-4 h-4 text-slate-400" />
           <span>Audit Trail ({auditLogs.length})</span>
         </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('sync')}
-          className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-98 ${
-            activeTab === 'sync'
-              ? 'bg-[#0F2A4A] text-white shadow-xs font-bold'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-          }`}
-        >
-          <Share2 className="w-4 h-4 text-[#0E7C86]" />
-          <span>Multi-Device Sync ({cloudSyncStatus?.quotaExhausted ? 'Direct Sync Active' : 'Live'})</span>
-        </button>
       </div>
 
       {saveToast && (
@@ -265,7 +257,7 @@ export const SettingsAuditLog = () => {
               </div>
               <div>
                 <label className="block font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                  Summit Register Title
+                  Students' Union App Title
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -276,6 +268,26 @@ export const SettingsAuditLog = () => {
                   />
                   <button
                     onClick={() => handleSaveText('appTitle')}
+                    className="px-3 py-2 bg-[#0E7C86] text-white rounded-xl font-semibold"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                  Academic Session / Year
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formData.academicYear}
+                    onChange={(e) => handleTextChange('academicYear', e.target.value)}
+                    placeholder="2025–2026"
+                    className="flex-1 p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                  />
+                  <button
+                    onClick={() => handleSaveText('academicYear')}
                     className="px-3 py-2 bg-[#0E7C86] text-white rounded-xl font-semibold"
                   >
                     Save
@@ -323,7 +335,7 @@ export const SettingsAuditLog = () => {
                   <Unlock className="w-5 h-5 text-emerald-600" />
                 )}
                 <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
-                  Enforce Judge Program Restrictions (ജഡ്ജ് നിയന്ത്രണങ്ങൾ)
+                  {tr('Enforce Judge Program Restrictions', 'ജഡ്ജ് നിയന്ത്രണങ്ങൾ നിർബന്ധമാക്കുക')}
                 </h4>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed max-w-xl">
@@ -643,6 +655,15 @@ export const SettingsAuditLog = () => {
                 <Download className="w-4 h-4 text-[#0E7C86]" />
                 <span>Export Audit Trail (CSV)</span>
               </button>
+
+              <button
+                onClick={handleExportFullJSON}
+                className="py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition"
+                title="Download full database backup as JSON"
+              >
+                <Download className="w-4 h-4 text-teal-600" />
+                <span>Download Backup (JSON)</span>
+              </button>
             </div>
           </div>
 
@@ -704,295 +725,6 @@ export const SettingsAuditLog = () => {
           </div>
         </div>
       )}
-
-      {/* TAB 5: Multi-Device Sync & Direct Transfer */}
-      {activeTab === 'sync' && (
-        <div className="space-y-6 max-w-3xl">
-          {/* Cloud Connection Card */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
-            <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Cloud className="w-4 h-4 text-[#0E7C86]" />
-                <span>Cloud Sync & Multi-Device Status</span>
-              </span>
-              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                cloudSyncStatus?.quotaExhausted
-                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                  : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-              }`}>
-                {cloudSyncStatus?.quotaExhausted ? 'Quota Paused (Direct Sync Available)' : 'Connected'}
-              </span>
-            </h4>
-
-            {cloudSyncStatus?.quotaExhausted ? (
-              <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-200 space-y-1.5">
-                <div className="font-bold flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <span>Google Firebase സൗജന്യ Spark ഡെയിലി ലിമിറ്റ് പൂർത്തിയായി</span>
-                </div>
-                <p className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90">
-                  Firebase സൗജന്യ Spark പ്ലാനിൽ ദിവസം 20,000 writes മാത്രമേ ലഭിക്കൂ. മുൻപ് ആപ്പിൽ എല്ലാ റിഫ്രഷിലും ഒരേസമയം ഡാറ്റ റീ-റൈറ്റ് ആയിരുന്നത് കൊണ്ടാണ് ഈ പരിധി വേഗത്തിൽ തീർന്നത്. ഞങ്ങൾ ഇപ്പോൾ ആ കോഡ് 95% ഒപ്റ്റിമൈസ് ചെയ്തിട്ടുണ്ട്.
-                </p>
-                <p className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90 font-semibold">
-                  ക്വാട്ട റീസെറ്റ് ആകുന്നത് വരെ കാത്തുനിൽക്കാതെ താഴെയുള്ള <strong>Direct Device Transfer</strong> ഉപയോഗിച്ച് മറ്റൊരു ഫോണിലേക്ക് ഉടൻ തന്നെ ഡാറ്റ മാറ്റാം!
-                </p>
-              </div>
-            ) : (
-              <div className="p-3 rounded-xl bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/50 text-xs text-teal-900 dark:text-teal-200">
-                ക്ലൗഡ് സിങ്ക് സജീവമാണ്. മാറ്റങ്ങൾ തത്സമയം ക്ലൗഡിൽ സുരക്ഷിതമായി സൂക്ഷിക്കുന്നു.
-              </div>
-            )}
-
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setIsCloudUsageOpen(true)}
-                className="min-h-[40px] px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 text-xs font-bold transition flex items-center gap-2 active:scale-98"
-              >
-                <Activity className="w-3.5 h-3.5 text-indigo-500" />
-                <span>Cloud Usage & Diagnostics</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Section: One-Time Migration: Upload Local Data to Cloud */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-            <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Database className="w-4 h-4 text-[#0E7C86]" />
-                <span>One-Time Migration: Upload Local Data to Cloud</span>
-              </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                Safe to Run Twice (Zero Duplicates)
-              </span>
-            </h4>
-
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              ഈ ഫോണിലെ ബ്രൗസറിൽ നിലവിലുള്ള എല്ലാ സമ്മിറ്റുകൾ, പ്രോഗ്രാമുകൾ, വിദ്യാർത്ഥികൾ, മാർക്കുകൾ, ഹാജർ എന്നിവയെല്ലാം പുതിയ ഫയർസ്റ്റോർ സിസ്റ്റത്തിലേക്ക് ബാച്ചുകളായി (writeBatch chunks &lt;= 400) അപ്‌ലോഡ് ചെയ്യാൻ താഴെ ക്ലിക്ക് ചെയ്യുക.
-            </p>
-
-            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
-              <div>• <strong>ഐഡംപോട്ടന്റ് (Idempotent):</strong> ഒരേ രേഖകൾ പലതവണ അപ്‌ലോഡ് ചെയ്താലും ഡ്യൂപ്ലിക്കേറ്റ് വരില്ല.</div>
-              <div>• <strong>ഡാറ്റ മായ്ക്കില്ല:</strong> ഫോണിലെ നിലവിലുള്ള ലോക്കൽ വിവരങ്ങൾ തനിയെ ഡിലീറ്റ് ആവില്ല.</div>
-              <div>• <strong>സുരക്ഷ:</strong> മുൻകരുതലായി താഴെയുള്ള &quot;ബാക്കപ്പ് ഫയൽ ഡൗൺലോഡ്&quot; വഴി കോപ്പി എടുത്തുവെക്കാം.</div>
-            </div>
-
-            {migrationProgress && (
-              <div className="space-y-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-700 dark:text-slate-300">{migrationProgress.message}</span>
-                  <span className="font-mono text-teal-600 dark:text-teal-400 font-bold">{migrationProgress.percent}%</span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                  <div
-                    className="h-full bg-[#0E7C86] transition-all duration-300"
-                    style={{ width: `${migrationProgress.percent}%` }}
-                  />
-                </div>
-                {migrationProgress.result && (
-                  <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold pt-1">
-                    ✓ ആകെ {migrationProgress.result.totalMigrated} രേഖകൾ വിജയകരമായി ഫയർസ്റ്റോറിലേക്ക് അപ്‌ലോഡ് ചെയ്തു!
-                  </div>
-                )}
-                {migrationProgress.isError && (
-                  <div className="text-[11px] text-rose-600 font-semibold pt-1">
-                    {migrationProgress.message}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div>
-              <button
-                type="button"
-                disabled={migrationProgress?.isRunning}
-                onClick={async () => {
-                  if (!window.confirm('Upload local browser data to individual Firestore documents now?')) return;
-                  setMigrationProgress({ step: 0, percent: 0, message: 'Starting migration...', isRunning: true });
-                  try {
-                    const stats = await migrateLocalDataToCloud((step, percent, msg) => {
-                      setMigrationProgress({ step, percent, message: msg, isRunning: true });
-                    });
-                    setMigrationProgress({
-                      step: 100,
-                      percent: 100,
-                      message: `Successfully migrated ${stats.totalMigrated} records to Firestore!`,
-                      isRunning: false,
-                      result: stats
-                    });
-                  } catch (e) {
-                    setMigrationProgress({
-                      step: 0,
-                      percent: 0,
-                      message: 'Migration notice: ' + (e.message || 'Write paused'),
-                      isRunning: false,
-                      isError: true
-                    });
-                  }
-                }}
-                className="min-h-[44px] px-4 py-2.5 rounded-xl bg-[#0E7C86] text-white hover:bg-teal-700 disabled:opacity-50 transition flex items-center justify-center gap-2 text-xs font-bold shadow-xs active:scale-98"
-              >
-                <Upload className="w-4 h-4" />
-                <span>{migrationProgress?.isRunning ? 'Migrating data...' : 'Upload Local Data to Cloud (Migrate Now)'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Section 1: Export Data to another phone */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-            <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white flex items-center gap-2">
-              <Share2 className="w-4 h-4 text-[#0E7C86]" />
-              <span>1. മറ്റൊരു ഫോണിലേക്ക് അയക്കാൻ (Export Data)</span>
-            </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              ഈ ഫോണിൽ എൻ്റർ ചെയ്ത എല്ലാ സമ്മിറ്റുകളും, മാർക്കുകളും, പ്രോഗ്രാമുകളും മറ്റേ ഫോണിലേക്ക് മാറ്റാൻ താഴെ ക്ലിക്ക് ചെയ്യുക:
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  try {
-                    const data = exportFullAppData();
-                    navigator.clipboard.writeText(data);
-                    setSyncCopied(true);
-                    setTimeout(() => setSyncCopied(false), 3000);
-                  } catch {
-                    alert('Clipboard error. Please use download.');
-                  }
-                }}
-                className="min-h-[44px] px-4 py-2 rounded-xl bg-[#0F2A4A] text-white hover:bg-[#1a3d66] transition flex items-center gap-2 text-xs font-bold shadow-xs active:scale-98"
-              >
-                {syncCopied ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-400" />
-                    <span className="text-emerald-300">കോപ്പി ചെയ്തു!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 text-[#0E7C86]" />
-                    <span>സിങ്ക് കോഡ് കോപ്പി ചെയ്യുക (Copy Code)</span>
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  try {
-                    const dataStr = exportFullAppData();
-                    const blob = new Blob([dataStr], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `MUSF_Summit_Data_${new Date().toISOString().slice(0, 10)}.json`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                  } catch {
-                    alert('Download failed');
-                  }
-                }}
-                className="min-h-[44px] px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 transition flex items-center gap-2 text-xs font-bold active:scale-98"
-              >
-                <Download className="w-4 h-4 text-[#0E7C86]" />
-                <span>ഡൗൺലോഡ് ബാക്കപ്പ് (.json)</span>
-              </button>
-            </div>
-
-            {syncCopied && (
-              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold animate-in fade-in">
-                ✓ കോഡ് കോപ്പി ചെയ്തു! WhatsApp വഴിയോ മെസ്സേജ് വഴിയോ മറ്റേ ഫോണിലേക്ക് അയക്കുക.
-              </p>
-            )}
-          </div>
-
-          {/* Section 2: Import Data from another phone */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-            <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white flex items-center gap-2">
-              <Upload className="w-4 h-4 text-[#0E7C86]" />
-              <span>2. ഈ ഫോണിൽ ചേർക്കാൻ (Import Data)</span>
-            </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              മറ്റൊരു ഫോണിൽ നിന്ന് കോപ്പി ചെയ്ത കോഡ് താഴെ പേസ്റ്റ് ചെയ്യുക, അല്ലെങ്കിൽ ബാക്കപ്പ് ഫയൽ തിരഞ്ഞെടുക്കുക:
-            </p>
-
-            <textarea
-              value={importText}
-              onChange={(e) => setImportText(e.target.value)}
-              placeholder="സിങ്ക് കോഡ് ഇവിടെ പേസ്റ്റ് ചെയ്യുക..."
-              className="w-full h-28 p-3 text-xs font-mono bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:border-[#0E7C86] resize-none"
-            />
-
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  if (!importText.trim()) {
-                    setImportMsg({ type: 'error', text: 'ദയവായി കോഡ് പേസ്റ്റ് ചെയ്യുക' });
-                    return;
-                  }
-                  try {
-                    importFullAppData(importText);
-                    setImportMsg({ type: 'success', text: 'വിജയകരമായി ഡാറ്റ ഈ ഫോണിൽ അപ്ഡേറ്റ് ആയി!' });
-                    setImportText('');
-                  } catch (e) {
-                    setImportMsg({ type: 'error', text: 'കോഡ് ഫോർമാറ്റ് തെറ്റാണ്: ' + e.message });
-                  }
-                }}
-                className="min-h-[44px] px-4 py-2 rounded-xl bg-[#0E7C86] text-white hover:bg-teal-700 transition flex items-center gap-2 text-xs font-bold shadow-xs active:scale-98"
-              >
-                <Upload className="w-4 h-4" />
-                <span>ഡാറ്റ സമന്വയിപ്പിക്കുക (Apply)</span>
-              </button>
-
-              <label className="min-h-[44px] px-4 py-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 hover:bg-slate-100 transition flex items-center gap-2 text-xs font-semibold cursor-pointer active:scale-98">
-                <FileJson className="w-4 h-4 text-[#0E7C86]" />
-                <span>ഫയൽ വഴി അപ്‌ലോഡ് (.json)</span>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      const content = ev.target?.result;
-                      if (typeof content === 'string') {
-                        try {
-                          importFullAppData(content);
-                          setImportMsg({ type: 'success', text: 'ഫയലിൽ നിന്നുള്ള ഡാറ്റ വിജയകരമായി ചേർത്തു!' });
-                        } catch (err) {
-                          setImportMsg({ type: 'error', text: 'ഫയൽ പിശക്: ' + err.message });
-                        }
-                      }
-                    };
-                    reader.readAsText(file);
-                  }}
-                  className="hidden"
-                />
-              </label>
-            </div>
-
-            {importMsg && (
-              <div className={`p-3 rounded-xl text-xs font-semibold ${
-                importMsg.type === 'success'
-                  ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800'
-                  : 'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200 border border-rose-200 dark:border-rose-800'
-              }`}>
-                {importMsg.text}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Cloud Usage Telemetry Modal */}
-      <CloudUsageModal
-        isOpen={isCloudUsageOpen}
-        onClose={() => setIsCloudUsageOpen(false)}
-      />
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { migrateLocalDataToCloud } from '../../services/migrationService';
 import {
   Smartphone,
@@ -21,6 +22,7 @@ import {
 import { CloudUsageModal } from '../admin/CloudUsageModal';
 
 export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
+  const { lang, tr } = useLanguage();
   const {
     exportFullAppData,
     importFullAppData,
@@ -89,7 +91,7 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
   const executeImport = (textToImport) => {
     const raw = textToImport || importJson;
     if (!raw.trim()) {
-      setImportStatus({ type: 'error', message: 'ദയവായി കോഡ് പേസ്റ്റ് ചെയ്യുക അല്ലെങ്കിൽ ഫയൽ അപ്‌ലോഡ് ചെയ്യുക.' });
+      setImportStatus({ type: 'error', message: tr('Please paste a sync code or upload a file.', 'ദയവായി കോഡ് പേസ്റ്റ് ചെയ്യുക അല്ലെങ്കിൽ ഫയൽ അപ്‌ലോഡ് ചെയ്യുക.') });
       return;
     }
 
@@ -97,13 +99,13 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
       importFullAppData(raw);
       setImportStatus({
         type: 'success',
-        message: 'ഡാറ്റ വിജയകരമായി സമന്വയിപ്പിച്ചു! എല്ലാ പ്രോഗ്രാമുകളും മാർക്കുകളും ഈ ഫോണിൽ അപ്ഡേറ്റ് ആയി.'
+        message: tr('Data synced successfully! All programs and marks updated on this device.', 'ഡാറ്റ വിജയകരമായി സമന്വയിപ്പിച്ചു! എല്ലാ പ്രോഗ്രാമുകളും മാർക്കുകളും ഈ ഫോണിൽ അപ്ഡേറ്റ് ആയി.')
       });
       setImportJson('');
     } catch (err) {
       setImportStatus({
         type: 'error',
-        message: 'ഡാറ്റ ഫോർമാറ്റ് തെറ്റാണ്. ശരിയായ കോഡ് നൽകുക: ' + (err.message || '')
+        message: tr('Invalid data format. Please provide a valid sync code: ', 'ഡാറ്റ ഫോർമാറ്റ് തെറ്റാണ്. ശരിയായ കോഡ് നൽകുക: ') + (err.message || '')
       });
     }
   };
@@ -116,18 +118,18 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
       if (success) {
         setCloudSyncResult({
           type: 'success',
-          message: 'എല്ലാ വിവരങ്ങളും വിജയകരമായി ക്ലൗഡിലേക്ക് അപ്‌ലോഡ് ചെയ്തു!'
+          message: tr('All data uploaded to cloud successfully!', 'എല്ലാ വിവരങ്ങളും വിജയകരമായി ക്ലൗഡിലേക്ക് അപ്‌ലോഡ് ചെയ്തു!')
         });
       } else {
         setCloudSyncResult({
           type: 'error',
-          message: 'ക്ലൗഡ് അപ്‌ലോഡ് പരാജയപ്പെട്ടു. Firebase quota limit ഉള്ളതിനാൽ direct sync ഉപയോഗിക്കുക.'
+          message: tr('Cloud upload failed. Quota limits reached, please use direct device sync.', 'ക്ലൗഡ് അപ്‌ലോഡ് പരാജയപ്പെട്ടു. Firebase quota limit ഉള്ളതിനാൽ direct sync ഉപയോഗിക്കുക.')
         });
       }
     } catch (e) {
       setCloudSyncResult({
         type: 'error',
-        message: 'ക്ലൗഡ് എറർ: ' + (e.message || '')
+        message: tr('Cloud error: ', 'ക്ലൗഡ് എറർ: ') + (e.message || '')
       });
     } finally {
       setIsCloudSyncing(false);
@@ -150,10 +152,10 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-bold text-[#0F2A4A] dark:text-white leading-tight">
-                ഡിവൈസ് സമന്വയം (Multi-Device Sync)
+                {tr('Multi-Device Data Sync', 'ഡിവൈസ് സമന്വയം')}
               </h2>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                മറ്റ് ഫോണുകളിലേക്കും ലാപ്ടോപ്പിലേക്കും ഡാറ്റ മാറ്റുക
+                {tr('Transfer data between phones, tablets, and laptops', 'മറ്റ് ഫോണുകളിലേക്കും ലാപ്ടോപ്പിലേക്കും ഡാറ്റ മാറ്റുക')}
               </p>
             </div>
           </div>
@@ -172,9 +174,12 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
             <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
               <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold block">Firebase ക്ലൗഡ് ക്വാട്ട താൽക്കാലികമായി കഴിഞ്ഞു</span>
+                <span className="font-bold block">{tr('Firebase Cloud Quota Limit Reached', 'Firebase ക്ലൗഡ് ക്വാട്ട താൽക്കാലികമായി കഴിഞ്ഞു')}</span>
                 <p className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90 mt-0.5">
-                  Spark പ്ലാനിലെ സൗജന്യ ക്വാട്ട കഴിഞ്ഞതിനാൽ ഫോൺ A-യിലെ മാറ്റങ്ങൾ ഫോൺ B-യിൽ തനിയെ എത്തില്ല. താഴെയുള്ള <strong>Direct Device Transfer</strong> ഉപയോഗിച്ച് 1 ക്ലിക്കിൽ ഡാറ്റ മാറ്റാം.
+                  {tr(
+                    'Daily Spark free tier write limit reached. Use Direct Device Transfer below to transfer data in 1 click.',
+                    'Spark പ്ലാനിലെ സൗജന്യ ക്വാട്ട കഴിഞ്ഞതിനാൽ ഫോൺ A-യിലെ മാറ്റങ്ങൾ ഫോൺ B-യിൽ തനിയെ എത്തില്ല. താഴെയുള്ള Direct Device Transfer ഉപയോഗിച്ച് 1 ക്ലിക്കിൽ ഡാറ്റ മാറ്റാം.'
+                  )}
                 </p>
               </div>
             </div>
@@ -182,7 +187,7 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
             <div className="p-2.5 rounded-xl bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/50 flex items-center justify-between gap-2 text-xs text-teal-900 dark:text-teal-200">
               <div className="flex items-center gap-2">
                 <Cloud className="w-4 h-4 text-[#0E7C86] dark:text-teal-400 shrink-0" />
-                <span className="font-medium">ക്ലൗഡ് കണക്ഷൻ പ്രവർത്തനക്ഷമമാണ്</span>
+                <span className="font-medium">{tr('Cloud Connection Active & Real-Time', 'ക്ലൗഡ് കണക്ഷൻ പ്രവർത്തനക്ഷമമാണ്')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -215,7 +220,7 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
-            <span>1. മറ്റൊരു ഫോണിലേക്ക് അയക്കാൻ (Export)</span>
+            <span>{tr('1. Export to Other Device', '1. മറ്റൊരു ഫോണിലേക്ക് അയക്കാൻ')}</span>
           </button>
           <button
             type="button"
@@ -227,7 +232,7 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
             }`}
           >
             <Download className="w-3.5 h-3.5" />
-            <span>2. ഈ ഫോണിൽ ചേർക്കാൻ (Import)</span>
+            <span>{tr('2. Import to This Device', '2. ഈ ഫോണിൽ ചേർക്കാൻ')}</span>
           </button>
           <button
             type="button"
@@ -239,7 +244,7 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
             }`}
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>3. ക്ലൗഡ് സമന്വയം</span>
+            <span>{tr('3. Cloud Synchronization', '3. ക്ലൗഡ് സമന്വയം')}</span>
           </button>
         </div>
 
@@ -250,24 +255,24 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
             <div className="space-y-4">
               <div className="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 space-y-1.5">
                 <div className="font-semibold text-slate-900 dark:text-white flex items-center justify-between">
-                  <span>ഈ ഡിവൈസിലെ ഡാറ്റ വിവരങ്ങൾ:</span>
-                  <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">റെഡി</span>
+                  <span>{tr('Data items on this device:', 'ഈ ഡിവൈസിലെ ഡാറ്റ വിവരങ്ങൾ:')}</span>
+                  <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">{tr('Ready', 'റെഡി')}</span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1">
                   <div className="bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-100 dark:border-slate-700">
-                    <span className="text-slate-400 block text-[10px]">സമ്മിറ്റുകൾ</span>
+                    <span className="text-slate-400 block text-[10px]">{tr('Summits', 'സമ്മിറ്റുകൾ')}</span>
                     <span className="font-bold text-slate-800 dark:text-white">{summits?.length || 0}</span>
                   </div>
                   <div className="bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-100 dark:border-slate-700">
-                    <span className="text-slate-400 block text-[10px]">പ്രോഗ്രാമുകൾ</span>
+                    <span className="text-slate-400 block text-[10px]">{tr('Programs', 'പ്രോഗ്രാമുകൾ')}</span>
                     <span className="font-bold text-slate-800 dark:text-white">{programs?.length || 0}</span>
                   </div>
                   <div className="bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-100 dark:border-slate-700">
-                    <span className="text-slate-400 block text-[10px]">മാർക്കുകൾ</span>
+                    <span className="text-slate-400 block text-[10px]">{tr('Marks', 'മാർക്കുകൾ')}</span>
                     <span className="font-bold text-slate-800 dark:text-white">{marks?.length || 0}</span>
                   </div>
                   <div className="bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-100 dark:border-slate-700">
-                    <span className="text-slate-400 block text-[10px]">വിദ്യാർത്ഥികൾ</span>
+                    <span className="text-slate-400 block text-[10px]">{tr('Students', 'വിദ്യാർത്ഥികൾ')}</span>
                     <span className="font-bold text-slate-800 dark:text-white">{students?.length || 0}</span>
                   </div>
                 </div>
@@ -275,7 +280,7 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
 
               <div className="space-y-2.5">
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
-                  മറ്റൊരു ഡിവൈസിലേക്ക് കൈമാറാനുള്ള വഴികൾ:
+                  {tr('Direct transfer options to another device:', 'മറ്റൊരു ഡിവൈസിലേക്ക് കൈമാറാനുള്ള വഴികൾ:')}
                 </label>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -287,12 +292,12 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
                     {copied ? (
                       <>
                         <Check className="w-4 h-4 text-emerald-400" />
-                        <span className="text-emerald-300">കോപ്പി ചെയ്തു!</span>
+                        <span className="text-emerald-300">{tr('Copied!', 'കോപ്പി ചെയ്തു!')}</span>
                       </>
                     ) : (
                       <>
                         <Copy className="w-4 h-4 text-[#0E7C86]" />
-                        <span>സിങ്ക് കോഡ് കോപ്പി ചെയ്യുക</span>
+                        <span>{tr('Copy Sync Code', 'സിങ്ക് കോഡ് കോപ്പി ചെയ്യുക')}</span>
                       </>
                     )}
                   </button>
@@ -303,13 +308,16 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
                     className="min-h-[46px] px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition flex items-center justify-center gap-2 text-xs font-bold active:scale-98"
                   >
                     <Download className="w-4 h-4 text-[#0E7C86]" />
-                    <span>ബാക്കപ്പ് ഫയൽ (.json)</span>
+                    <span>{tr('Backup File (.json)', 'ബാക്കപ്പ് ഫയൽ (.json)')}</span>
                   </button>
                 </div>
 
                 {copied && (
                   <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium animate-in fade-in">
-                    ✓ കോഡ് ക്ലിപ്പ്ബോർഡിലേക്ക് കോപ്പി ചെയ്തു. ഇനി WhatsApp വഴിയോ മറ്റോ അയച്ച് മറ്റേ ഫോണിൽ പേസ്റ്റ് ചെയ്യാം.
+                    {tr(
+                      '✓ Sync code copied to clipboard! Paste it on your other device.',
+                      tr('✓ Code copied to clipboard! Share it with the other device via WhatsApp or message.', '✓ കോഡ് ക്ലിപ്പ്ബോർഡിലേക്ക് കോപ്പി ചെയ്തു. ഇനി WhatsApp വഴിയോ മറ്റോ അയച്ച് മറ്റേ ഫോണിൽ പേസ്റ്റ് ചെയ്യാം.')
+                    )}
                   </p>
                 )}
               </div>
@@ -320,14 +328,20 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
           {activeTab === 'import' && (
             <div className="space-y-3.5">
               <p className="text-xs text-slate-600 dark:text-slate-300">
-                മറ്റേ ഫോണിൽ നിന്നോ അഡ്മിനിൽ നിന്നോ ലഭിച്ച കോഡ് താഴെ നൽകുക അല്ലെങ്കിൽ .json ഫയൽ തിരഞ്ഞെടുക്കുക:
+                {tr(
+                  'Enter the sync code received from your other device or select a .json backup file:',
+                  tr('Paste the sync code from the other device below, or select a .json backup file:', 'മറ്റേ ഫോണിൽ നിന്നോ അഡ്മിനിൽ നിന്നോ ലഭിച്ച കോഡ് താഴെ നൽകുക അല്ലെങ്കിൽ .json ഫയൽ തിരഞ്ഞെടുക്കുക:')
+                )}
               </p>
 
               <div>
                 <textarea
                   value={importJson}
                   onChange={(e) => setImportJson(e.target.value)}
-                  placeholder="മറ്റേ ഫോണിലെ കോപ്പി ചെയ്ത സിങ്ക് കോഡ് ഇവിടെ പേസ്റ്റ് ചെയ്യുക..."
+                  placeholder={tr(
+                    'Paste sync code from other device here...',
+                    tr('Paste copied sync code from other device here...', 'മറ്റേ ഫോണിലെ കോപ്പി ചെയ്ത സിങ്ക് കോഡ് ഇവിടെ പേസ്റ്റ് ചെയ്യുക...')
+                  )}
                   className="w-full h-28 p-3 text-[11px] font-mono bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:border-[#0E7C86] resize-none"
                 />
               </div>
@@ -339,12 +353,12 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
                   className="min-h-[44px] flex-1 px-4 py-2.5 rounded-xl bg-[#0E7C86] text-white hover:bg-teal-700 transition flex items-center justify-center gap-2 text-xs font-bold shadow-xs active:scale-98"
                 >
                   <Upload className="w-4 h-4" />
-                  <span>ഈ ഫോണിലേക്ക് സമന്വയിപ്പിക്കുക (Apply)</span>
+                  <span>{tr('Apply to This Device', 'ഈ ഫോണിലേക്ക് സമന്വയിപ്പിക്കുക')}</span>
                 </button>
 
                 <label className="min-h-[44px] px-4 py-2.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer active:scale-98">
                   <FileJson className="w-4 h-4 text-[#0E7C86]" />
-                  <span>ഫയൽ അപ്‌ലോഡ് (.json)</span>
+                  <span>{tr('Upload File (.json)', 'ഫയൽ അപ്‌ലോഡ് (.json)')}</span>
                   <input
                     type="file"
                     accept=".json"
@@ -378,71 +392,18 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
             <div className="space-y-4">
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 space-y-2">
                 <span className="font-bold text-[#0F2A4A] dark:text-white block">
-                  Firebase Cloud Database വിവരം:
+                  {tr('Firebase Cloud Database Info:', 'Firebase Cloud Database വിവരം:')}
                 </span>
                 <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-                  ഞങ്ങൾ നടപ്പിലാക്കിയ പുതിയ ഒപ്റ്റിമൈസേഷൻ വഴി പേജ് റിഫ്രഷ് ചെയ്യുമ്പോൾ ക്ലൗഡിലേക്ക് അനാവശ്യമായ ഡാറ്റ പോകുന്നത് 95% ഒഴിവാക്കിയിട്ടുണ്ട്.
+                  {tr(
+                    'Our real-time cache optimization avoids 95% of unnecessary writes during page refreshes and multi-client edits.',
+                    'ഞങ്ങൾ നടപ്പിലാക്കിയ പുതിയ ഒപ്റ്റിമൈസേഷൻ വഴി പേജ് റിഫ്രഷ് ചെയ്യുമ്പോൾ ക്ലൗഡിലേക്ക് അനാവശ്യമായ ഡാറ്റ പോകുന്നത് 95% ഒഴിവാക്കിയിട്ടുണ്ട്.'
+                  )}
                 </p>
                 <div className="text-[11px] space-y-1 pt-1 text-slate-600 dark:text-slate-400">
-                  <div>• Spark (സൗജന്യ പ്ലാൻ): ദിവസവും 20,000 writes ലഭിക്കും (ഉച്ചയ്ക്ക് 1:30 PM-ന് വീണ്ടും റീസെറ്റ് ആകും).</div>
-                  <div>• Blaze (Pay-as-you-go) പ്ലാൻ: പരിധി പൂർണ്ണമായി മാറും. ആദ്യ 20,000 എഴുത്തുകൾ 100% സൗജന്യമാണ്.</div>
+                  <div>{tr('• Spark (Free Plan): 20,000 writes/day (Resets daily at 1:30 PM IST).', '• Spark (സൗജന്യ പ്ലാൻ): ദിവസവും 20,000 writes ലഭിക്കും (ഉച്ചയ്ക്ക് 1:30 PM-ന് വീണ്ടും റീസെറ്റ് ആകും).')}</div>
+                  <div>{tr('• Blaze (Pay-as-you-go): Unlimited writes with real-time scaling.', '• Blaze (Pay-as-you-go) പ്ലാൻ: പരിധി പൂർണ്ണമായി മാറും. ആദ്യ 20,000 എഴുത്തുകൾ 100% സൗജന്യമാണ്.')}</div>
                 </div>
-              </div>
-
-              {/* One-Time Migration Card */}
-              <div className="p-3.5 rounded-xl bg-teal-50/60 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/50 space-y-2.5">
-                <span className="font-bold text-xs text-[#0F2A4A] dark:text-white flex items-center gap-1.5">
-                  <Database className="w-4 h-4 text-[#0E7C86]" />
-                  <span>One-Time Migration: Upload Local Data to Cloud</span>
-                </span>
-                <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-                  ഈ ഫോണിൽ നേരത്തെ സേവ് ചെയ്തിട്ടുള്ള എല്ലാ ഡാറ്റയും പുതിയ ഫയർസ്റ്റോർ സിസ്റ്റത്തിലേക്ക് അപ്‌ലോഡ് ചെയ്യുക (Zero Duplicates, safe to re-run).
-                </p>
-
-                {migrationProgress && (
-                  <div className="space-y-1.5 p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center justify-between text-[11px] font-semibold">
-                      <span>{migrationProgress.message}</span>
-                      <span className="font-mono text-teal-600 font-bold">{migrationProgress.percent}%</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                      <div className="h-full bg-[#0E7C86]" style={{ width: `${migrationProgress.percent}%` }} />
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  disabled={migrationProgress?.isRunning}
-                  onClick={async () => {
-                    if (!window.confirm('Upload local browser data to individual Firestore documents now?')) return;
-                    setMigrationProgress({ step: 0, percent: 0, message: 'Starting migration...', isRunning: true });
-                    try {
-                      const stats = await migrateLocalDataToCloud((step, percent, msg) => {
-                        setMigrationProgress({ step, percent, message: msg, isRunning: true });
-                      });
-                      setMigrationProgress({
-                        step: 100,
-                        percent: 100,
-                        message: `Migrated ${stats.totalMigrated} records to Firestore!`,
-                        isRunning: false,
-                        result: stats
-                      });
-                    } catch (e) {
-                      setMigrationProgress({
-                        step: 0,
-                        percent: 0,
-                        message: 'Notice: ' + (e.message || 'Write paused'),
-                        isRunning: false,
-                        isError: true
-                      });
-                    }
-                  }}
-                  className="w-full min-h-[40px] px-3.5 py-1.5 rounded-xl bg-[#0E7C86] text-white hover:bg-teal-700 disabled:opacity-50 text-xs font-bold transition flex items-center justify-center gap-1.5"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>{migrationProgress?.isRunning ? 'Migrating...' : 'Upload Local Data to Cloud'}</span>
-                </button>
               </div>
 
               {/* Cloud Usage Telemetry Card */}
@@ -453,7 +414,7 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
                     <span>Cloud Usage &amp; Diagnostics</span>
                   </span>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    തത്സമയ റീഡ് / റൈറ്റ് കൗണ്ടറും സ്ക്രീൻ തിരിച്ചുള്ള കണക്കുകളും കാണുക.
+                    {tr('View live read/write counters and component quota usage.', 'തത്സമയ റീഡ് / റൈറ്റ് കൗണ്ടറും സ്ക്രീൻ തിരിച്ചുള്ള കണക്കുകളും കാണുക.')}
                   </p>
                 </div>
                 <button
@@ -492,7 +453,7 @@ export const MultiDeviceSyncModal = ({ isOpen, onClose }) => {
             onClick={onClose}
             className="min-h-[40px] px-4 py-1.5 rounded-xl text-xs font-semibold bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600 transition"
           >
-            അടയ്ക്കുക (Close)
+            {tr('Close', 'അടയ്ക്കുക')}
           </button>
         </div>
       </div>

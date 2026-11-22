@@ -10,7 +10,8 @@
  */
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
-import { db, getSecondaryAuth, COLLECTIONS } from './firebase';
+import { db, getSecondaryAuth, COLLECTIONS, isLocalPreview, isFirebaseAuthEnabled } from './firebase';
+import { hashPassword } from '../utils/crypto';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -53,25 +54,30 @@ export const createAccountSecondary = async ({
 
   let uid = null;
 
-  try {
-    const cred = await createUserWithEmailAndPassword(secondaryAuth, internalEmail, effectivePassword);
-    uid = cred.user.uid;
-  } catch (authErr) {
-    // If user already exists in Firebase Auth, see if we can find their UID or report friendly error
-    if (authErr.code === 'auth/email-already-in-use') {
-      throw new Error(`An account with username @${normalizedUser} already exists.`);
-    } else if (authErr.code === 'auth/weak-password') {
-      throw new Error('Password is too weak. Please use at least 6 characters.');
-    } else if (authErr.code === 'auth/operation-not-allowed') {
-      throw new Error('Email/Password sign-in is disabled in Firebase Console.');
-    }
-    throw authErr;
-  } finally {
+  if (secondaryAuth && isFirebaseAuthEnabled && !isLocalPreview) {
     try {
-      await signOut(secondaryAuth);
-    } catch (e) {
-      // ignore secondary signout errors
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, internalEmail, effectivePassword);
+      uid = cred.user.uid;
+    } catch (authErr) {
+      // If user already exists in Firebase Auth, see if we can find their UID or report friendly error
+      if (authErr.code === 'auth/email-already-in-use') {
+        throw new Error(`An account with username @${normalizedUser} already exists.`);
+      } else if (authErr.code === 'auth/weak-password') {
+        throw new Error('Password is too weak. Please use at least 6 characters.');
+      } else if (authErr.code === 'auth/operation-not-allowed') {
+        throw new Error('Email/Password sign-in is disabled in Firebase Console.');
+      }
+      throw authErr;
+    } finally {
+      try {
+        await signOut(secondaryAuth);
+      } catch (e) {
+        // ignore secondary signout errors
+      }
     }
+  } else {
+    // In local preview mode, generate a safe unique UID without triggering network 400 CONFIGURATION_NOT_FOUND errors
+    uid = `usr_${normalizedUser.replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`;
   }
 
   // Write role, team, section to users/{uid} document in Firestore
@@ -95,13 +101,16 @@ export const createAccountSecondary = async ({
     const userDocRef = doc(db, COLLECTIONS.USERS, uid);
     await setDoc(userDocRef, userDocData, { merge: true });
 
-    // Link back to Student or Judge document if provided (NO PASSWORDS STORED!)
+    // Link back to Student or Judge document if provided
     if (studentId) {
       try {
         const studentRef = doc(db, COLLECTIONS.STUDENTS, String(studentId));
+        const hash = await hashPassword(effectivePassword);
         await updateDoc(studentRef, {
           authUid: uid,
           username: normalizedUser,
+          passwordHash: hash,
+          initialPassword: effectivePassword,
           hasAccount: true,
           accountCreatedAt: new Date().toISOString()
         });

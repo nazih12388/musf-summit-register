@@ -46,7 +46,7 @@ export const SplashScreen = ({ onFinished }) => {
         if (next < 30) setStatusText('Connecting to Directorate Services...');
         else if (next < 65) setStatusText('Loading Summit Architecture & Fields...');
         else if (next < 90) setStatusText('Verifying Security Protocol...');
-        else setStatusText('Welcome to MUSF Summit Register');
+        else setStatusText("Welcome to MUSF Students' Union");
 
         return next;
       });
@@ -115,7 +115,7 @@ export const SplashScreen = ({ onFinished }) => {
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 shadow-xl">
               <Sparkles className="w-3.5 h-3.5 text-teal-400 animate-pulse" />
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-white">
-                MUSF SUMMIT REGISTER
+                MUSF STUDENTS' UNION
               </span>
               <span className="text-[10px] text-teal-300 font-bold px-1.5 py-0.2 rounded bg-teal-500/20">
                 2026

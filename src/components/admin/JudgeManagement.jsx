@@ -26,10 +26,10 @@ import {
 
 export const JudgeManagement = () => {
   const {
-    judges,
-    programs,
-    summits,
-    settings,
+    judges = [],
+    programs = [],
+    summits = [],
+    settings = {},
     updateSettings,
     addJudge,
     updateJudge,

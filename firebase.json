@@ -1,6 +1,5 @@
 {
   "hosting": {
-    "site": "musf-summit-reg",
     "public": "dist",
     "ignore": [
       "firebase.json",

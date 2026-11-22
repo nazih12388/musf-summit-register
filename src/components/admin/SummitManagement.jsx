@@ -25,9 +25,9 @@ import { formatMonthLabel, getSummitRunningInfo } from '../../utils/reportCalcul
 
 export const SummitManagement = () => {
   const {
-    summits,
-    programs,
-    entries,
+    summits = [],
+    programs = [],
+    entries = [],
     addSummit,
     bulkCreateWeeklySummits,
     bulkCreateAcademicYearSummits,
@@ -427,9 +427,9 @@ export const SummitManagement = () => {
                   <button
                     type="button"
                     onClick={() => updateSummit(summit.id, { status: 'open' }, currentUser?.username)}
-                    className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#0E7C86] to-teal-600 hover:from-[#0B636B] hover:to-teal-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition"
+                    className="w-full min-h-[40px] py-2 px-3 rounded-xl bg-[#0F2A4A] hover:bg-[#163860] text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-98"
                   >
-                    <span>🚀 Publish Summit (Make Visible to Leaders &amp; Students)</span>
+                    <span>Publish Summit (Make Visible to Leaders &amp; Students)</span>
                   </button>
                 ) : (
                   <div className="flex items-center justify-between pt-1">

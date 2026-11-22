@@ -8,6 +8,10 @@ export const ChangePasswordModal = ({ isOpen, onClose }) => {
   const { changePassword, currentUser } = useAuth();
   const { t } = useLanguage();
 
+  if (currentUser?.role === 'student') {
+    return null;
+  }
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

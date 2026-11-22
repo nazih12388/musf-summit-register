@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export const LeaderManagement = () => {
-  const { teams, students, classes, appointTeamLeader, swapTeamLeaders } = useApp();
+  const { teams = [], students = [], classes = [], appointTeamLeader, swapTeamLeaders } = useApp();
   const { currentUser } = useAuth();
 
   const [appointModalData, setAppointModalData] = useState(null); // { team, role: 'leader1' | 'leader2' }
@@ -27,7 +27,7 @@ export const LeaderManagement = () => {
   const [loading, setLoading] = useState(false);
   const [actionSuccess, setActionSuccess] = useState('');
 
-  const classesMap = Object.fromEntries(classes.map(c => [c.id, c]));
+  const classesMap = Object.fromEntries((classes || []).map(c => [c.id, c]));
 
   const handleOpenAppoint = (team, role) => {
     const existingLeader = students.find(s => s.teamId === team.id && s.isLeader && s.leaderRole === role)

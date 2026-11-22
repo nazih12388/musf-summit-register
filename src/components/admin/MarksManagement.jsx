@@ -21,14 +21,14 @@ import {
 
 export const MarksManagement = () => {
   const {
-    summits,
-    programs,
-    entries,
-    marks,
-    judges,
-    students,
-    teams,
-    programResultsMap,
+    summits = [],
+    programs = [],
+    entries = [],
+    marks = [],
+    judges = [],
+    students = [],
+    teams = [],
+    programResultsMap = {},
     submitJudgeMark,
     adminApproveOrEditMark,
     deleteMark,

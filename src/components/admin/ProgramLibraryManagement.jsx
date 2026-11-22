@@ -29,9 +29,9 @@ import {
 
 export const ProgramLibraryManagement = () => {
   const {
-    sections,
-    fields,
-    programLibrary,
+    sections = [],
+    fields = [],
+    programLibrary = [],
     addField,
     updateField,
     deleteField,

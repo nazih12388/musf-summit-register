@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MUSF Union & Summit Register App — Official User Manual</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Manjari:wght@400;700&family=Noto+Sans+Malayalam:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset & Print Media Optimization */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 16mm 14mm 16mm 14mm;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans Malayalam', 'Manjari', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Floating Print Action Bar */
+    .print-bar {
+      position: sticky;
+      top: 0;
+      z-index: 9999;
+      background: linear-gradient(135deg, #0F2A4A, #0E7C86);
+      color: white;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    .print-bar-title {
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .print-btn {
+      background: #f59e0b;
+      color: #0f172a;
+      border: none;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 800;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    .print-btn:hover {
+      background: #fbbf24;
+      transform: translateY(-1px);
+    }
+
+    /* Document Sheet */
+    .document-container {
+      max-width: 900px;
+      margin: 30px auto;
+      background: white;
+      padding: 48px;
+      border-radius: 16px;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Cover / Header Section */
+    .doc-header {
+      border-bottom: 3px double #cbd5e1;
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    .badge-union {
+      display: inline-block;
+      padding: 4px 14px;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-size: 11px;
+      font-weight: 800;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      border: 1px solid #bae6fd;
+    }
+
+    .doc-title {
+      font-size: 26px;
+      font-weight: 900;
+      color: #0F2A4A;
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+
+    .doc-subtitle {
+      font-size: 14px;
+      color: #0E7C86;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .doc-meta {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    /* Headings */
+    h2 {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0F2A4A;
+      margin-top: 32px;
+      margin-bottom: 14px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #0E7C86;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 20px;
+      margin-bottom: 8px;
+    }
+
+    p {
+      font-size: 13px;
+      color: #334155;
+      margin-bottom: 12px;
+      text-align: justify;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 12px;
+    }
+
+    th {
+      background: #0F2A4A;
+      color: white;
+      text-align: left;
+      padding: 10px 12px;
+      font-weight: 700;
+    }
+
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #334155;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    /* Cards & Callouts */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin: 16px 0;
+    }
+
+    .card {
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .card-title {
+      font-weight: 800;
+      font-size: 13px;
+      color: #0F2A4A;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-desc {
+      font-size: 11.5px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    .callout {
+      background: #f0fdfa;
+      border-left: 4px solid #0E7C86;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0;
+      font-size: 12px;
+      color: #134e4a;
+    }
+
+    .callout strong {
+      color: #042f2e;
+    }
+
+    /* Ordered steps */
+    ol, ul {
+      margin-left: 20px;
+      margin-bottom: 16px;
+      font-size: 12.5px;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    /* Page Break for Print */
+    .page-break {
+      page-break-before: always;
+      margin-top: 24px;
+    }
+
+    @media print {
+      body {
+        background: white;
+      }
+
+      .print-bar {
+        display: none !important;
+      }
+
+      .document-container {
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        border: none;
+        box-shadow: none;
+      }
+
+      h2 {
+        break-after: avoid;
+      }
+
+      table, tr, .card {
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Print/PDF Bar -->
+  <div class="print-bar">
+    <div class="print-bar-title">
+      <span>📘 MUSF Official User Manual</span>
+      <span style="opacity: 0.8; font-size: 11px;">(Print-Ready A4 Document)</span>
+    </div>
+    <button class="print-btn" onclick="window.print()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+      <span>Print / Save as PDF (ഡൗൺലോഡ് ചെയ്യുക)</span>
+    </button>
+  </div>
+
+  <div class="document-container">
+
+    <!-- Document Header -->
+    <div class="doc-header">
+      <span class="badge-union">Majlis Umariyya Students' Federation</span>
+      <h1 class="doc-title">MUSF Union &amp; Summit Register App</h1>
+      <div class="doc-subtitle">സമഗ്ര യൂസർ മാനുവൽ &amp; പ്രവർത്തന മാർഗ്ഗരേഖ (User Manual &amp; Architecture Guide)</div>
+      <div class="doc-meta">
+        അക്കാദമിക് വർഷം: 2026–2027 &bull; ഔദ്യോഗിക ഭരണസമിതി &amp; സമ്മിറ്റ് റജിസ്റ്റർ &bull; Version 2.0 (Live Production)
+      </div>
+    </div>
+
+    <!-- Chapter 1 -->
+    <h2>1. ആമുഖം (Introduction)</h2>
+    <p>
+      മജ്‌ലിസ് ഉമരിയ്യ വാഫി കോളേജിലെ വിദ്യാർത്ഥി യൂണിയനായ <strong>Majlis Umariyya Students' Federation (MUSF)</strong>-ന്റെ ഔദ്യോഗിക പ്രവർത്തനങ്ങൾ, കലാ-സാഹിത്യ മത്സരങ്ങൾ (Fine Arts Summit), വാർഷിക കായികമേളകൾ, സർട്ടിഫിക്കറ്റ് വിതരണങ്ങൾ, കൗൺസിൽ തീരുമാനങ്ങൾ എന്നിവ സമഗ്രമായി ഏകോപിപ്പിക്കുന്ന ഡിജിറ്റൽ പ്ലാറ്റ്‌ഫോമാണ് ഈ ആപ്ലിക്കേഷൻ.
+    </p>
+    <div class="callout">
+      <strong>പ്രധാന ലക്ഷ്യം:</strong> മുഴുവൻ മത്സരങ്ങളുടെയും നിഷ്പക്ഷവും വേഗത്തിലുള്ളതുമായ മൂല്യനിർണ്ണയം, തത്സമയ ഹൗസ് സ്കോർബോർഡ്, വിദ്യാർത്ഥികളുടെ മെറിറ്റ് സർട്ടിഫിക്കറ്റുകളുടെ സുരക്ഷിത ആർക്കൈവിംഗ്, യൂണിയൻ ഭരണസമിതിയുടെ കാര്യക്ഷമമായ പ്രവർത്തനം എന്നിവ സാധ്യമാക്കുക.
+    </div>
+
+    <!-- Chapter 2 -->
+    <h2>2. ഉപയോക്തൃ റോളുകൾ (User Roles &amp; Permissions)</h2>
+    <p>ആപ്പിൽ ഓരോ ഉപയോക്താവിന്റെയും ചുമതലകൾക്ക് അനുസൃതമായി 6 വ്യത്യസ്ത റോളുകൾ ക്രമീകരിച്ചിരിക്കുന്നു:</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>റോൾ (Role)</th>
+          <th>അധികാര പരിധി (Scope)</th>
+          <th>പ്രധാന ചുമതലകൾ (Responsibilities)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Central Admin</strong></td>
+          <td>Apex Body (മുഴുവൻ നിയന്ത്രണം)</td>
+          <td>വിദ്യാർത്ഥി വിവരങ്ങൾ, ക്ലാസ് അലോക്കേഷൻ, ഭാരവാഹികളുടെ നിയമനം, സെറ്റിങ്സ്, ഒഫീഷ്യൽ A4 ലെറ്റർഹെഡ് PDF റിപ്പോർട്ട് ജനറേഷൻ.</td>
+        </tr>
+        <tr>
+          <td><strong>Union Executive</strong></td>
+          <td>യൂണിയൻ കൗൺസിൽ</td>
+          <td>സെൻട്രൽ പ്രോഗ്രാമുകൾ (അസംബ്ലികൾ, ക്യാമ്പുകൾ), കൗൺസിൽ മീറ്റിംഗ് മിനിറ്റ്സുകൾ &amp; പ്രമേയങ്ങൾ, ബാനർ സ്ലൈഡർ നിയന്ത്രണം.</td>
+        </tr>
+        <tr>
+          <td><strong>Wing Convener</strong></td>
+          <td>5 സ്വതന്ത്ര വിംഗുകൾ</td>
+          <td>അതാത് വിംഗുകളുടെ പരിപാടികൾ, ശിൽപ്പശാലകൾ, മത്സരങ്ങൾ, വിംഗ് മീറ്റിംഗുകൾ, സർട്ടിഫിക്കറ്റ് അപ്രൂവൽ.</td>
+        </tr>
+        <tr>
+          <td><strong>Team Leader</strong></td>
+          <td>ഹൗസ് ക്യാപ്റ്റൻമാർ</td>
+          <td>ടീം A, B, C ഹൗസുകളിലെ കുട്ടികളെ ചെസ്റ്റ് നമ്പർ സഹിതം മത്സരങ്ങളിൽ രജിസ്റ്റർ ചെയ്യൽ, ഹൗസ് പോയിന്റ് നിരീക്ഷണം.</td>
+        </tr>
+        <tr>
+          <td><strong>Judge</strong></td>
+          <td>വിധികർത്താക്കൾ</td>
+          <td>ചെസ്റ്റ് നമ്പറുകൾ അടിസ്ഥാനമാക്കി മാനദണ്ഡങ്ങൾക്കനുസരിച്ച് (Criteria) മാർക്കുകൾ രേഖപ്പെടുത്തൽ.</td>
+        </tr>
+        <tr>
+          <td><strong>Student</strong></td>
+          <td>പൊതു വിദ്യാർത്ഥികൾ</td>
+          <td>വ്യക്തിഗത സമ്മിറ്റ് പോയിന്റുകൾ, ഗ്രേഡുകൾ, ഡിജിറ്റൽ സർട്ടിഫിക്കറ്റുകൾ, വിംഗ് പ്രവർത്തനങ്ങളിൽ ചേരൽ.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Chapter 3 -->
+    <div class="page-break"></div>
+    <h2>3. 5 സ്വതന്ത്ര യൂണിയൻ വിംഗുകൾ (Autonomous Union Wings)</h2>
+    <p>MUSF ഭരണഘടനയനുസരിച്ച് പ്രവർത്തിക്കുന്ന 5 സ്വതന്ത്ര ശാഖകൾ:</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-title">🎭 Fine Arts Wing</div>
+        <div class="card-desc">സമ്മിറ്റ് രജിസ്റ്റർ, സ്റ്റേജ് / നോൺ-സ്റ്റേജ് മത്സരങ്ങൾ, സാഹിത്യോത്സവ്, സർഗ്ഗാത്മക പരിശീലനങ്ങൾ, ജഡ്ജ് മാർക്കിംഗ്.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">🏆 Sports Wing</div>
+        <div class="card-desc">വാർഷിക കായികമേള, ഇന്റർ-ഹൗസ് ഫുട്ബോൾ, വോളിബോൾ, ക്രിക്കറ്റ്, അത്‌ലറ്റിക് മീറ്റുകൾ, മെഡൽ ടാലി &amp; സ്പോർട്സ് പോയിന്റ് ടേബിൾ.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">📖 Da'wa &amp; Moral Wing</div>
+        <div class="card-desc">ആത്മീയ സദസ്സുകൾ, മൂല്യബോധന ക്യാമ്പുകൾ, സദാചാര സമിതി യോഗങ്ങൾ, മഹല്ല് സേവന പരിപാടികൾ.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">🎓 Academic &amp; Research Wing</div>
+        <div class="card-desc">അക്കാദമിക് സിമ്പോസിയങ്ങൾ, ക്വിസ് മത്സരങ്ങൾ, സംവാദ സദസ്സുകൾ, ലൈബ്രറി സെഷനുകൾ, റിസർച്ച് വർക്കുകൾ.</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 10px;">
+      <div class="card-title">📷 Media &amp; PR Wing</div>
+      <div class="card-desc">യൂണിയൻ ബാനറുകൾ, ഡിജിറ്റൽ പോസ്റ്റർ സ്ലൈഡർ മാനേജ്‌മെന്റ്, വാർത്താ ബുള്ളറ്റിനുകൾ, ആപ്പ് അറിയിപ്പുകൾ.</div>
+    </div>
+
+    <!-- Chapter 4 -->
+    <h2>4. സ്റ്റുഡന്റ് പോർട്ടൽ ഗൈഡ് (Student Portal Workflow)</h2>
+    <ol>
+      <li><strong>ലോഗിൻ (Login):</strong> വിദ്യാർത്ഥികൾക്ക് അവരുടെ CIC നമ്പറും യൂസർനെയിമും നൽകി പാസ്‌വേഡ് ഇല്ലാതെ (അല്ലെങ്കിൽ സ്വന്തം പാസ്‌വേഡ് ഉപയോഗിച്ച്) പ്രവേശിക്കാം.</li>
+      <li><strong>ഹോം സ്ക്രീൻ (Home Screen):</strong> വിദ്യാർത്ഥിയുടെ പേര്, റോൾ നമ്പർ, അലോട്ട് ചെയ്ത ടീം (Team A, B, C), ക്ലാസ് എന്നിവ വ്യക്തമായി കാണിക്കുന്നു.</li>
+      <li><strong>പോസ്റ്റർ സ്ലൈഡർ (Banner Carousel):</strong> യൂണിയൻ പുറത്തിറക്കുന്ന പോസ്റ്ററുകളും ലൈവ് ഇവന്റുകളും ആനിമേഷനോടെ ഹോം സ്ക്രീനിൽ കാണാം.</li>
+      <li><strong>മത്സര ഫലങ്ങൾ &amp; റാങ്ക് (Results):</strong> പങ്കെടുത്ത മത്സരങ്ങളുടെ വ്യക്തിഗത മാർക്ക്, ലഭിച്ച റാങ്ക്, ഗ്രേഡ് എന്നിവ തത്സമയം അറിയാം.</li>
+      <li><strong>ഡിജിറ്റൽ സർട്ടിഫിക്കറ്റ് (Merit Certificates):</strong> മത്സരങ്ങളിൽ വിജയിച്ചവർക്ക് ഒഫീഷ്യൽ ഡിജിറ്റൽ മെറിറ്റ് സർട്ടിഫിക്കറ്റ് ഡൗൺലോഡ് ചെയ്യാനും പ്രിന്റ് ചെയ്യാനും സാധിക്കും.</li>
+    </ol>
+
+    <!-- Chapter 5 -->
+    <h2>5. ഫൈൻ ആർട്സ് സമ്മിറ്റ് രജിസ്റ്റർ (Fine Arts Summit Workflow)</h2>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-title">1. പ്രോഗ്രാം എൻട്രി &amp; ചെസ്റ്റ് നമ്പർ</div>
+        <div class="card-desc">ടീം ലീഡർമാർ തങ്ങളുടെ ഹൗസിലെ വിദ്യാർത്ഥികളെ നിശ്ചിത മത്സരങ്ങളിൽ രജിസ്റ്റർ ചെയ്ത് ചെസ്റ്റ് നമ്പർ നേടുന്നു.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">2. വിധികർത്താക്കളുടെ മാർക്ക് എൻട്രി</div>
+        <div class="card-desc">വിദ്യാർത്ഥിയുടെ പേര് വെളിപ്പെടുത്താതെ ചെസ്റ്റ് നമ്പർ മാത്രം നോക്കി ജഡ്ജ് മാർക്കുകൾ നൽകുന്നു.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">3. ടൈ-ബ്രേക്കിംഗ് &amp; റാങ്ക് നിർണ്ണയം</div>
+        <div class="card-desc">സിസ്റ്റം തനിയെ തുല്യമാർക്കുകൾ പരിശോധിച്ച് കൃത്യമായ 1, 2, 3 സ്ഥാനക്കാരെ നിശ്ചയിക്കുന്നു.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">4. ഓട്ടോമാറ്റിക് പോയിന്റ് ക്രെഡിറ്റിംഗ്</div>
+        <div class="card-desc">1-ാം സ്ഥാനം: 10 പോയിന്റ്, 2-ാം സ്ഥാനം: 6 പോയിന്റ്, 3-ാം സ്ഥാനം: 3 പോയിന്റ് എന്ന കണക്കിൽ ഹൗസ് സ്കോർബോർഡിൽ കൂട്ടിച്ചേർക്കപ്പെടുന്നു.</div>
+      </div>
+    </div>
+
+    <!-- Chapter 6 -->
+    <div class="page-break"></div>
+    <h2>6. എക്സിക്യൂട്ടീവ് &amp; അഡ്മിൻ പ്രവർത്തനങ്ങൾ (Admin &amp; Executive Console)</h2>
+    <ul>
+      <li><strong>Central Programs:</strong> അസംബ്ലി, കോളേജ് ഒറിയന്റേഷൻ തുടങ്ങിയ പൊതുപരിപാടികൾ ഷെഡ്യൂൾ ചെയ്യുക.</li>
+      <li><strong>Council Minutes:</strong> യൂണിയൻ കൗൺസിൽ ചേർന്ന തീയതി, സമയം, ഹാജരായ ഭാരവാഹികൾ, എടുത്ത നിർണ്ണായക തീരുമാനങ്ങൾ എന്നിവ രേഖപ്പെടുത്തുക (വിദ്യാർത്ഥി പോർട്ടലിൽ കാണിക്കില്ല).</li>
+      <li><strong>Official Malayalam PDF Report:</strong> യൂണിയന്റെ മാസ പ്രവർത്തന റിപ്പോർട്ട് തനിയെ ജനറേറ്റ് ചെയ്ത് പ്രിന്റ് ചെയ്യുക.</li>
+      <li><strong>ഭാരവാഹികളുടെ ഫോട്ടോ കൈകാര്യം ചെയ്യൽ:</strong> ഒഫീഷ്യൽ പ്രൊഫൈലിൽ ഫോട്ടോ അപ്‌ലോഡ് ചെയ്യാനും, ആവശ്യമുള്ളപ്പോൾ പൂർണ്ണമായും 'Remove' ചെയ്യാനും സാധിക്കും.</li>
+      <li><strong>ക്ലയന്റ്-സൈഡ് ഓട്ടോ-കംപ്രഷൻ:</strong> വലിയ സൈസുള്ള പോസ്റ്ററുകൾ അപ്‌ലോഡ് ചെയ്യുമ്പോൾ തന്നെ 40–90 KB വരെ കംപ്രസ് ചെയ്ത് ഹോസ്റ്റിംഗ് ലാഭിക്കുന്നു.</li>
+    </ul>
+
+    <!-- Chapter 7 -->
+    <h2>7. പതിവുചോദ്യങ്ങളും പരിഹാരങ്ങളും (FAQ &amp; Troubleshooting)</h2>
+    <div class="card" style="margin-bottom: 12px;">
+      <div class="card-title">ചോദ്യം: ലോഗിൻ ചെയ്യുമ്പോൾ അഡ്മിൻ പാസ്‌വേഡ് മറ്റുള്ളവർക്ക് കാണാൻ കഴിയുമോ?</div>
+      <div class="card-desc"><strong>ഉത്തരം:</strong> ഇല്ല. പാസ്‌വേഡ് ഫീൽഡിലെ പ്ലേസ്‌ഹോൾഡറുകൾ സുരക്ഷിതമാക്കിയിട്ടുണ്ട് (••••••••). യാതൊരുവിധ അഡ്മിൻ വിവരങ്ങളും ലോഗിൻ പേജിൽ പരസ്യമായി കാണിക്കില്ല.</div>
+    </div>
+
+    <div class="card" style="margin-bottom: 12px;">
+      <div class="card-title">ചോദ്യം: ഇന്റർനെറ്റ് ഇല്ലാതെ ആപ്പ് ഉപയോഗിക്കാൻ സാധിക്കുമോ?</div>
+      <div class="card-desc"><strong>ഉത്തരം:</strong> അതെ. Progressive Web App (PWA) ആയതിനാൽ ഫോണിൽ ഇൻസ്റ്റാൾ ചെയ്യാനും മുൻപ് ലോഡ് ചെയ്ത സ്കോർബോർഡുകളും പ്രോഗ്രാമുകളും ഓഫ്‌ലൈനായി കാണാനും സാധിക്കും.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">ചോദ്യം: ഔദ്യോഗിക റിപ്പോർട്ടുകൾ എങ്ങനെ പ്രിന്റ് ചെയ്യാം?</div>
+      <div class="card-desc"><strong>ഉത്തരം:</strong> എക്സിക്യൂട്ടീവ് അല്ലെങ്കിൽ അഡ്മിൻ പാനലിലെ 'Report (PDF)' ബട്ടൺ ക്ലിക്ക് ചെയ്താൽ A4 ഫോർമാറ്റിൽ സിസ്റ്റം തനിയെ പ്രിന്റ് റെഡി റിപ്പോർട്ട് ഒരുക്കി നൽകും.</div>
+    </div>
+
+    <!-- Footer -->
+    <div style="margin-top: 40px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 11px; color: #94a3b8;">
+      Published by Majlis Umariyya Students' Federation (MUSF) &bull; IT &amp; Media Wing &bull; All Rights Reserved.
+    </div>
+
+  </div>
+
+</body>
+</html>

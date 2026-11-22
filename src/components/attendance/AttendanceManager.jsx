@@ -22,13 +22,13 @@ import {
 
 export const AttendanceManager = ({ isLeaderView = false, leaderTeamId = null }) => {
   const {
-    summits,
-    students,
-    classes,
-    teams,
-    attendance,
-    settings,
-    studentAttendanceMap,
+    summits = [],
+    students = [],
+    classes = [],
+    teams = [],
+    attendance = [],
+    settings = {},
+    studentAttendanceMap = {},
     recordAttendance,
     bulkRecordAttendance,
     toggleAttendanceSessionLock,

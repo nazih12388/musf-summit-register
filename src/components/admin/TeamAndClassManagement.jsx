@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Modal } from '../common/Modal';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { BulkTeamAssignment } from './BulkTeamAssignment';
 import {
   Shield,
   Layers,
@@ -36,15 +37,15 @@ import {
 
 export const TeamAndClassManagement = () => {
   const {
-    sections,
-    classes,
-    teams,
-    students,
-    summits,
-    programs,
-    entries,
-    marks,
-    settings,
+    sections = [],
+    classes = [],
+    teams = [],
+    students = [],
+    summits = [],
+    programs = [],
+    entries = [],
+    marks = [],
+    settings = {},
     updateSection,
     addClass,
     updateClass,
@@ -368,7 +369,7 @@ export const TeamAndClassManagement = () => {
           </p>
         </div>
 
-        {/* 3 Nav Sub-Tabs */}
+        {/* Nav Sub-Tabs */}
         <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 self-start md:self-center overflow-x-auto max-w-full">
           <button
             type="button"
@@ -381,6 +382,19 @@ export const TeamAndClassManagement = () => {
           >
             <Shield className="w-4 h-4 text-[#0E7C86]" />
             <span>House Teams ({teams.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('bulk_assign')}
+            className={`py-2 px-3.5 rounded-lg font-bold text-xs flex items-center gap-2 transition shrink-0 ${
+              activeSubTab === 'bulk_assign'
+                ? 'bg-white dark:bg-[#0F1B2B] text-[#0F2A4A] dark:text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <ArrowRightLeft className="w-4 h-4 text-teal-600" />
+            <span>Bulk Assign Teams</span>
           </button>
 
           <button
@@ -436,7 +450,7 @@ export const TeamAndClassManagement = () => {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setIsBulkAssignOpen(true)}
+                onClick={() => setActiveSubTab('bulk_assign')}
                 className="py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition"
               >
                 <ArrowRightLeft className="w-4 h-4 text-[#0E7C86]" />
@@ -598,6 +612,13 @@ export const TeamAndClassManagement = () => {
       )}
 
       {/* =========================================================================
+          TAB: BULK TEAM ASSIGNMENT
+         ========================================================================= */}
+      {activeSubTab === 'bulk_assign' && (
+        <BulkTeamAssignment />
+      )}
+
+      {/* =========================================================================
           TAB 2: SUMMIT ROSTERS & PER-TEAM PRINT
          ========================================================================= */}
       {activeSubTab === 'summit_assignments' && (
@@ -747,7 +768,7 @@ export const TeamAndClassManagement = () => {
                             title={`Print official ${team.name} summit roster sheet`}
                           >
                             <Printer className="w-4 h-4 text-[#0E7C86]" />
-                            <span>🖨️ Print Team Summit Sheet</span>
+                            <span>Print Team Summit Sheet</span>
                           </button>
                         </div>
                       </div>
@@ -1127,7 +1148,7 @@ export const TeamAndClassManagement = () => {
                     </div>
                     <div>
                       <span className="text-slate-500 font-medium">Academic Period: </span>
-                      <strong className="text-slate-900">Academic Year 2026-27</strong>
+                      <strong className="text-slate-900">Academic Year {settings.academicYear || '2025–2026'}</strong>
                     </div>
                   </div>
 
@@ -1292,7 +1313,7 @@ export const TeamAndClassManagement = () => {
               <div className="space-y-1">
                 <div>Summit Gathering: <strong>{summit?.name || 'Summit'}</strong></div>
                 <div>Date &amp; Venue: <strong>{summit?.date || 'Date'} • {summit?.venue || 'Campus'}</strong></div>
-                <div>Academic Period: <strong>Academic Year 2026-27</strong></div>
+                <div>Academic Period: <strong>Academic Year {settings.academicYear || '2025–2026'}</strong></div>
               </div>
               <div className="space-y-1 border-l border-black pl-3">
                 <div>House Team: <strong>{team.name}</strong></div>

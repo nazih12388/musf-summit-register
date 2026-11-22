@@ -20,7 +20,10 @@ function drawAcademicCertificatePage(doc, certData) {
     attendancePercentage = 100,
     grade = "A",
     issueDate = new Date().toISOString().slice(0, 10),
-    collegeName = "MAJLIS UMARIYYA WAFY COLLEGE"
+    collegeName = "MAJLIS UMARIYYA WAFY COLLEGE",
+    wingName = "",
+    programTitle = "",
+    place = ""
   } = certData;
 
   const width = doc.internal.pageSize.getWidth();
@@ -54,20 +57,36 @@ function drawAcademicCertificatePage(doc, certData) {
   doc.setTextColor(15, 42, 74);
   doc.text(collegeName.toUpperCase(), width / 2, 28, { align: 'center' });
 
-  // Summit Register Subtitle
+  // Subtitle (Wing or Summit Directorate)
   doc.setFont('times', 'normal');
   doc.setFontSize(11);
   doc.setTextColor(14, 124, 134); // Teal #0E7C86
-  doc.text("DIRECTORATE OF ACADEMIC & TALENT SUMMITS • MUSF REGISTER", width / 2, 35, { align: 'center' });
+  const subHeader = wingName
+    ? `${wingName.toUpperCase()} • MUSF UNION COUNCIL`
+    : "DIRECTORATE OF ACADEMIC & TALENT SUMMITS • MUSF REGISTER";
+  doc.text(subHeader, width / 2, 35, { align: 'center' });
 
   // Certificate Title based on Category
   doc.setFont('times', 'bold');
-  doc.setFontSize(23);
+  doc.setFontSize(22);
   doc.setTextColor(15, 23, 42);
 
-  const mainCertHeading = category === 'CLASS_TOPPER'
-    ? "CERTIFICATE OF CLASS-WISE SCHOLASTIC EXCELLENCE"
-    : "CERTIFICATE OF APEX ACADEMIC DISTINCTION";
+  const isCommittee = category === 'COMMITTEE_HONOR' || category === 'UNION_EXECUTIVE_HONOR' || category === 'WING_CONVENER_APPRECIATION';
+  const isWingCert = Boolean(wingName) || category?.startsWith('WING_');
+
+  const mainCertHeading = isWingCert
+    ? (category === 'WING_WINNER' || place
+        ? "CERTIFICATE OF MERIT & VICTORY"
+        : category === 'WING_PARTICIPATION'
+          ? "CERTIFICATE OF ACTIVE PARTICIPATION"
+          : "CERTIFICATE OF SPECIAL DISTINCTION")
+    : isCommittee
+      ? (category === 'WING_CONVENER_APPRECIATION'
+          ? "CERTIFICATE OF WING CONVENER APPRECIATION"
+          : "CERTIFICATE OF UNION LEADERSHIP & MERITORIOUS SERVICE")
+      : category === 'CLASS_TOPPER'
+        ? "CERTIFICATE OF CLASS-WISE SCHOLASTIC EXCELLENCE"
+        : "CERTIFICATE OF APEX ACADEMIC DISTINCTION";
 
   doc.text(mainCertHeading, width / 2, 49, { align: 'center' });
 
@@ -75,9 +94,13 @@ function drawAcademicCertificatePage(doc, certData) {
   doc.setFont('times', 'bolditalic');
   doc.setFontSize(13);
   doc.setTextColor(201, 162, 39); // Gold
-  const categorySub = category === 'CLASS_TOPPER'
-    ? "CLASS TOPPER & ACADEMIC MERIT DISTINCTION"
-    : "TOP PERFORMER OF THE MONTH";
+  const categorySub = isWingCert
+    ? (place ? `${place.toUpperCase()} PRIZE • ${wingName || 'UNION WING'}` : `${wingName || 'UNION WING'} • PROGRAM HONORS`)
+    : isCommittee
+      ? (category === 'WING_CONVENER_APPRECIATION' ? "WING LEADERSHIP & CONVENER DISTINCTION" : "UNION COUNCIL & COMMITTEE DISTINCTION")
+      : category === 'CLASS_TOPPER'
+        ? "CLASS TOPPER & ACADEMIC MERIT DISTINCTION"
+        : "TOP PERFORMER OF THE MONTH";
   doc.text(categorySub, width / 2, 56, { align: 'center' });
 
   // Gold Divider Line
@@ -101,7 +124,10 @@ function drawAcademicCertificatePage(doc, certData) {
   doc.setFont('times', 'italic');
   doc.setFontSize(11);
   doc.setTextColor(100, 116, 139);
-  doc.text(`CIC No: ${cicNo || '-'}   •   Class: ${className || '-'}   •   House: ${teamName || '-'}`, width / 2, 92, { align: 'center' });
+  const idLine = isCommittee
+    ? `Designation: ${className || 'Executive Member'}   •   Wing / Scope: ${teamName || 'Central Union'}   •   Term: ${monthLabel || '2026–2027'}`
+    : `CIC No: ${cicNo || '-'}   •   Class: ${className || '-'}   •   House: ${teamName || '-'}`;
+  doc.text(idLine, width / 2, 92, { align: 'center' });
 
   // Award Title
   doc.setFont('times', 'bold');
@@ -114,7 +140,13 @@ function drawAcademicCertificatePage(doc, certData) {
   doc.setFontSize(12);
   doc.setTextColor(51, 65, 85);
 
-  const cleanCitation = citation || "For exemplary performance, summit eloquence, and intellectual distinction.";
+  const cleanCitation = citation || (isWingCert
+    ? (place
+        ? `In high commendation for securing ${place} in "${programTitle || 'Union Competition'}" conducted by ${wingName || 'the Union Wing'}.`
+        : `For enthusiastic and valuable participation in "${programTitle || 'Union Program'}" organized under the auspices of ${wingName || 'the Union'}.`)
+    : isCommittee
+      ? "In high appreciation and grateful recognition of dedicated collegiate leadership, organizational initiative, and outstanding contribution to the Students' Union."
+      : "For exemplary performance, summit eloquence, and intellectual distinction.");
   const splitCitation = doc.splitTextToSize(cleanCitation, width - 80);
   doc.text(splitCitation, width / 2, 118, { align: 'center' });
 
@@ -129,14 +161,21 @@ function drawAcademicCertificatePage(doc, certData) {
   doc.setFont('times', 'bold');
   doc.setFontSize(10.5);
   doc.setTextColor(15, 42, 74);
-  const metricsText = `Period: ${monthLabel}   •   Score: ${Number(marksPercentage).toFixed(1)}% (Grade: ${grade || 'A'})   •   Attendance: ${Number(attendancePercentage).toFixed(1)}%`;
+  const metricsText = isWingCert
+    ? `Wing: ${wingName || 'Union'}   •   Event: ${programTitle || 'Program'}   •   Status: Duly Awarded & Validated`
+    : isCommittee
+      ? `Accreditation: Union Directorate   •   Role: ${className || 'Executive Member'}   •   Status: Duly Appointed & Validated`
+      : `Period: ${monthLabel}   •   Score: ${Number(marksPercentage).toFixed(1)}% (Grade: ${grade || 'A'})   •   Attendance: ${Number(attendancePercentage).toFixed(1)}%`;
   doc.text(metricsText, width / 2, metricsY + 4, { align: 'center' });
 
   // Date and Accreditation
   doc.setFont('times', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(100, 116, 139);
-  doc.text(`Authenticated by Directorate of Summits, Majlis Umariyya Wafy College  •  Issue Date: ${issueDate}`, width / 2, 155, { align: 'center' });
+  const authText = wingName
+    ? `Authenticated by ${wingName}, Majlis Umariyya Students' Federation (MUSF)  •  Issue Date: ${issueDate}`
+    : `Authenticated by Directorate of Summits, Majlis Umariyya Wafy College  •  Issue Date: ${issueDate}`;
+  doc.text(authText, width / 2, 155, { align: 'center' });
 
   // Signatures Line
   const sigY = 178;

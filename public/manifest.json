@@ -1,7 +1,7 @@
 {
-  "name": "MUSF Summit Register",
-  "short_name": "MUSF Summit",
-  "description": "Academic & Leadership Summit Management System for Majlis Umariyya Wafy College",
+  "name": "MUSF Union App",
+  "short_name": "MUSF Union App",
+  "description": "MUSF Students' Union Management System for Majlis Umariyya Wafy College",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0F2A4A",

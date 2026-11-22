@@ -37,15 +37,15 @@ import {
 
 export const ProgramManagement = () => {
   const {
-    summits,
-    sections,
-    fields,
-    programLibrary,
-    programs,
-    entries,
-    students,
-    teams,
-    judges,
+    summits = [],
+    sections = [],
+    fields = [],
+    programLibrary = [],
+    programs = [],
+    entries = [],
+    students = [],
+    teams = [],
+    judges = [],
     assignProgramToSummit,
     updateSummitProgramAllocation,
     bulkAssignSummitProgramToAllTeams,
@@ -60,7 +60,7 @@ export const ProgramManagement = () => {
     toggleProgramStatus
   } = useApp();
   const { currentUser } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang, tr } = useLanguage();
 
   // Active Summit Selector
   const [selectedSummitId, setSelectedSummitId] = useState(summits[0]?.id || 'summit1');
@@ -560,13 +560,13 @@ export const ProgramManagement = () => {
               </div>
             )}
 
-            {/* 3. TARGET TEAMS SELECTION (ഏതൊക്കെ ടീമിനാണ് വേണ്ടത് എന്ന ഓപ്ഷൻ) */}
+            {/* 3. TARGET TEAMS SELECTION */}
             <div className="p-4 sm:p-5 rounded-2xl border-2 border-teal-500/30 bg-teal-50/40 dark:bg-teal-950/20 dark:border-teal-800/50 space-y-3.5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <label className="font-bold text-sm text-[#0F2A4A] dark:text-white flex items-center gap-2">
                     <Users className="w-4 h-4 text-[#0E7C86]" />
-                    <span>Assign to House Teams (ഏതെല്ലാം ടീമുകൾക്കാണ് ഈ പ്രോഗ്രാം വേണ്ടത്?):</span>
+                    <span>{tr('Assign to House Teams (Target Teams):', 'ഹൗസ് ടീമുകൾക്ക് നൽകുക:')}</span>
                   </label>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                     Choose which house teams will participate in this program event.

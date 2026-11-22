@@ -4,11 +4,13 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { Modal } from '../common/Modal';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { ClassWiseActivityReportModal } from '../reports/ClassWiseActivityReportModal';
 import {
   downloadStudentTemplate,
   parseStudentExcel,
   exportCredentialsExcel
 } from '../../utils/excel';
+import { printHtmlDocument } from '../../utils/printHelper';
 import {
   Users,
   UserPlus,
@@ -25,6 +27,8 @@ import {
   Archive,
   ArrowRightLeft,
   CheckCircle,
+  CheckCircle2,
+  MapPin,
   AlertCircle,
   Printer,
   BookOpen,
@@ -47,12 +51,13 @@ export const StudentManagement = () => {
     updateStudent,
     removeStudent,
     restoreStudent,
+    restoreDefaultStudents,
     autoGenerateAllCredentials,
     autoGenerateChestNumbers,
     bulkImportStudents
   } = useApp();
   const { currentUser } = useAuth();
-  const { lang, t } = useLanguage();
+  const { lang, t, tr } = useLanguage();
 
   const [search, setSearch] = useState('');
   const [selectedSection, setSelectedSection] = useState('all'); // 'all', 'thamheediyya', 'aliya'
@@ -63,10 +68,18 @@ export const StudentManagement = () => {
   const [recentlyAddedId, setRecentlyAddedId] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
 
+  // Auto-restore default college students if directory is empty on load
+  React.useEffect(() => {
+    if (students.length === 0 && typeof restoreDefaultStudents === 'function') {
+      restoreDefaultStudents('system');
+    }
+  }, [students.length, restoreDefaultStudents]);
+
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
+  const [isClassReportOpen, setIsClassReportOpen] = useState(false);
   const [credentialsProgress, setCredentialsProgress] = useState(null);
   const [generatedSheet, setGeneratedSheet] = useState([]);
   const [editingStudent, setEditingStudent] = useState(null);
@@ -86,7 +99,11 @@ export const StudentManagement = () => {
     teamId: teams[0]?.id || 'team_a',
     fieldId: '',
     chestNo: '',
-    password: ''
+    password: 'student123',
+    phone: '',
+    place: '',
+    address: '',
+    photoUrl: ''
   });
 
   // Check if selected class in Add Modal belongs to Aliya
@@ -101,7 +118,7 @@ export const StudentManagement = () => {
   const [bulkErrors, setBulkErrors] = useState([]);
   const [bulkSuccessMsg, setBulkSuccessMsg] = useState('');
 
-  // Filtered students
+  // Filtered students with lenient, resilient attribute matching
   const filteredStudents = useMemo(() => {
     const list = showArchived ? (archivedStudents || []) : (students || []);
     const q = String(search || '').toLowerCase().trim();
@@ -116,16 +133,27 @@ export const StudentManagement = () => {
       const matchSearch = !q || sName.includes(q) || sCic.includes(q) || sChest.includes(q) || sUser.includes(q);
 
       const cl = classesMap[s.classId];
-      const studentSec = s.sectionId || cl?.sectionId;
+      const studentSec = s.sectionId || cl?.sectionId || (['c1', 'c2', 'class 1', 'class 2'].includes(String(s.classId || s.className || '').toLowerCase().trim()) ? 'thamheediyya' : 'aliya');
 
       const matchSection = selectedSection === 'all' || studentSec === selectedSection;
-      const matchClass = selectedClass === 'all' || s.classId === selectedClass;
-      const matchTeam = selectedTeam === 'all' || s.teamId === selectedTeam;
-      const matchField = selectedField === 'all' || s.fieldId === selectedField;
+
+      const matchClass = selectedClass === 'all' ||
+        s.classId === selectedClass ||
+        cl?.id === selectedClass ||
+        (cl?.name && classesMap[selectedClass]?.name && cl.name.toLowerCase() === classesMap[selectedClass].name.toLowerCase()) ||
+        String(s.className || '').toLowerCase() === String(classesMap[selectedClass]?.name || selectedClass).toLowerCase();
+
+      const matchTeam = selectedTeam === 'all' ||
+        s.teamId === selectedTeam ||
+        teamsMap[s.teamId]?.id === selectedTeam;
+
+      const matchField = selectedField === 'all' ||
+        s.fieldId === selectedField ||
+        fieldsMap[s.fieldId]?.id === selectedField;
 
       return matchSearch && matchSection && matchClass && matchTeam && matchField;
     });
-  }, [students, archivedStudents, showArchived, search, selectedSection, selectedClass, selectedTeam, selectedField, classesMap]);
+  }, [students, archivedStudents, showArchived, search, selectedSection, selectedClass, selectedTeam, selectedField, classesMap, teamsMap, fieldsMap]);
 
   // Handle single student submit
   const handleAddSubmit = async (e) => {
@@ -135,14 +163,24 @@ export const StudentManagement = () => {
       ? (newStudent.fieldId || aliyaFields[0]?.id || '')
       : 'f_foundation';
 
-    const created = await addStudent({ ...newStudent, fieldId: finalFieldId }, currentUser?.username);
+    const created = await addStudent({
+      ...newStudent,
+      name: newStudent.name.trim(),
+      cicNo: newStudent.cicNo.trim(),
+      phone: newStudent.phone?.trim() || '',
+      place: newStudent.place?.trim() || '',
+      address: newStudent.address?.trim() || '',
+      dob: newStudent.dob || '',
+      bloodGroup: newStudent.bloodGroup?.trim() || '',
+      fieldId: finalFieldId,
+      teamId: newStudent.teamId || teams[0]?.id || 'team_a'
+    }, currentUser?.username);
     setIsAddOpen(false);
 
     // Auto-reset all filters so newly added student immediately appears at top
     setSearch('');
     setSelectedSection('all');
     setSelectedClass('all');
-    setSelectedTeam('all');
     setSelectedField('all');
     setShowArchived(false);
 
@@ -150,7 +188,7 @@ export const StudentManagement = () => {
       setRecentlyAddedId(created.id);
       setTimeout(() => setRecentlyAddedId(null), 8000);
     }
-    setToastMsg(`✅ Enrolled ${newStudent.name} (${newStudent.cicNo}) successfully!`);
+    setToastMsg(`Enrolled ${newStudent.name} (${newStudent.cicNo}) successfully!`);
     setTimeout(() => setToastMsg(''), 5000);
 
     setNewStudent({
@@ -160,7 +198,13 @@ export const StudentManagement = () => {
       teamId: teams[0]?.id || 'team_a',
       fieldId: '',
       chestNo: '',
-      password: 'student123'
+      password: 'student123',
+      phone: '',
+      place: '',
+      address: '',
+      dob: '',
+      bloodGroup: '',
+      photoUrl: ''
     });
   };
 
@@ -172,7 +216,20 @@ export const StudentManagement = () => {
     const isAliya = cl?.sectionId === 'aliya';
     const fieldId = isAliya ? (editingStudent.fieldId || aliyaFields[0]?.id || '') : 'f_foundation';
 
-    updateStudent(editingStudent.id, { ...editingStudent, fieldId }, currentUser?.username);
+    updateStudent(editingStudent.id, {
+      ...editingStudent,
+      name: editingStudent.name?.trim(),
+      cicNo: editingStudent.cicNo?.trim(),
+      fieldId,
+      phone: editingStudent.phone?.trim() || '',
+      place: editingStudent.place?.trim() || '',
+      address: editingStudent.address?.trim() || '',
+      dob: editingStudent.dob || '',
+      bloodGroup: editingStudent.bloodGroup?.trim() || '',
+      photoUrl: editingStudent.photoUrl?.trim() || ''
+    }, currentUser?.username);
+    setToastMsg(`Updated details for ${editingStudent.name} (${editingStudent.cicNo})!`);
+    setTimeout(() => setToastMsg(''), 5000);
     setEditingStudent(null);
   };
 
@@ -180,12 +237,17 @@ export const StudentManagement = () => {
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setBulkErrors([]);
 
     try {
       const rows = await parseStudentExcel(file);
       processRowsForImport(rows);
     } catch (err) {
-      setBulkErrors(["Failed to read file: " + err.message]);
+      setBulkErrors(["Failed to read file: " + (err?.message || "Invalid file format")]);
+    } finally {
+      if (e.target) {
+        e.target.value = '';
+      }
     }
   };
 
@@ -211,18 +273,25 @@ export const StudentManagement = () => {
     processRowsForImport(parsedRows);
   };
 
-  // Validate and match imported rows against classes, teams, and fields
+  // Validate and match imported rows against classes, teams, and fields without blocking existing records
   const processRowsForImport = (rows) => {
     const validated = [];
     const errs = [];
-    const seenCic = new Set((students || []).map(s => String(s?.cicNo || '').toLowerCase()));
+    const existingCicMap = new Map((students || []).map(s => [String(s?.cicNo || '').toLowerCase().trim(), s]));
+    const seenCicInBatch = new Set();
 
     rows.forEach((r, idx) => {
-      const name = r["Name"] || r["name"] || r["Student Name"] || r["student_name"];
-      const cic = r["CIC Number"] || r["cicNo"] || r["CIC"] || r["CIC No"] || r["cic_no"];
-      const className = r["Class"] || r["class"] || r["Class Name"] || r["class_name"];
-      const teamName = r["Group"] || r["group"] || r["Team"] || r["team"] || r["House"] || r["house"];
-      const fieldVal = r["Field"] || r["field"] || r["Specialization"] || r["specialization"] || r["Field of Study"] || r["field_name"];
+      // Normalize object keys to lowercase trimmed
+      const norm = {};
+      Object.keys(r || {}).forEach(k => {
+        norm[String(k).trim().toLowerCase()] = r[k];
+      });
+
+      const name = norm['name'] || norm['student name'] || norm['student_name'] || norm['student'] || norm['fullname'] || r["Name"] || r["name"];
+      const cic = norm['cic number'] || norm['cic no'] || norm['cicno'] || norm['cic_no'] || norm['cic'] || norm['reg no'] || norm['registration no'] || norm['roll no'] || r["CIC Number"] || r["cicNo"];
+      const className = norm['class'] || norm['class name'] || norm['classname'] || norm['class_name'] || norm['standard'] || norm['batch'] || r["Class"] || r["class"];
+      const teamName = norm['group'] || norm['team'] || norm['house'] || norm['team name'] || norm['group name'] || norm['house team'] || r["Group"] || r["group"];
+      const fieldVal = norm['field'] || norm['specialization'] || norm['field of study'] || norm['field_name'] || norm['stream'] || r["Field"] || r["field"];
 
       if (!name || !cic) {
         errs.push(`Row ${idx + 1}: Name and CIC Number are required.`);
@@ -230,16 +299,19 @@ export const StudentManagement = () => {
       }
 
       const cicKey = String(cic).trim().toLowerCase();
-      if (seenCic.has(cicKey)) {
-        errs.push(`Row ${idx + 1}: Duplicate CIC "${cic}" already exists in system.`);
+      if (seenCicInBatch.has(cicKey)) {
+        // Silently skip duplicate within the same batch
         return;
       }
-      seenCic.add(cicKey);
+      seenCicInBatch.add(cicKey);
+
+      const existingStudent = existingCicMap.get(cicKey);
 
       // Match class
       const matchedClass = (classes || []).find(c =>
-        c?.name?.toLowerCase().includes(String(className || '').toLowerCase()) ||
-        c?.id?.toLowerCase() === String(className || '').toLowerCase()
+        c?.name?.toLowerCase().trim() === String(className || '').toLowerCase().trim() ||
+        c?.id?.toLowerCase().trim() === String(className || '').toLowerCase().trim() ||
+        c?.name?.toLowerCase().includes(String(className || '').toLowerCase().trim())
       ) || classes[0] || { id: 'c1', name: 'Class 1', sectionId: 'thamheediyya' };
 
       // Match team/group (matches "A", "Team A", "team_a", etc.)
@@ -257,8 +329,8 @@ export const StudentManagement = () => {
 
       if (fieldVal) {
         matchedField = (fields || []).find(f =>
-          f?.name?.toLowerCase().includes(String(fieldVal).toLowerCase()) ||
-          f?.id?.toLowerCase() === String(fieldVal).toLowerCase()
+          f?.name?.toLowerCase().includes(String(fieldVal).toLowerCase().trim()) ||
+          f?.id?.toLowerCase() === String(fieldVal).toLowerCase().trim()
         );
       }
 
@@ -267,11 +339,13 @@ export const StudentManagement = () => {
           // Default to first Aliya field
           matchedField = (fields || []).find(f => f?.sectionId === 'aliya') || fields[0];
         } else {
-          matchedField = (fields || []).find(f => f?.id === 'f_foundation') || fields[0];
+          matchedField = (fields || []).find(f => f?.id === 'f_foundation' || f?.id === 'f_general') || fields[0];
         }
       }
 
       validated.push({
+        id: existingStudent ? existingStudent.id : undefined,
+        isUpdate: Boolean(existingStudent),
         name: String(name).trim(),
         cicNo: String(cic).trim(),
         classId: matchedClass.id,
@@ -307,7 +381,10 @@ export const StudentManagement = () => {
   const handleConfirmImport = async () => {
     if (previewList.length === 0) return;
     const count = previewList.length;
-    await bulkImportStudents(previewList, currentUser?.username);
+    const res = await bulkImportStudents(previewList, currentUser?.username);
+    const addedCount = res?.addedCount ?? count;
+    const updatedCount = res?.updatedCount ?? 0;
+
     // Reset filters so imported students appear at top immediately
     setSearch('');
     setSelectedSection('all');
@@ -316,8 +393,12 @@ export const StudentManagement = () => {
     setSelectedField('all');
     setShowArchived(false);
 
-    setBulkSuccessMsg(`Successfully imported ${count} students with their Class, Group and Field!`);
-    setToastMsg(`✅ Enrolled ${count} students successfully! Placed at top of list.`);
+    const msg = updatedCount > 0
+      ? `Successfully processed ${count} students (${addedCount} added, ${updatedCount} updated)!`
+      : `Successfully imported ${count} students!`;
+
+    setBulkSuccessMsg(msg);
+    setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 6000);
     setPreviewList([]);
     setPastedText('');
@@ -325,6 +406,54 @@ export const StudentManagement = () => {
       setBulkSuccessMsg('');
       setIsBulkOpen(false);
     }, 1500);
+  };
+
+  const handlePrintStudentCredentials = () => {
+    const dataList = generatedSheet.length > 0 ? generatedSheet : students;
+    const contentHtml = `
+      <div style="padding: 10px;">
+        <div style="text-align: center; border-bottom: 2px solid #0f2a4a; padding-bottom: 12px; margin-bottom: 16px;">
+          <h1 style="font-size: 20px; font-weight: 900; margin: 0 0 4px 0; color: #0f2a4a; text-transform: uppercase;">MAJLIS UMARIYYA WAFY COLLEGE</h1>
+          <h2 style="font-size: 15px; font-weight: 800; margin: 0; color: #0e7c86; text-transform: uppercase;">Student Portal Credentials Roster</h2>
+          <p style="font-size: 12px; color: #64748b; margin: 4px 0 0 0;">Total Accounts: ${dataList.length} &bull; Generated on ${new Date().toLocaleDateString('en-GB')}</p>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+          <thead>
+            <tr style="background-color: #f1f5f9;">
+              <th style="border: 1px solid #cbd5e1; padding: 6px;">#</th>
+              <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left;">Student Name</th>
+              <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left;">CIC No</th>
+              <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left;">Class</th>
+              <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left;">Group / Team</th>
+              <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left;">Username</th>
+              <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left;">Password</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${dataList.map((s, idx) => {
+              const cl = classesMap[s.classId];
+              const tm = teamsMap[s.teamId];
+              return `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="border: 1px solid #cbd5e1; padding: 5px 6px; text-align: center;">${idx + 1}</td>
+                  <td style="border: 1px solid #cbd5e1; padding: 5px 6px;"><strong>${s.name}</strong></td>
+                  <td style="border: 1px solid #cbd5e1; padding: 5px 6px; font-family: monospace;">${s.cicNo}</td>
+                  <td style="border: 1px solid #cbd5e1; padding: 5px 6px;">${cl ? cl.name : (s.className || 'Class')}</td>
+                  <td style="border: 1px solid #cbd5e1; padding: 5px 6px;">${tm ? tm.name : (s.teamName || 'Team')}</td>
+                  <td style="border: 1px solid #cbd5e1; padding: 5px 6px; font-family: monospace; font-weight: bold; color: #0f2a4a;">${s.username || s.cicNo}</td>
+                  <td style="border: 1px solid #cbd5e1; padding: 5px 6px; font-family: monospace; font-weight: bold; color: #16a34a;">${s.initialPassword || s.password || 'student123'}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    printHtmlDocument({
+      title: 'Student Credentials Roster',
+      contentHtml
+    });
   };
 
   return (
@@ -337,7 +466,7 @@ export const StudentManagement = () => {
             <span>
               {showArchived 
                 ? (lang === 'ml' ? "ആർക്കൈവ് ചെയ്ത വിദ്യാർത്ഥികൾ" : "Archived Students") 
-                : (lang === 'ml' ? "വിദ്യാർത്ഥികളുടെ പട്ടിക (Students Directory)" : "Students Directory & Roster")}
+                : (lang === 'ml' ? "വിദ്യാർത്ഥികളുടെ പട്ടിക" : "Students Directory & Roster")}
             </span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
               {filteredStudents.length}
@@ -352,6 +481,31 @@ export const StudentManagement = () => {
         <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
           {!showArchived ? (
             <>
+              {students.length === 0 && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await restoreDefaultStudents(currentUser?.username);
+                    setToastMsg('Restored official college roster (117 students) successfully!');
+                    setTimeout(() => setToastMsg(''), 5000);
+                  }}
+                  className="min-h-[44px] py-2 px-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs active:scale-98 cursor-pointer"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Restore Official Students (117)</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsClassReportOpen(true)}
+                className="min-h-[44px] py-2 px-3.5 rounded-xl bg-[#0F2A4A] hover:bg-[#1E3A5F] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs active:scale-98 cursor-pointer"
+                title="Class-Wise Detailed Activity & Participation Report"
+              >
+                <Printer className="w-4 h-4 text-amber-300" />
+                <span>Class Activity Report</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setIsAddOpen(true)}
@@ -414,14 +568,14 @@ export const StudentManagement = () => {
 
       {/* Toast Alert for Added / Imported Student */}
       {toastMsg && (
-        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-xs flex items-center justify-between shadow-lg shadow-emerald-600/20 animate-fade-in border border-emerald-400/40">
+        <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 font-medium text-xs flex items-center justify-between border border-emerald-200 dark:border-emerald-800 shadow-xs">
           <div className="flex items-center gap-2">
-            <span className="text-base">🎉</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>{toastMsg}</span>
           </div>
           <button
             onClick={() => setToastMsg('')}
-            className="text-white hover:text-emerald-200 text-sm font-bold ml-3 px-2 py-0.5 rounded-md hover:bg-white/10"
+            className="text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 text-sm font-bold ml-3 px-2 py-0.5 rounded-md hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
           >
             ✕
           </button>
@@ -429,7 +583,7 @@ export const StudentManagement = () => {
       )}
 
       {/* Filter and Search Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
         <div className="relative lg:col-span-1">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -471,19 +625,6 @@ export const StudentManagement = () => {
 
         <div>
           <select
-            value={selectedTeam}
-            onChange={(e) => setSelectedTeam(e.target.value)}
-            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="all">All House Teams</option>
-            {(teams || []).map(t => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <select
             value={selectedField}
             onChange={(e) => setSelectedField(e.target.value)}
             className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -520,11 +661,39 @@ export const StudentManagement = () => {
       {/* MOBILE STUDENT FEED (Screens < 768px): Zero Horizontal Scroll, Fast Native Layout */}
       <div className="md:hidden space-y-3">
         {filteredStudents.length === 0 ? (
-          <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 italic text-xs">
-            No students match current search or filters.
+          <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 italic text-xs space-y-3">
+            <p>
+              {students.length === 0
+                ? "No student records found in directory."
+                : "No students match current search or filters."}
+            </p>
+            {students.length === 0 ? (
+              <button
+                type="button"
+                onClick={() => restoreDefaultStudents(currentUser?.username)}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Load Official College Students (117)</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setSelectedSection('all');
+                  setSelectedClass('all');
+                  setSelectedTeam('all');
+                  setSelectedField('all');
+                }}
+                className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs inline-flex items-center gap-1 cursor-pointer"
+              >
+                <span>Reset Filters</span>
+              </button>
+            )}
           </div>
         ) : (
-          filteredStudents.map(student => {
+          filteredStudents.map((student, idx) => {
             const team = teamsMap[student.teamId];
             const cl = classesMap[student.classId];
             const isAliya = student.sectionId === 'aliya' || cl?.sectionId === 'aliya';
@@ -534,7 +703,8 @@ export const StudentManagement = () => {
             return (
               <div
                 key={student.id}
-                className={`p-3.5 rounded-2xl border shadow-xs space-y-3 transition duration-300 ${
+                style={{ animationDelay: `${Math.min(idx * 35, 350)}ms` }}
+                className={`animate-bottom-up p-3.5 rounded-2xl border shadow-xs space-y-3 transition duration-300 ${
                   isRecentlyAdded
                     ? 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500 shadow-md'
                     : 'bg-white dark:bg-[#0F1B2B] border-slate-200 dark:border-slate-800'
@@ -548,27 +718,27 @@ export const StudentManagement = () => {
                         {student.name}
                       </h4>
                       {isRecentlyAdded && (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-600 text-white animate-pulse shadow-xs">
-                          ✨ Just Added
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                          New
                         </span>
                       )}
                       {student.isLeader && (
-                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
                           Leader
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] font-mono text-emerald-700 dark:text-emerald-400 font-semibold mt-0.5">
+                    <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
                       CIC: {student.cicNo}
                     </div>
                   </div>
 
-                  <span
-                    className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white shadow-xs shrink-0"
-                    style={{ backgroundColor: team?.color || '#059669' }}
-                  >
-                    {team?.name || student.teamId}
-                  </span>
+                  {student.place && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium shrink-0 flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-slate-400" />
+                      <span>{student.place}</span>
+                    </span>
+                  )}
                 </div>
 
                 {/* Details Row: Class, Section, Field */}
@@ -628,7 +798,7 @@ export const StudentManagement = () => {
                 <th className="py-3 px-3 sticky left-0 bg-slate-50 dark:bg-[#0B1522] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">Student Name</th>
                 <th className="py-3 px-3">CIC Number</th>
                 <th className="py-3 px-3">Class & Section</th>
-                <th className="py-3 px-3">House / Group</th>
+                <th className="py-3 px-3">Place & Contact</th>
                 <th className="py-3 px-3">Field (Specialization)</th>
                 <th className="py-3 px-3">Username</th>
                 <th className="py-3 px-3 text-right">Actions</th>
@@ -637,8 +807,38 @@ export const StudentManagement = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-8 text-slate-400">
-                    No students match current search or filters.
+                  <td colSpan="7" className="text-center py-10 text-slate-400">
+                    <div className="space-y-3 max-w-sm mx-auto">
+                      <p className="text-xs">
+                        {students.length === 0
+                          ? "No student records found in directory."
+                          : "No students match current search or filters."}
+                      </p>
+                      {students.length === 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => restoreDefaultStudents(currentUser?.username)}
+                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Load Official College Students (117)</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearch('');
+                            setSelectedSection('all');
+                            setSelectedClass('all');
+                            setSelectedTeam('all');
+                            setSelectedField('all');
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>Reset Filters</span>
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -666,8 +866,8 @@ export const StudentManagement = () => {
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span>{student.name}</span>
                           {isRecentlyAdded && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-600 text-white animate-pulse">
-                              ✨ Just Added
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                              New
                             </span>
                           )}
                           {student.isLeader && (
@@ -693,12 +893,16 @@ export const StudentManagement = () => {
                         </div>
                       </td>
                       <td className="py-3 px-3">
-                        <span 
-                          className="px-2 py-0.5 rounded-full text-[11px] font-bold text-white shadow-xs inline-block"
-                          style={{ backgroundColor: team?.color || '#059669' }}
-                        >
-                          {team?.name || student.teamId}
-                        </span>
+                        <div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">
+                            {student.place || '—'}
+                          </div>
+                          {student.phone && (
+                            <div className="text-[11px] font-mono text-slate-500">
+                              {student.phone}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-3">
                         {isAliya ? (
@@ -771,7 +975,42 @@ export const StudentManagement = () => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold mb-1">Class</label>
+              <label className="block font-semibold mb-1">{tr('Phone Number', 'ഫോൺ നമ്പർ')}</label>
+              <input
+                type="tel"
+                value={newStudent.phone || ''}
+                onChange={(e) => setNewStudent(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="e.g. 9847123456"
+                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold mb-1">{tr('Place', 'സ്ഥലം')}</label>
+              <input
+                type="text"
+                value={newStudent.place || ''}
+                onChange={(e) => setNewStudent(prev => ({ ...prev, place: e.target.value }))}
+                placeholder="e.g. Malappuram, Kondotty"
+                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block font-semibold mb-1">{tr('Full Address', 'മേൽവിലാസം')}</label>
+            <textarea
+              rows="2"
+              value={newStudent.address || ''}
+              onChange={(e) => setNewStudent(prev => ({ ...prev, address: e.target.value }))}
+              placeholder="House Name, Post Office, District, PIN Code..."
+              className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block font-semibold mb-1">Academic Class &amp; Section</label>
               <select
                 value={newStudent.classId}
                 onChange={(e) => {
@@ -794,16 +1033,41 @@ export const StudentManagement = () => {
             </div>
 
             <div>
-              <label className="block font-semibold mb-1">House / Group</label>
+              <label className="block font-semibold mb-1">
+                Summit Team <span className="text-[10px] text-slate-400 font-normal">(Summit Only)</span>
+              </label>
               <select
-                value={newStudent.teamId}
+                value={newStudent.teamId || teams[0]?.id || 'team_a'}
                 onChange={(e) => setNewStudent(prev => ({ ...prev, teamId: e.target.value }))}
                 className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
               >
                 {(teams || []).map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
+                  <option key={t.id} value={t.id}>{t.name} (Summit House)</option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block font-semibold mb-1">{tr('Date of Birth', 'ജനനത്തീയതി')}</label>
+              <input
+                type="date"
+                value={newStudent.dob || ''}
+                onChange={(e) => setNewStudent(prev => ({ ...prev, dob: e.target.value }))}
+                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold mb-1">{tr('Photo URL (Optional)', 'ചിത്രം (ഓപ്ഷണൽ)')}</label>
+              <input
+                type="url"
+                value={newStudent.photoUrl || ''}
+                onChange={(e) => setNewStudent(prev => ({ ...prev, photoUrl: e.target.value }))}
+                placeholder="https://..."
+                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+              />
             </div>
           </div>
 
@@ -873,7 +1137,42 @@ export const StudentManagement = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold mb-1">Move Class</label>
+                <label className="block font-semibold mb-1">{tr('Phone Number', 'ഫോൺ നമ്പർ')}</label>
+                <input
+                  type="tel"
+                  value={editingStudent.phone || ''}
+                  onChange={(e) => setEditingStudent(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="e.g. 9847123456"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1">{tr('Place', 'സ്ഥലം')}</label>
+                <input
+                  type="text"
+                  value={editingStudent.place || ''}
+                  onChange={(e) => setEditingStudent(prev => ({ ...prev, place: e.target.value }))}
+                  placeholder="e.g. Malappuram, Kondotty"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-semibold mb-1">{tr('Full Address', 'മേൽവിലാസം')}</label>
+              <textarea
+                rows="2"
+                value={editingStudent.address || ''}
+                onChange={(e) => setEditingStudent(prev => ({ ...prev, address: e.target.value }))}
+                placeholder="House Name, Post Office, District, PIN Code..."
+                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold mb-1">Academic Class & Section</label>
                 <select
                   value={editingStudent.classId}
                   onChange={(e) => {
@@ -896,16 +1195,54 @@ export const StudentManagement = () => {
               </div>
 
               <div>
-                <label className="block font-semibold mb-1">Move House / Group</label>
+                <label className="block font-semibold mb-1">
+                  Summit Team <span className="text-[10px] text-slate-400 font-normal">(Summit Only)</span>
+                </label>
                 <select
-                  value={editingStudent.teamId}
+                  value={editingStudent.teamId || teams[0]?.id || 'team_a'}
                   onChange={(e) => setEditingStudent(prev => ({ ...prev, teamId: e.target.value }))}
                   className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
                 >
                   {(teams || []).map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                    <option key={t.id} value={t.id}>{t.name} (Summit House)</option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold mb-1">{tr('Blood Group', 'രക്തഗ്രൂപ്പ്')}</label>
+                <input
+                  type="text"
+                  value={editingStudent.bloodGroup || ''}
+                  onChange={(e) => setEditingStudent(prev => ({ ...prev, bloodGroup: e.target.value }))}
+                  placeholder="e.g. O+, A+, B+, AB+"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold mb-1">{tr('Date of Birth', 'ജനനത്തീയതി')}</label>
+                <input
+                  type="date"
+                  value={editingStudent.dob || ''}
+                  onChange={(e) => setEditingStudent(prev => ({ ...prev, dob: e.target.value }))}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1">{tr('Photo URL (Optional)', 'ചിത്രം (ഓപ്ഷണൽ)')}</label>
+                <input
+                  type="url"
+                  value={editingStudent.photoUrl || ''}
+                  onChange={(e) => setEditingStudent(prev => ({ ...prev, photoUrl: e.target.value }))}
+                  placeholder="https://..."
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+                />
               </div>
             </div>
 
@@ -1059,6 +1396,7 @@ export const StudentManagement = () => {
                       <th className="p-2">#</th>
                       <th className="p-2">Name</th>
                       <th className="p-2">CIC Number</th>
+                      <th className="p-2">Action</th>
                       <th className="p-2">Class & Section</th>
                       <th className="p-2">House / Group</th>
                       <th className="p-2">Field (Specialization)</th>
@@ -1073,6 +1411,17 @@ export const StudentManagement = () => {
                           <td className="p-2 font-mono text-slate-400">{idx + 1}</td>
                           <td className="p-2 font-semibold text-slate-900 dark:text-white">{row.name}</td>
                           <td className="p-2 font-mono text-[11px] text-slate-500">{row.cicNo}</td>
+                          <td className="p-2">
+                            {row.isUpdate ? (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300">
+                                Update
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">
+                                New
+                              </span>
+                            )}
+                          </td>
                           <td className="p-2">
                             <span className="font-semibold">{row.className}</span>
                             <span className={`ml-1.5 px-1.5 py-0.2 rounded text-[10px] font-bold ${
@@ -1152,7 +1501,7 @@ export const StudentManagement = () => {
                 <span>Export Excel</span>
               </button>
               <button
-                onClick={() => window.print()}
+                onClick={handlePrintStudentCredentials}
                 className="py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <Printer className="w-3.5 h-3.5" />
@@ -1204,6 +1553,13 @@ export const StudentManagement = () => {
         message="Are you sure you want to permanently delete this student? All their registrations, marks, and profile details will be completely removed from the institution."
         confirmLabel="Delete Permanently"
         isDestructive={true}
+      />
+
+      {/* Class-Wise Student Activity & Participation Report Modal */}
+      <ClassWiseActivityReportModal
+        isOpen={isClassReportOpen}
+        onClose={() => setIsClassReportOpen(false)}
+        defaultClassId={selectedClass !== 'all' ? selectedClass : 'all'}
       />
     </div>
   );
