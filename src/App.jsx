@@ -165,13 +165,15 @@ export function AppContent() {
           <QuotaBanner />
 
           <div className="flex-1 flex w-full">
-            {/* Desktop Left Sidebar */}
-            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+            {/* Desktop Left Sidebar: Removed for admin, executive, and student to eliminate sidebar clutter and route through front Bento and floating pill dock */}
+            {currentUser?.role !== 'admin' && currentUser?.role !== 'executive' && currentUser?.role !== 'student' && (
+              <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+            )}
 
             {/* Main Content Viewport with centered container max-w-[1200px] */}
             <main className={`flex-1 overflow-y-auto min-w-0 bg-[#F6F8FB] dark:bg-[#080E18] ${
-              currentUser?.role === 'student' || currentUser?.role === 'executive' || (currentUser?.role === 'admin' && activeTab === 'dashboard')
-                ? 'p-0 sm:p-6 lg:p-8 pb-12 md:pb-8'
+              currentUser?.role === 'student' || currentUser?.role === 'executive' || currentUser?.role === 'admin'
+                ? 'p-0 pb-24 md:pb-28'
                 : 'p-3 sm:p-6 lg:p-8 pb-24 md:pb-8'
             }`}>
               <div className="max-w-[1200px] mx-auto w-full">
