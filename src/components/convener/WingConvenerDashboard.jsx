@@ -45,7 +45,8 @@ import {
   Megaphone,
   LayoutDashboard,
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  LogOut
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -59,7 +60,7 @@ const ICON_MAP = {
 };
 
 export const WingConvenerDashboard = ({ activeTab, setActiveTab }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const { lang, tr } = useLanguage();
   const {
     wings = [],
@@ -408,9 +409,24 @@ export const WingConvenerDashboard = ({ activeTab, setActiveTab }) => {
                     </span>
                   </div>
 
-                  <span className="text-xs font-semibold text-slate-200/90 bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
-                    Academic Year {settings.academicYear || '2026–2027'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-slate-200/90 bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
+                      Academic Year {settings.academicYear || '2026–2027'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to sign out?')) {
+                          logout();
+                        }
+                      }}
+                      className="text-xs font-semibold text-rose-200 bg-rose-500/20 hover:bg-rose-500/35 px-3 py-1 rounded-full backdrop-blur-sm border border-rose-400/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
+                      title="Sign out of Convener session"
+                    >
+                      <LogOut className="w-3.5 h-3.5 text-rose-300" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-1 pt-1">
@@ -1271,6 +1287,21 @@ export const WingConvenerDashboard = ({ activeTab, setActiveTab }) => {
           >
             <Megaphone className="w-4 h-4 text-rose-500" />
             <span className="hidden md:inline">Notice</span>
+          </button>
+
+          {/* Direct Sign Out Trigger */}
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Are you sure you want to sign out?')) {
+                logout();
+              }
+            }}
+            className="relative flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+            title="Sign Out"
+          >
+            <LogOut className="w-4 h-4 text-rose-500 shrink-0" />
+            <span className="hidden md:inline">Sign Out</span>
           </button>
         </div>
       </nav>

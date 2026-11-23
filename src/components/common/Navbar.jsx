@@ -514,21 +514,27 @@ export const Navbar = ({
               })()}
             </div>
 
-            <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-[#0B1522] pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="p-3 border-t border-slate-200/90 dark:border-slate-800 space-y-2 shrink-0 bg-slate-50/70 dark:bg-[#0B1522]">
               <div className="flex items-center justify-between px-1">
-                <span className="text-[11px] font-semibold text-slate-500">Theme Mode</span>
+                <span className="text-[11px] font-semibold text-slate-500">Theme</span>
                 <button
+                  type="button"
                   onClick={() => setIsDark(prev => !prev)}
-                  className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-xs font-bold flex items-center gap-1.5 text-slate-800 dark:text-slate-200 cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-[11px] font-semibold flex items-center gap-1.5 text-slate-700 dark:text-slate-200 cursor-pointer shadow-2xs"
                 >
-                  {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-[#334E73]" />}
-                  <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+                  {isDark ? <Sun className="w-3 h-3 text-amber-400" /> : <Moon className="w-3 h-3 text-[#334E73]" />}
+                  <span>{isDark ? "Light" : "Dark"}</span>
                 </button>
               </div>
 
               <button
-                onClick={logout}
-                className="w-full py-2 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-semibold text-xs flex items-center justify-center gap-2 border border-rose-200 dark:border-rose-900 cursor-pointer"
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to sign out?')) {
+                    logout();
+                  }
+                }}
+                className="w-full py-1.5 px-3 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 font-semibold text-xs flex items-center justify-center gap-2 border border-rose-200 dark:border-rose-900 transition active:scale-98 cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Sign Out ({currentUser?.username})</span>

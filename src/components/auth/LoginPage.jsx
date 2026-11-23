@@ -192,11 +192,11 @@ export const LoginPage = ({ isDark, setIsDark }) => {
           {/* ===================================================== */}
           {/* LEFT SECTION: Campus & Watermark Art                  */}
           {/* ===================================================== */}
-          <div className="relative w-full h-24 sm:h-32 md:h-auto md:w-[46%] lg:w-[48%] shrink-0 bg-[#CFE3FB] dark:bg-[#0B1A2F] flex flex-col justify-end overflow-hidden">
+          <div className="relative w-full h-44 sm:h-56 md:h-auto md:w-[46%] lg:w-[48%] shrink-0 bg-[#CFE3FB] dark:bg-[#0B1A2F] flex items-center justify-center overflow-hidden">
             <img
               src="/musf-login-hero.jpg"
               alt="Majlis Umariyya Wafy College Campus & MUSF Emblem"
-              className="w-full h-full object-cover object-bottom select-none pointer-events-none"
+              className="w-full h-full object-cover object-center select-none pointer-events-none"
               loading="eager"
             />
           </div>

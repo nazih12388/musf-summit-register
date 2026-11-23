@@ -194,10 +194,14 @@ export const DrawerMenu = ({
               {/* Logout Button */}
               <button
                 type="button"
-                onClick={logout}
-                className="w-full px-3 py-2 rounded-[10px] bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center justify-center gap-2 transition hover:bg-rose-100 dark:hover:bg-rose-900/60 cursor-pointer"
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to sign out?')) {
+                    logout();
+                  }
+                }}
+                className="w-full py-1.5 px-3 rounded-[10px] bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5" />
                 <span>{tr('Sign out', 'പുറത്തിറങ്ങുക')}</span>
               </button>
             </div>
