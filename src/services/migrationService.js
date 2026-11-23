@@ -70,7 +70,7 @@ const readLocalObject = (storageKey, fallback) => {
 /**
  * Execute migration of local data to individual Firestore documents
  */
-export const migrateLocalDataToCloud = async (onProgress = () => {}) => {
+export const migrateLocalDataToCloud = async (onProgress = () => { }) => {
   const stats = {
     totalMigrated: 0,
     breakdown: {}

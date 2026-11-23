@@ -124,8 +124,8 @@ export const Hero = ({
             animate={
               !reduced && unreadCount > 0 && hasWiggled
                 ? {
-                    rotate: [0, -18, 16, -12, 8, -4, 0]
-                  }
+                  rotate: [0, -18, 16, -12, 8, -4, 0]
+                }
                 : {}
             }
             transition={{ duration: 0.7, delay: 0.4 }}
