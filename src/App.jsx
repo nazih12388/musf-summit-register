@@ -14,7 +14,7 @@ import { UnionExecutiveDashboard } from './components/executive/UnionExecutiveDa
 import { WingConvenerDashboard } from './components/convener/WingConvenerDashboard';
 import { PublicUnionHome } from './components/public/PublicUnionHome';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { SplashScreen } from './components/common/SplashScreen';
+import { MusfSplashScreen } from './components/MusfSplashScreen';
 import { QuotaBanner } from './components/common/QuotaBanner';
 import { WriteErrorToast } from './components/common/WriteErrorToast';
 import { UpdatePrompt } from './components/common/UpdatePrompt';
@@ -112,7 +112,7 @@ export function AppContent() {
   return (
     <>
       {showSplash && (
-        <SplashScreen
+        <MusfSplashScreen
           onFinished={() => {
             setShowSplash(false);
             try {
