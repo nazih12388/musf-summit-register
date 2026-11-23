@@ -60,7 +60,7 @@ const ICON_MAP = {
 };
 
 export const WingConvenerDashboard = ({ activeTab, setActiveTab }) => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, switchRole } = useAuth();
   const { lang, tr } = useLanguage();
   const {
     wings = [],
@@ -413,6 +413,17 @@ export const WingConvenerDashboard = ({ activeTab, setActiveTab }) => {
                     <span className="text-xs font-semibold text-slate-200/90 bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
                       Academic Year {settings.academicYear || '2026–2027'}
                     </span>
+                    {currentUser?.availableRoles?.includes('student') && (
+                      <button
+                        type="button"
+                        onClick={() => switchRole('student')}
+                        className="text-xs font-semibold text-teal-200 bg-white/15 hover:bg-white/25 px-3 py-1 rounded-full backdrop-blur-sm border border-white/20 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
+                        title="Switch to your personal Student portal"
+                      >
+                        <GraduationCap className="w-3.5 h-3.5 text-amber-300" />
+                        <span>Student View</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => {

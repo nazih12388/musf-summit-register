@@ -38,7 +38,9 @@ import {
   Award,
   Lock,
   FileText,
-  Sparkles
+  Sparkles,
+  ArrowRightLeft,
+  GraduationCap
 } from 'lucide-react';
 import { useReducedMotionPreference } from '../../utils/motion';
 import { resolveConvenerWing } from '../../utils/wingHelper';
@@ -51,7 +53,7 @@ export const Navbar = ({
   mobileDrawerOpen: externalDrawerOpen,
   setMobileDrawerOpen: setExternalDrawerOpen
 }) => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, switchRole } = useAuth();
   const { lang, toggleLanguage, t, tr: ctxTr } = useLanguage();
   const tr = ctxTr || ((en, ml) => (lang === 'ml' ? (ml || en) : en));
   const {
@@ -272,6 +274,22 @@ export const Navbar = ({
               )}
             </div>
 
+            {/* Dual Role Switcher Quick Pill (Visible to Students who hold Union Positions) */}
+            {currentUser?.availableRoles?.length > 1 && (
+              <button
+                type="button"
+                onClick={() => switchRole(currentUser.role === 'student' ? (currentUser.unionRole || 'convener') : 'student')}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-600/70 bg-gradient-to-r from-amber-500/10 via-teal-500/10 to-indigo-500/10 hover:from-amber-500/20 hover:to-teal-500/20 text-slate-800 dark:text-slate-100 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-2xs cursor-pointer"
+                title={currentUser.role === 'student' ? 'Switch to your Union Console' : 'Switch to your Student Portal'}
+              >
+                <ArrowRightLeft className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span className="hidden sm:inline text-slate-500 dark:text-slate-400 font-medium">View:</span>
+                <span className="font-extrabold text-[#0E7C86] dark:text-teal-300 truncate max-w-[110px]">
+                  {currentUser.role === 'student' ? (currentUser.unionOfficial?.designation?.split(' ')[0] || 'Union') : 'Student'}
+                </span>
+              </button>
+            )}
+
             {/* User Profile Pill & Dropdown */}
             {currentUser && (
               <div className="relative">
@@ -307,6 +325,28 @@ export const Navbar = ({
                       <div className="font-semibold text-slate-900 dark:text-white truncate">{currentUser.name}</div>
                       <div className="text-xs text-slate-500 capitalize">{currentUser.designation || currentUser.role || 'Member'}</div>
                     </div>
+
+                    {/* Dual Role Switcher Option in Dropdown */}
+                    {currentUser?.availableRoles?.length > 1 && (
+                      <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-amber-50/50 dark:bg-amber-950/20">
+                        <div className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400 mb-1 px-1 flex items-center justify-between">
+                          <span>Role Switch</span>
+                          <Crown className="w-3 h-3 text-amber-500" />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setUserDropdownOpen(false);
+                            switchRole(currentUser.role === 'student' ? (currentUser.unionRole || 'convener') : 'student');
+                          }}
+                          className="w-full py-1.5 px-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-[#0E7C86] hover:from-amber-600 hover:to-[#0F2A4A] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
+                        >
+                          <ArrowRightLeft className="w-3.5 h-3.5 text-amber-200" />
+                          <span>Switch to {currentUser.role === 'student' ? 'Union Role' : 'Student View'}</span>
+                        </button>
+                      </div>
+                    )}
 
                     {/* Integrated Preferences: Language & Theme */}
                     <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-1.5">
@@ -413,6 +453,27 @@ export const Navbar = ({
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Mobile Drawer Dual Role Switcher Banner */}
+            {currentUser?.availableRoles?.length > 1 && (
+              <div className="p-3 bg-gradient-to-r from-amber-500/15 via-teal-500/15 to-indigo-500/15 border-b border-amber-200/60 dark:border-amber-700/40">
+                <div className="text-[10px] font-extrabold text-amber-800 dark:text-amber-300 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>Dual Role Account</span>
+                  <Crown className="w-3.5 h-3.5 text-amber-500" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileDrawerOpen(false);
+                    switchRole(currentUser.role === 'student' ? (currentUser.unionRole || 'convener') : 'student');
+                  }}
+                  className="w-full py-2 px-3 rounded-xl bg-[#0F2A4A] dark:bg-[#0E7C86] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition active:scale-95 cursor-pointer"
+                >
+                  <ArrowRightLeft className="w-3.5 h-3.5 text-amber-300" />
+                  <span className="truncate">Switch to {currentUser.role === 'student' ? (currentUser.unionOfficial?.designation || 'Union Role') : 'Student Portal'}</span>
+                </button>
+              </div>
+            )}
 
             <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1 text-xs font-semibold">
               <div className="px-3 py-1.5 text-[10px] uppercase font-bold text-slate-400">

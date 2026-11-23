@@ -62,6 +62,30 @@ export const UnionOfficialsManager = () => {
   const [toastFeedback, setToastFeedback] = useState('');
   const [copiedId, setCopiedId] = useState(null);
 
+  // Quick Password Reset Modal
+  const [passwordModalOfficial, setPasswordModalOfficial] = useState(null);
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+
+  const openPasswordModal = (off) => {
+    setPasswordModalOfficial(off);
+    setNewPasswordInput(off.initialPassword || '');
+  };
+
+  const handleSavePassword = async (e) => {
+    e.preventDefault();
+    if (!passwordModalOfficial) return;
+    if (!newPasswordInput.trim()) {
+      alert('Please enter a valid password.');
+      return;
+    }
+    await updateUnionOfficial(passwordModalOfficial.id, {
+      password: newPasswordInput.trim()
+    }, currentUser?.username || 'admin');
+    setToastFeedback(`Password updated successfully for ${passwordModalOfficial.name}!`);
+    setTimeout(() => setToastFeedback(''), 4000);
+    setPasswordModalOfficial(null);
+  };
+
   // Modal appointment scope: 'executive' (Central Council) or 'wing' (2 members per wing)
   const [scopeType, setScopeType] = useState('wing'); // 'executive' | 'wing'
   const [selectedWingId, setSelectedWingId] = useState(wings[0]?.id || 'fine_arts');
@@ -555,14 +579,24 @@ Portal: https://musf-union-app.web.app`;
                   </div>
 
                   {member1 ? (
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(member1)}
-                      className="p-1 text-slate-400 hover:text-[#0E7C86] hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition shrink-0"
-                      title="Edit Member 1"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => openPasswordModal(member1)}
+                        className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded transition"
+                        title="Assign / Reset Password"
+                      >
+                        <Key className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(member1)}
+                        className="p-1 text-slate-400 hover:text-[#0E7C86] hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition"
+                        title="Edit Member 1"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                    </div>
                   ) : (
                     <button
                       type="button"
@@ -590,14 +624,24 @@ Portal: https://musf-union-app.web.app`;
                   </div>
 
                   {member2 ? (
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(member2)}
-                      className="p-1 text-slate-400 hover:text-[#0E7C86] hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition shrink-0"
-                      title="Edit Member 2"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => openPasswordModal(member2)}
+                        className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded transition"
+                        title="Assign / Reset Password"
+                      >
+                        <Key className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(member2)}
+                        className="p-1 text-slate-400 hover:text-[#0E7C86] hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition"
+                        title="Edit Member 2"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                    </div>
                   ) : (
                     <button
                       type="button"
@@ -684,6 +728,14 @@ Portal: https://musf-union-app.web.app`;
                   </div>
 
                   <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => openPasswordModal(off)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition"
+                      title="Assign / Reset Password"
+                    >
+                      <Key className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => openEditModal(off)}
@@ -1184,7 +1236,7 @@ Portal: https://musf-union-app.web.app`;
 
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Initial Password *
+                Portal Login Password *
               </label>
               <input
                 type="text"
@@ -1210,6 +1262,62 @@ Portal: https://musf-union-app.web.app`;
               className="px-4 py-2 rounded-xl bg-[#0E7C86] hover:bg-[#14919D] text-white text-xs font-bold shadow-xs active:scale-95 transition"
             >
               {editingOfficial ? 'Save Official' : 'Appoint Official'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* QUICK PASSWORD ASSIGN / RESET MODAL */}
+      <Modal
+        isOpen={Boolean(passwordModalOfficial)}
+        onClose={() => setPasswordModalOfficial(null)}
+        title={`Assign / Reset Password: ${passwordModalOfficial?.name || ''}`}
+      >
+        <form onSubmit={handleSavePassword} className="space-y-4">
+          <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs space-y-1">
+            <div className="font-bold flex items-center gap-1.5">
+              <Key className="w-3.5 h-3.5 text-amber-600" />
+              <span>Official Account Credentials</span>
+            </div>
+            <p className="text-[11px] text-slate-600 dark:text-slate-300">
+              Assigned Position: <strong className="text-slate-900 dark:text-white">{passwordModalOfficial?.designation}</strong>
+            </p>
+            <p className="text-[11px] font-mono">
+              Username: <strong className="text-blue-900 dark:text-blue-300">{passwordModalOfficial?.username}</strong>
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              New Login Password *
+            </label>
+            <input
+              type="text"
+              required
+              autoFocus
+              value={newPasswordInput}
+              onChange={(e) => setNewPasswordInput(e.target.value)}
+              placeholder="e.g. union2026 / custom secret"
+              className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-emerald-600 outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              The student can use this password or their CIC number to log into their Union Convener / Executive console.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setPasswordModalOfficial(null)}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-xl bg-[#0E7C86] hover:bg-[#14919D] text-white text-xs font-bold shadow-xs active:scale-95 transition"
+            >
+              Save New Password
             </button>
           </div>
         </form>

@@ -17,7 +17,9 @@ import {
   Sparkles,
   LogOut,
   ChevronRight,
-  FileText
+  FileText,
+  Crown,
+  ArrowRightLeft
 } from 'lucide-react';
 import { SPRING_DRAWER, isReducedMotion, setReducedMotionPreference } from '../motion';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -32,7 +34,7 @@ export const DrawerMenu = ({
   onToggleTheme
 }) => {
   const { lang, setLang, tr } = useLanguage();
-  const { logout, currentUser } = useAuth();
+  const { logout, currentUser, switchRole } = useAuth();
   const reduced = isReducedMotion();
   const drawerRef = useRef(null);
 
@@ -110,6 +112,30 @@ export const DrawerMenu = ({
 
             {/* Navigation List (Staggered items) */}
             <div className="flex-1 overflow-y-auto p-3 space-y-1">
+              {/* Dual Role Switch Banner in Student Drawer */}
+              {currentUser?.availableRoles?.length > 1 && (
+                <div className="p-3 mb-2 rounded-xl bg-gradient-to-r from-[#0F2A4A] to-[#0E7C86] text-white space-y-1.5 shadow-sm">
+                  <div className="flex items-center justify-between text-[10px] font-bold text-amber-300 uppercase tracking-wider">
+                    <span>Union Official</span>
+                    <Crown className="w-3.5 h-3.5 text-amber-300" />
+                  </div>
+                  <div className="text-xs font-bold truncate">
+                    {currentUser.unionOfficial?.designation || 'Union Leader'}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      switchRole(currentUser.unionRole || 'convener');
+                    }}
+                    className="w-full py-1.5 px-2.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-2xs"
+                  >
+                    <ArrowRightLeft className="w-3.5 h-3.5" />
+                    <span>Switch to Union Console</span>
+                  </button>
+                </div>
+              )}
+
               {navItems.map((item, idx) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;

@@ -64,7 +64,7 @@ const ICON_MAP = {
 };
 
 export const UnionExecutiveDashboard = ({ activeTab: parentActiveTab, setActiveTab: parentSetActiveTab }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, switchRole, logout } = useAuth();
   const { lang, tr } = useLanguage();
   const {
     wings = [],
@@ -406,15 +406,28 @@ export const UnionExecutiveDashboard = ({ activeTab: parentActiveTab, setActiveT
       {/* 1. SOLID ACCENT EXECUTIVE HERO (Student Design System) */}
       <div className="bg-[#0F2A4A] dark:bg-[#07131F] text-white pt-6 pb-12 px-4 sm:px-6 rounded-b-[24px] shadow-sm">
         <div className="max-w-7xl mx-auto space-y-3">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 dark:bg-white/5 border border-white/15 text-xs font-bold text-amber-300 uppercase tracking-wider">
               <Crown className="w-3.5 h-3.5 text-amber-400" />
               <span>{currentUser?.designation || 'Union Executive Committee'}</span>
             </span>
 
-            <span className="text-xs text-slate-300 font-medium">
-              Academic Year {settings.academicYear || '2026–2027'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-300 font-medium">
+                Academic Year {settings.academicYear || '2026–2027'}
+              </span>
+              {currentUser?.availableRoles?.includes('student') && (
+                <button
+                  type="button"
+                  onClick={() => switchRole('student')}
+                  className="text-xs font-semibold text-amber-200 bg-white/15 hover:bg-white/25 px-3 py-1 rounded-full backdrop-blur-sm border border-white/20 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
+                  title="Switch to Student Dashboard"
+                >
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  <span>Student View</span>
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1">

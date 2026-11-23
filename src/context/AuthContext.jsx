@@ -16,6 +16,7 @@ const AuthContext = createContext({
   authError: null,
   login: async () => {},
   logout: () => {},
+  switchRole: () => {},
   changePassword: async () => false
 });
 
@@ -162,7 +163,60 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // Synchronize currentUser with localStorage & AppContext
+  // Auto-augment currentUser with union official role if they are a student holding an official post
+  useEffect(() => {
+    if (!currentUser) return;
+    if (currentUser.role === 'admin' || currentUser.username === 'MUSF') return;
+
+    const officialPool = (unionOfficials && unionOfficials.length > 0) ? unionOfficials : INITIAL_UNION_OFFICIALS;
+    const studentPool = (students && students.length > 0) ? students : INITIAL_STUDENTS;
+
+    // Find official match
+    const officialMatch = officialPool.find(o =>
+      (currentUser.studentId && o.studentId === currentUser.studentId) ||
+      (currentUser.id && o.studentId === currentUser.id) ||
+      (currentUser.cicNo && o.cicNo && String(o.cicNo).trim().toLowerCase() === String(currentUser.cicNo).trim().toLowerCase()) ||
+      (currentUser.username && o.username && o.username.toLowerCase() === currentUser.username.toLowerCase()) ||
+      (currentUser.name && o.name && o.name.trim().toLowerCase() === currentUser.name.trim().toLowerCase())
+    );
+
+    // Find student match
+    const studentMatch = studentPool.find(s =>
+      (currentUser.studentId && s.id === currentUser.studentId) ||
+      (currentUser.id && s.id === currentUser.id) ||
+      (currentUser.cicNo && s.cicNo && String(s.cicNo).trim().toLowerCase() === String(currentUser.cicNo).trim().toLowerCase()) ||
+      (currentUser.name && s.name && s.name.trim().toLowerCase() === currentUser.name.trim().toLowerCase())
+    );
+
+    if (officialMatch) {
+      const isOfficialExec = officialMatch.category === 'executive' || officialMatch.role === 'executive' || officialMatch.assignedWingId === 'all';
+      const unionRole = isOfficialExec ? 'executive' : (officialMatch.role || 'convener');
+      const expectedRoles = studentMatch ? ['student', unionRole] : [unionRole];
+
+      if (
+        !currentUser.unionOfficial ||
+        currentUser.unionRole !== unionRole ||
+        !currentUser.availableRoles ||
+        currentUser.availableRoles.length !== expectedRoles.length ||
+        (studentMatch && !currentUser.studentData)
+      ) {
+        setCurrentUser(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            studentId: studentMatch?.id || prev.studentId || officialMatch.studentId,
+            cicNo: prev.cicNo || studentMatch?.cicNo || officialMatch.cicNo,
+            classId: prev.classId || studentMatch?.classId || officialMatch.classId,
+            teamId: prev.teamId || studentMatch?.teamId || officialMatch.teamId,
+            availableRoles: expectedRoles,
+            unionRole: unionRole,
+            unionOfficial: officialMatch,
+            studentData: studentMatch || prev.studentData || null
+          };
+        });
+      }
+    }
+  }, [currentUser?.id, currentUser?.username, currentUser?.cicNo, unionOfficials, students]);
   useEffect(() => {
     try {
       if (currentUser) {
@@ -230,6 +284,8 @@ export const AuthProvider = ({ children }) => {
     // 2. Check Regular Students FIRST by CIC Number (Instant 0ms response with collegiate master roster)
     // Rule: Students log in using their CIC Number!
     const studentPool = (students && students.length > 0) ? students : INITIAL_STUDENTS;
+    const officialPool = (unionOfficials && unionOfficials.length > 0) ? unionOfficials : INITIAL_UNION_OFFICIALS;
+
     const student = studentPool.find(s => 
       (s.cicNo && String(s.cicNo).toLowerCase().trim() === trimmedUser) ||
       (s.username && s.username.toLowerCase().trim() === trimmedUser) || 
@@ -237,22 +293,70 @@ export const AuthProvider = ({ children }) => {
       (s.id && s.id.toLowerCase().trim() === trimmedUser)
     );
     if (student) {
-      // Students log in using their CIC Number!
-      // If student is found by CIC No / username, they log in directly.
+      // Check if this student also holds a Union position
+      const officialMatch = officialPool.find(o =>
+        (o.studentId && o.studentId === student.id) ||
+        (o.cicNo && String(o.cicNo).trim().toLowerCase() === String(student.cicNo).trim().toLowerCase()) ||
+        (o.username && o.username.toLowerCase() === student.username?.toLowerCase()) ||
+        (o.name && o.name.trim().toLowerCase() === student.name.trim().toLowerCase())
+      );
+
+      let initialRole = 'student';
+      let availableRoles = ['student'];
+      let unionOfficial = null;
+      let unionRole = null;
+
+      if (officialMatch) {
+        const isOfficialExec = officialMatch.category === 'executive' || officialMatch.role === 'executive' || officialMatch.assignedWingId === 'all';
+        unionRole = isOfficialExec ? 'executive' : (officialMatch.role || 'convener');
+        availableRoles = ['student', unionRole];
+        unionOfficial = officialMatch;
+
+        // If candidate entered their union password, log directly into union role
+        const isUnionPass = candidatePass && (
+          candidatePass === officialMatch.password ||
+          candidatePass === officialMatch.initialPassword ||
+          (officialMatch.passwordHash && (await verifyPassword(candidatePass, officialMatch.passwordHash)))
+        );
+        if (isUnionPass) {
+          initialRole = unionRole;
+        }
+      }
+
       const userObj = {
         id: student.id,
+        studentId: student.id,
         name: student.name,
         username: student.username || student.cicNo,
-        role: 'student',
+        role: initialRole,
+        activeRole: initialRole,
+        availableRoles,
+        unionRole,
+        unionOfficial,
+        studentData: {
+          id: student.id,
+          name: student.name,
+          username: student.username || student.cicNo,
+          teamId: student.teamId,
+          classId: student.classId,
+          chestNo: student.chestNo,
+          cicNo: student.cicNo,
+          isLeader: student.isLeader
+        },
         teamId: student.teamId,
         classId: student.classId,
         chestNo: student.chestNo,
         cicNo: student.cicNo,
-        isLeader: student.isLeader
+        isLeader: student.isLeader,
+        assignedWingId: initialRole === 'student' ? null : (unionOfficial?.assignedWingId || null),
+        wingId: initialRole === 'student' ? null : (unionOfficial?.assignedWingId || null),
+        designation: initialRole === 'student'
+          ? (student.className ? `Student (${student.className})` : 'Student')
+          : (unionOfficial?.designation || 'Union Official')
       };
       setCurrentUser(userObj);
       if (typeof addAuditLog === 'function') {
-        addAuditLog(userObj.username, 'LOGIN', `Student ${userObj.name} (${userObj.cicNo}) signed in`);
+        addAuditLog(userObj.username, 'LOGIN', `Student ${userObj.name} (${userObj.cicNo}) signed in${unionRole ? ` [Union Role: ${unionRole}]` : ''}`);
       }
       return userObj;
     }
@@ -265,16 +369,50 @@ export const AuthProvider = ({ children }) => {
         (s.username && s.username.toLowerCase().trim() === candidateCic)
       );
       if (studentByPass) {
+        const officialMatch = officialPool.find(o =>
+          (o.studentId && o.studentId === studentByPass.id) ||
+          (o.cicNo && String(o.cicNo).trim().toLowerCase() === String(studentByPass.cicNo).trim().toLowerCase()) ||
+          (o.name && o.name.trim().toLowerCase() === studentByPass.name.trim().toLowerCase())
+        );
+
+        let initialRole = 'student';
+        let availableRoles = ['student'];
+        let unionOfficial = null;
+        let unionRole = null;
+
+        if (officialMatch) {
+          const isOfficialExec = officialMatch.category === 'executive' || officialMatch.role === 'executive' || officialMatch.assignedWingId === 'all';
+          unionRole = isOfficialExec ? 'executive' : (officialMatch.role || 'convener');
+          availableRoles = ['student', unionRole];
+          unionOfficial = officialMatch;
+        }
+
         const userObj = {
           id: studentByPass.id,
+          studentId: studentByPass.id,
           name: studentByPass.name,
           username: studentByPass.username || studentByPass.cicNo,
-          role: 'student',
+          role: initialRole,
+          activeRole: initialRole,
+          availableRoles,
+          unionRole,
+          unionOfficial,
+          studentData: {
+            id: studentByPass.id,
+            name: studentByPass.name,
+            username: studentByPass.username || studentByPass.cicNo,
+            teamId: studentByPass.teamId,
+            classId: studentByPass.classId,
+            chestNo: studentByPass.chestNo,
+            cicNo: studentByPass.cicNo,
+            isLeader: studentByPass.isLeader
+          },
           teamId: studentByPass.teamId,
           classId: studentByPass.classId,
           chestNo: studentByPass.chestNo,
           cicNo: studentByPass.cicNo,
-          isLeader: studentByPass.isLeader
+          isLeader: studentByPass.isLeader,
+          designation: studentByPass.className ? `Student (${studentByPass.className})` : 'Student'
         };
         setCurrentUser(userObj);
         return userObj;
@@ -282,7 +420,6 @@ export const AuthProvider = ({ children }) => {
     }
 
     // 3. Check Union Officials (Executive Committee & Wing Conveners - assigned by Admin in Wing Management)
-    const officialPool = (unionOfficials && unionOfficials.length > 0) ? unionOfficials : INITIAL_UNION_OFFICIALS;
     const official = officialPool.find(o =>
       (o.username && o.username.toLowerCase() === trimmedUser) ||
       (o.cicNo && String(o.cicNo).toLowerCase() === trimmedUser) ||
@@ -298,19 +435,45 @@ export const AuthProvider = ({ children }) => {
       const isHashMatch = await verifyPassword(candidatePass, official.passwordHash);
       if (isDefaultMatch || isHashMatch) {
         const isOfficialExec = official.category === 'executive' || official.role === 'executive' || official.assignedWingId === 'all';
+        const unionRole = isOfficialExec ? 'executive' : (official.role || 'convener');
+
+        // Check if official has a student match
+        const studentMatch = studentPool.find(s =>
+          (official.studentId && s.id === official.studentId) ||
+          (official.cicNo && String(s.cicNo).trim().toLowerCase() === String(official.cicNo).trim().toLowerCase()) ||
+          (s.name && s.name.trim().toLowerCase() === official.name.trim().toLowerCase())
+        );
+
+        const availableRoles = studentMatch ? ['student', unionRole] : [unionRole];
+
         const userObj = {
           id: official.id,
-          studentId: official.studentId,
+          officialId: official.id,
+          studentId: studentMatch ? studentMatch.id : (official.studentId || null),
           name: official.name,
           username: official.username || official.cicNo,
-          role: isOfficialExec ? 'executive' : (official.role || 'convener'),
+          role: unionRole,
+          activeRole: unionRole,
+          availableRoles,
+          unionRole,
+          unionOfficial: official,
+          studentData: studentMatch ? {
+            id: studentMatch.id,
+            name: studentMatch.name,
+            username: studentMatch.username || studentMatch.cicNo,
+            teamId: studentMatch.teamId,
+            classId: studentMatch.classId,
+            chestNo: studentMatch.chestNo,
+            cicNo: studentMatch.cicNo,
+            isLeader: studentMatch.isLeader
+          } : null,
           designation: official.designation,
           assignedWingId: isOfficialExec ? 'all' : (official.assignedWingId || null),
           wingId: isOfficialExec ? 'all' : (official.assignedWingId || null),
           category: official.category,
-          cicNo: official.cicNo,
-          classId: official.classId,
-          teamId: official.teamId
+          cicNo: official.cicNo || studentMatch?.cicNo,
+          classId: official.classId || studentMatch?.classId,
+          teamId: official.teamId || studentMatch?.teamId
         };
         setCurrentUser(userObj);
         if (typeof addAuditLog === 'function') {
@@ -529,6 +692,44 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
+   * Switches the active profile view between student and union position (convener/executive)
+   */
+  const switchRole = (targetRole) => {
+    if (!currentUser) return;
+    if (targetRole !== 'student' && targetRole !== 'convener' && targetRole !== 'executive') return;
+
+    setCurrentUser(prev => {
+      if (!prev) return null;
+      const off = prev.unionOfficial;
+      const st = prev.studentData;
+      const isUnion = targetRole === 'convener' || targetRole === 'executive';
+
+      const updated = {
+        ...prev,
+        role: targetRole,
+        activeRole: targetRole,
+        designation: isUnion
+          ? (off?.designation || prev.designation || 'Union Official')
+          : (st?.className ? `Student (${st.className})` : 'Student'),
+        assignedWingId: isUnion ? (off?.assignedWingId || prev.assignedWingId || null) : null,
+        wingId: isUnion ? (off?.assignedWingId || prev.wingId || null) : null
+      };
+
+      try {
+        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(updated));
+      } catch (e) {
+        console.warn('[Auth] Error saving switched role:', e);
+      }
+
+      if (typeof addAuditLog === 'function') {
+        addAuditLog(prev.username, 'ROLE_SWITCH', `${prev.name} switched view to ${targetRole}`);
+      }
+
+      return updated;
+    });
+  };
+
+  /**
    * Change password for the logged in user
    */
   const changePassword = async (currentPlainPassword, newPlainPassword) => {
@@ -573,6 +774,7 @@ export const AuthProvider = ({ children }) => {
       authError,
       login,
       logout,
+      switchRole,
       changePassword
     }}>
       {children}

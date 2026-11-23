@@ -18,8 +18,11 @@ import {
   Shield,
   Layers,
   CheckCircle2,
-  ChevronRight
+  ChevronRight,
+  Crown,
+  ArrowRightLeft
 } from 'lucide-react';
+import { useAuth } from '../../../context/AuthContext';
 
 import { Hero } from '../ui/Hero';
 import { OverlapCard } from '../ui/OverlapCard';
@@ -54,13 +57,15 @@ export const StudentHomeScreen = ({
   banners = [],
   addBanner,
   deleteBanner,
-  currentUser,
+  currentUser: propCurrentUser,
   onNavigate,
   onOpenDrawer,
   onOpenNotifications,
   registerForWingProgram,
   cancelWingProgramRegistration
 }) => {
+  const { currentUser: authUser, switchRole } = useAuth();
+  const currentUser = authUser || propCurrentUser;
   const { tr } = useLanguage();
   const reduced = isReducedMotion();
 
@@ -215,6 +220,39 @@ export const StudentHomeScreen = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* UNION POSITION DUAL ROLE BANNER */}
+      {currentUser?.availableRoles?.length > 1 && (
+        <div className="mx-4 sm:mx-6 p-4 rounded-2xl bg-gradient-to-r from-[#0F2A4A] via-[#12365C] to-[#0E7C86] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg shadow-blue-950/20 border border-white/10 animate-fade-in">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-300/40 flex items-center justify-center shrink-0">
+              <Crown className="w-5 h-5 text-amber-300" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/30 text-amber-200 font-extrabold uppercase tracking-wider">
+                  Official Position
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-white truncate">
+                  {currentUser.unionOfficial?.designation || 'Union Leader'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-200 truncate mt-0.5">
+                Switch to your Union Console to organize programs, record minutes, and manage co-curricular activities.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => switchRole(currentUser.unionRole || 'convener')}
+            className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-1.5 transition shrink-0 cursor-pointer shadow-md"
+          >
+            <span>Switch to Console</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* 2. OVERLAPPING QUICK ACCESS CARD (8 ICON TILES, 4 PER ROW) */}
       <OverlapCard>
