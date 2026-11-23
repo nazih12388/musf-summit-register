@@ -165,14 +165,14 @@ export function AppContent() {
           <QuotaBanner />
 
           <div className="flex-1 flex w-full">
-            {/* Desktop Left Sidebar: Removed for admin, executive, and student to eliminate sidebar clutter and route through front Bento and floating pill dock */}
-            {currentUser?.role !== 'admin' && currentUser?.role !== 'executive' && currentUser?.role !== 'student' && (
+            {/* Desktop Left Sidebar: Removed for admin, executive, student, and convener to eliminate sidebar clutter and route through front Bento and floating pill dock */}
+            {currentUser?.role !== 'admin' && currentUser?.role !== 'executive' && currentUser?.role !== 'student' && currentUser?.role !== 'convener' && (
               <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
             )}
 
             {/* Main Content Viewport with centered container max-w-[1200px] */}
             <main className={`flex-1 overflow-y-auto min-w-0 bg-[#F6F8FB] dark:bg-[#080E18] ${
-              currentUser?.role === 'student' || currentUser?.role === 'executive' || currentUser?.role === 'admin'
+              currentUser?.role === 'student' || currentUser?.role === 'executive' || currentUser?.role === 'admin' || currentUser?.role === 'convener'
                 ? 'p-0 pb-24 md:pb-28'
                 : 'p-3 sm:p-6 lg:p-8 pb-24 md:pb-8'
             }`}>
@@ -214,8 +214,8 @@ export function AppContent() {
             </main>
           </div>
 
-          {/* Persistent Mobile Bottom Navigation Bar (< 1024px) - hidden for students, executives, and admins as per unified design spec */}
-          {currentUser?.role !== 'student' && currentUser?.role !== 'executive' && currentUser?.role !== 'admin' && (
+          {/* Persistent Mobile Bottom Navigation Bar (< 1024px) - hidden for students, executives, admins, and conveners as per unified design spec */}
+          {currentUser?.role !== 'student' && currentUser?.role !== 'executive' && currentUser?.role !== 'admin' && currentUser?.role !== 'convener' && (
             <MobileTabBar
               activeTab={activeTab}
               setActiveTab={setActiveTab}

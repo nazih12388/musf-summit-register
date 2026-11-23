@@ -37,7 +37,7 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
   const { lang, tr } = useLanguage();
   const { wings = [], unionOfficials = [] } = useApp();
 
-  if (!currentUser || currentUser.role === 'admin') return null;
+  if (!currentUser || currentUser.role === 'admin' || currentUser.role === 'convener') return null;
 
   const currentWing = resolveConvenerWing(currentUser, wings, unionOfficials);
   const isFineArtsConvener = currentUser.role === 'convener' && isFineArtsWingConvener(currentUser, wings, unionOfficials);
