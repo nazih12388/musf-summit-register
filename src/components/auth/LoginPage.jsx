@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { LogoReveal } from '../common/LogoReveal';
 import {
   Lock,
   User,
@@ -144,34 +145,16 @@ export const LoginPage = ({ isDark, setIsDark }) => {
             <div className="absolute -bottom-20 -left-10 w-72 h-72 rounded-full border border-white/10 pointer-events-none" />
             <div className="absolute inset-0 bg-radial from-transparent via-transparent to-black/15 pointer-events-none" />
 
-            {/* Crest & Identity */}
-            <div className="relative z-10 w-full flex flex-col items-center space-y-3.5 pt-2">
-              <div className="relative w-24 h-24 rounded-full p-1.5 bg-white/20 backdrop-blur-md border border-white/40 shadow-xl group">
-                <div className="w-full h-full rounded-full overflow-hidden bg-white p-1 flex items-center justify-center">
-                  <img
-                    src="/amu-crest-square.png"
-                    alt="Majlis Umariyya Wafy College"
-                    className="w-full h-full object-contain"
-                    onError={(e) => {
-                      e.currentTarget.src = '/college-crest.jpg';
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-sm">
-                  WafyMajlis
-                </h1>
-                <p className="text-sm font-serif tracking-widest text-blue-100 font-semibold" dir="rtl">
-                  إيمان • علم • عمل
-                </p>
-                <div className="pt-0.5">
-                  <span className="text-[11px] font-bold text-white/80 uppercase tracking-wider">
-                    MUSF &bull; Majlis Umariyya
-                  </span>
-                </div>
-              </div>
+            {/* Crest & Identity with High-End Logo Reveal Animation */}
+            <div className="relative z-10 w-full flex flex-col items-center pt-2">
+              <LogoReveal
+                size="login"
+                mode="reveal"
+                logoSrc="/musf-official-emblem.jpg"
+                title="WafyMajlis"
+                subtitle="MUSF • Majlis Umariyya"
+                arabicMotto="إيمان • علم • عمل"
+              />
             </div>
 
             {/* Three Exact MUSF Glass Action Pills */}

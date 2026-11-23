@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, ShieldCheck } from 'lucide-react';
-import { LogoLoader } from './LogoLoader';
+import { ShieldCheck } from 'lucide-react';
+import { LogoReveal } from './LogoReveal';
 
 export const SplashScreen = ({ onFinished }) => {
   const [progress, setProgress] = useState(0);
@@ -55,14 +55,14 @@ export const SplashScreen = ({ onFinished }) => {
   return (
     <div
       onClick={handleSkip}
-      className={`fixed inset-0 z-50 overflow-hidden cursor-pointer select-none transition-all duration-500 ease-out flex flex-col items-center justify-between py-12 px-6 bg-[#070D17] ${
+      className={`fixed inset-0 z-50 overflow-hidden cursor-pointer select-none transition-all duration-500 ease-out flex flex-col items-center justify-between py-10 px-6 bg-[#070D17] ${
         isFadingOut ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'
       }`}
     >
       {/* 1. Ambient Background Glows */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-[#0E7C86]/15 blur-3xl" />
-        <div className="absolute -bottom-32 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-[#38BDF8]/10 blur-3xl" />
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-[#0E7C86]/20 blur-3xl animate-pulse" />
+        <div className="absolute -bottom-32 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-[#38BDF8]/15 blur-3xl" />
       </div>
 
       {/* 2. Top Minimal Branding Header */}
@@ -78,22 +78,16 @@ export const SplashScreen = ({ onFinished }) => {
         </div>
       </div>
 
-      {/* 3. Center Hero: Logo with Minimal Glowing Orbital Animation */}
-      <div className="relative z-10 flex flex-col items-center justify-center space-y-5 my-auto">
-        <LogoLoader
-          size="xl"
-          showText={false}
-          logoSrc="/amu-crest-logo.png"
+      {/* 3. Center Hero: High-End Logo Reveal Animation */}
+      <div className="relative z-10 flex flex-col items-center justify-center my-auto">
+        <LogoReveal
+          size="splash"
+          mode="reveal"
+          logoSrc="/musf-official-emblem.jpg"
+          title="MUSF STUDENTS' UNION"
+          subtitle="Majlis Umariyya Wafy College"
+          arabicMotto="من رام درّا للسفينة يركب"
         />
-
-        <div className="text-center space-y-1">
-          <h1 className="text-sm font-extrabold tracking-[0.2em] text-white uppercase drop-shadow-sm">
-            MUSF STUDENTS&apos; UNION
-          </h1>
-          <p className="text-[11px] text-slate-400 tracking-wider font-medium">
-            Majlis Umariyya Wafy College
-          </p>
-        </div>
       </div>
 
       {/* 4. Bottom Controls & Minimal Progress Track */}
