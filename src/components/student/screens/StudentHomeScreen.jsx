@@ -30,11 +30,11 @@ import { AvatarRing } from '../ui/AvatarRing';
 import { SectionHeader } from '../ui/SectionHeader';
 import { ProfileBottomSheet } from '../ui/ProfileBottomSheet';
 import { BannerCarousel } from '../ui/BannerCarousel';
-import { BannerSlideManagerModal } from '@/components/common/BannerSlideManagerModal';
+import { BannerSlideManagerModal } from '../../common/BannerSlideManagerModal';
 import { triggerStudentConfetti } from '../ui/ConfettiHelper';
 import { computeStudentAchievements } from '../achievementsConfig';
 import { EASING, SPRING_POP, isReducedMotion } from '../motion';
-import { useLanguage } from '@/context/LanguageContext';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export const StudentHomeScreen = ({
   student,

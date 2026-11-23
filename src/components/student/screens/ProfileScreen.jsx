@@ -21,8 +21,8 @@ import { Hero } from '../ui/Hero';
 import { Card } from '../ui/Card';
 import { Tag } from '../ui/Tag';
 import { SectionHeader } from '../ui/SectionHeader';
-import { useLanguage } from '@/context/LanguageContext';
-import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '../../../context/LanguageContext';
+import { useAuth } from '../../../context/AuthContext';
 import { isReducedMotion, setReducedMotionPreference, SPRING_POP } from '../motion';
 
 export const ProfileScreen = ({

@@ -20,8 +20,8 @@ import {
   FileText
 } from 'lucide-react';
 import { SPRING_DRAWER, isReducedMotion, setReducedMotionPreference } from '../motion';
-import { useLanguage } from '@/context/LanguageContext';
-import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '../../../context/LanguageContext';
+import { useAuth } from '../../../context/AuthContext';
 
 export const DrawerMenu = ({
   isOpen,

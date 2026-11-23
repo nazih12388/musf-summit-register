@@ -10,11 +10,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export default defineConfig({
   base: './',
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      react: path.resolve(__dirname, './node_modules/react'),
-      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
-    },
     dedupe: ['react', 'react-dom'],
   },
   plugins: [

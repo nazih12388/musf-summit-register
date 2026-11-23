@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { useApp } from '@/context/AppContext';
-import { useLanguage } from '@/context/LanguageContext';
-import { generateCertificatePDF } from '@/utils/certificate';
-import { printHtmlDocument } from '@/utils/printHelper';
+import { useApp } from '../../context/AppContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { generateCertificatePDF } from '../../utils/certificate';
+import { printHtmlDocument } from '../../utils/printHelper';
 import { ACADEMIC_MONTHS } from '../reports/OfficialMalayalamReportModal';
 import {
   FileText,

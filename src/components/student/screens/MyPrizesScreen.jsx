@@ -11,7 +11,7 @@ import { Tag } from '../ui/Tag';
 import { ListRow } from '../ui/ListRow';
 import { SectionHeader } from '../ui/SectionHeader';
 import { triggerStudentConfetti } from '../ui/ConfettiHelper';
-import { useLanguage } from '@/context/LanguageContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import { isReducedMotion, SPRING_POP } from '../motion';
 
 export const MyPrizesScreen = ({

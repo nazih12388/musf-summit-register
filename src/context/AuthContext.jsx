@@ -11,7 +11,13 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
-const AuthContext = createContext();
+const AuthContext = createContext({
+  currentUser: null,
+  authError: null,
+  login: async () => {},
+  logout: () => {},
+  changePassword: async () => false
+});
 
 export const AuthProvider = ({ children }) => {
   const {
