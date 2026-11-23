@@ -2187,6 +2187,44 @@ export const AppProvider = ({ children }) => {
       addAuditLog(actor, 'BULK_ASSIGN_TEAMS', `Reassigned teams for ${Object.keys(assignments).length} students`);
     };
 
+    const bulkChangeStudentClass = (studentIds, targetClassId, targetFieldId = null, actor = 'admin') => {
+      const targetClass = classesMap[targetClassId];
+      if (!targetClass || !Array.isArray(studentIds) || studentIds.length === 0) return 0;
+
+      const targetSectionId = targetClass.sectionId || (['c1', 'c2'].includes(targetClassId) ? 'thamheediyya' : 'aliya');
+      const isTargetAliya = targetSectionId === 'aliya';
+
+      const updatedStudents = [];
+      setStudents(prev => prev.map(s => {
+        if (studentIds.includes(s.id)) {
+          const upd = {
+            ...s,
+            classId: targetClass.id,
+            className: targetClass.name,
+            sectionId: targetSectionId
+          };
+          if (isTargetAliya) {
+            if (targetFieldId) {
+              upd.fieldId = targetFieldId;
+            } else if (!s.fieldId || s.fieldId === 'f_foundation' || s.fieldId === 'f_general') {
+              upd.fieldId = fields.find(f => f.sectionId === 'aliya')?.id || 'f_communicative';
+            }
+          } else {
+            upd.fieldId = 'f_foundation';
+          }
+          updatedStudents.push(upd);
+          return upd;
+        }
+        return s;
+      }));
+
+      if (updatedStudents.length > 0) {
+        batchSaveDocs(COLLECTIONS.STUDENTS, updatedStudents);
+      }
+      addAuditLog(actor, 'BULK_CHANGE_CLASS', `Bulk transferred ${updatedStudents.length} students to ${targetClass.name}`);
+      return updatedStudents.length;
+    };
+
     // TWO LEADERS PER TEAM CRUD & SWAP
     const appointTeamLeader = async ({ teamId, leaderRole = 'leader1', studentId, leaderUsername, leaderPassword, sectionRestriction = 'all' }, actor) => {
       const passwordHash = await hashPassword(leaderPassword || 'leader123');
@@ -3951,6 +3989,7 @@ export const AppProvider = ({ children }) => {
         updateTeam,
         deleteTeam,
         bulkAssignTeams,
+        bulkChangeStudentClass,
         appointLeader,
         appointTeamLeader,
         swapTeamLeaders,

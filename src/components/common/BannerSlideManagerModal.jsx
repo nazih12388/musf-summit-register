@@ -14,10 +14,10 @@ import {
 
 /**
  * Client-side canvas image compressor for free hosting / local storage.
- * Resizes to max 1000x560 (16:9) and compresses JPEG at 0.72 quality.
- * Typical output is 40KB - 110KB.
+ * Preserves high resolution up to 1200x1200 with 0.8 quality without cropping.
+ * Typical output is 60KB - 160KB (well within Firestore 1MB document limit).
  */
-export const compressPosterImage = (file, maxWidth = 1000, maxHeight = 560, quality = 0.72) => {
+export const compressPosterImage = (file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) => {
   return new Promise((resolve, reject) => {
     if (!file || !file.type.startsWith('image/')) {
       return reject(new Error('Please select a valid image file (JPG, PNG, WebP)'));
@@ -45,6 +45,8 @@ export const compressPosterImage = (file, maxWidth = 1000, maxHeight = 560, qual
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
 
         const dataUrl = canvas.toDataURL('image/jpeg', quality);
@@ -219,21 +221,21 @@ export const BannerSlideManagerModal = ({
               </label>
 
               {posterDataUrl ? (
-                <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-900 group">
+                <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-950 flex items-center justify-center min-h-[190px] max-h-[270px] p-2 group">
                   <img
                     src={posterDataUrl}
                     alt="Poster Preview"
-                    className="w-full h-44 object-cover object-center"
+                    className="max-h-[250px] w-auto max-w-full object-contain mx-auto rounded shadow-md"
                   />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-between p-3 opacity-95">
-                    <span className="px-2.5 py-1 rounded-md bg-emerald-600/90 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs">
-                      <FileCheck className="w-3.5 h-3.5" />
-                      <span>Optimized Size: {posterSizeKB} KB</span>
+                  <div className="absolute top-2 left-2 right-2 flex items-center justify-between p-1.5 rounded-lg bg-black/65 backdrop-blur-xs">
+                    <span className="px-2 py-0.5 rounded bg-emerald-600/90 text-white text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                      <FileCheck className="w-3 h-3" />
+                      <span>Optimized: {posterSizeKB} KB</span>
                     </span>
                     <button
                       type="button"
                       onClick={handleRemovePosterImage}
-                      className="px-2.5 py-1 rounded-md bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition cursor-pointer"
+                      className="px-2 py-0.5 rounded bg-rose-600 text-white text-[11px] font-bold hover:bg-rose-700 transition cursor-pointer"
                     >
                       Remove
                     </button>

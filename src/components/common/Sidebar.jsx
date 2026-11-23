@@ -49,6 +49,7 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
       title: tr('Overview', 'പൊതു അവലോകനം'),
       tabs: [
         { id: 'dashboard', label: tr('Dashboard', 'ഡാഷ്‌ബോർഡ്'), icon: LayoutDashboard },
+        { id: 'programs', label: tr('Union programs', 'പൊതുപരിപാടികൾ'), icon: Layers },
         { id: 'wings', label: tr('Union wings', 'യൂണിയൻ വിംഗുകൾ'), icon: Folder },
         { id: 'college_sports', label: tr('College Sports', 'കോളേജ് സ്പോർട്സ്'), icon: Trophy },
       ]

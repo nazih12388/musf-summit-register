@@ -3,12 +3,14 @@ import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { StudentManagement } from './StudentManagement';
+import { ProgramManagement } from './ProgramManagement';
 import { NoticesManagement } from './NoticesManagement';
 import { SettingsAuditLog } from './SettingsAuditLog';
 import { UnionWingsManager } from './UnionWingsManager';
 import { UnionOfficialsManager } from './UnionOfficialsManager';
 import { SummitRegisterModule } from './SummitRegisterModule';
 import { SportsWingManager } from '../sports/SportsWingManager';
+import { BannerCarousel } from '../student/ui/BannerCarousel';
 import { OfficialMalayalamReportModal } from '../reports/OfficialMalayalamReportModal';
 import { ClassWiseActivityReportModal } from '../reports/ClassWiseActivityReportModal';
 import { Modal } from '../common/Modal';
@@ -395,6 +397,15 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
           </OverlapCard>
 
           <div className="px-4 sm:px-6 space-y-6">
+            {/* FEATURED BANNER POSTERS & CAROUSEL */}
+            <BannerCarousel
+              banners={banners}
+              wings={wings}
+              onNavigate={setActiveTab}
+              canManage={true}
+              onOpenManageModal={() => setIsBannerModalOpen(true)}
+            />
+
             {/* 2. "NEEDS ATTENTION" LIST WITH VIBRANT AMBER HIGHLIGHT */}
           <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-amber-200 dark:border-amber-900/60 shadow-xs space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
@@ -785,7 +796,25 @@ export const AdminDashboard = ({ activeTab, setActiveTab }) => {
       )}
 
       {/* =========================================================================
-          MODULE: UNION WINGS
+          MODULE: PROGRAMS & COMPETITIONS (When activeTab === 'programs')
+         ========================================================================= */}
+      {activeTab === 'programs' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab('dashboard')}
+              className="text-xs font-bold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              &larr; Back to Dashboard
+            </button>
+          </div>
+          <ProgramManagement />
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODULE: UNION WINGS (When activeTab === 'wings')
          ========================================================================= */}
       {activeTab === 'wings' && (
         <UnionWingsManager

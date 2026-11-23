@@ -5,7 +5,9 @@ import {
   ChevronRight,
   Sparkles,
   Plus,
-  ArrowRight
+  ArrowRight,
+  Maximize2,
+  X
 } from 'lucide-react';
 import { EASING, isReducedMotion } from '../motion';
 
@@ -19,6 +21,7 @@ export const BannerCarousel = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(1); // 1 = right, -1 = left
   const [isHovered, setIsHovered] = useState(false);
+  const [fullscreenPoster, setFullscreenPoster] = useState(null);
   const reduced = isReducedMotion();
 
   // If no banners, provide a polished fallback college slide
@@ -37,7 +40,7 @@ export const BannerCarousel = ({
 
   // Auto-advance every 5 seconds (paused on hover)
   useEffect(() => {
-    if (slides.length <= 1 || isHovered) return;
+    if (slides.length <= 1 || isHovered || fullscreenPoster) return;
 
     const timer = setInterval(() => {
       setDirection(1);
@@ -45,7 +48,7 @@ export const BannerCarousel = ({
     }, 5000);
 
     return () => clearInterval(timer);
-  }, [slides.length, isHovered]);
+  }, [slides.length, isHovered, fullscreenPoster]);
 
   const handlePrev = (e) => {
     e?.stopPropagation();
@@ -68,6 +71,10 @@ export const BannerCarousel = ({
     }
     if (slide.actionTab && typeof onNavigate === 'function') {
       onNavigate(slide.actionTab);
+      return;
+    }
+    if (slide.imageUrl) {
+      setFullscreenPoster(slide);
     }
   };
 
@@ -122,7 +129,7 @@ export const BannerCarousel = ({
 
       {/* Carousel Card Container */}
       <div
-        className="relative rounded-[16px] overflow-hidden shadow-xs border border-slate-200/80 dark:border-slate-800 bg-slate-900 min-h-[175px] sm:min-h-[195px] flex items-center group cursor-pointer"
+        className="relative rounded-[16px] overflow-hidden shadow-xs border border-slate-200/80 dark:border-slate-800 bg-slate-950 h-[220px] sm:h-[300px] md:h-[340px] flex items-center group cursor-pointer"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={() => handleSlideAction(currentSlide)}
@@ -135,70 +142,124 @@ export const BannerCarousel = ({
             initial="enter"
             animate="center"
             exit="exit"
-            className="absolute inset-0 w-full h-full flex flex-col justify-between p-4 sm:p-6 text-white"
+            className="absolute inset-0 w-full h-full flex flex-col justify-between p-3 sm:p-5 text-white"
           >
-            {/* Background Poster Image or Gradient */}
+            {/* Background & Foreground Display */}
             {currentSlide.imageUrl ? (
-              <div className="absolute inset-0 -z-10 overflow-hidden">
-                <img
-                  src={currentSlide.imageUrl}
-                  alt={currentSlide.title}
-                  className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-700"
-                />
-                {/* Multi-layer readability gradient scrim */}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-slate-900/40" />
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-transparent to-transparent" />
-              </div>
+              <>
+                {/* 1. Ambient Blurred Backdrop */}
+                <div className="absolute inset-0 overflow-hidden bg-slate-950 pointer-events-none z-0">
+                  <img
+                    src={currentSlide.imageUrl}
+                    alt=""
+                    aria-hidden="true"
+                    className="w-full h-full object-cover blur-2xl opacity-40 scale-110"
+                  />
+                  <div className="absolute inset-0 bg-slate-950/45" />
+                </div>
+
+                {/* 2. Uncropped Foreground Poster (100% visible, natural aspect ratio) */}
+                <div className="absolute inset-0 flex items-center justify-center p-2.5 sm:p-4 pointer-events-none z-10">
+                  <img
+                    src={currentSlide.imageUrl}
+                    alt={currentSlide.title || 'Poster'}
+                    className="w-full h-full object-contain rounded-lg drop-shadow-2xl transition-transform duration-500 group-hover:scale-[1.01]"
+                  />
+                </div>
+              </>
             ) : (
-              <div className={`absolute inset-0 -z-10 bg-gradient-to-tr ${currentSlide.bgGradient || 'from-[#0F2A4A] via-[#1E3A5F] to-[#0E7C86]'}`} />
+              <div className={`absolute inset-0 bg-gradient-to-tr ${currentSlide.bgGradient || 'from-[#0F2A4A] via-[#1E3A5F] to-[#0E7C86]'} z-0`} />
             )}
 
-            {/* Top row: Category Badge & Tag */}
-            <div className="relative z-10 flex items-center justify-between gap-2">
-              <span className="px-2.5 py-0.8 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-black uppercase tracking-wider text-white border border-white/20">
+            {/* Top row: Category Badge & Fullscreen trigger */}
+            <div className="relative z-20 flex items-center justify-between gap-2 pointer-events-auto">
+              <span className="px-2.5 py-0.8 rounded-full bg-slate-900/70 backdrop-blur-md text-[10px] font-black uppercase tracking-wider text-teal-300 border border-teal-500/30">
                 {currentSlide.badge || 'Campus Highlight'}
               </span>
 
-              {currentSlide.tag && (
+              {currentSlide.imageUrl ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFullscreenPoster(currentSlide);
+                  }}
+                  className="px-2.5 py-1 rounded-full bg-slate-900/75 hover:bg-black/90 backdrop-blur-md text-[11px] font-bold text-white border border-white/20 flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-md"
+                  title="View Full Poster"
+                >
+                  <Maximize2 className="w-3 h-3 text-teal-400" />
+                  <span className="hidden sm:inline">Full Poster</span>
+                </button>
+              ) : currentSlide.tag ? (
                 <span className="text-[11px] font-semibold text-teal-200/90 truncate max-w-[140px]">
                   {currentSlide.tag}
                 </span>
-              )}
+              ) : null}
             </div>
 
             {/* Middle & Bottom: Title, Subtitle, and Action Button */}
-            <div className="relative z-10 space-y-2 mt-auto">
-              <div className="space-y-0.5 max-w-xl">
-                <h2 className="text-base sm:text-xl font-extrabold text-white leading-snug drop-shadow-sm line-clamp-2">
-                  {currentSlide.title}
-                </h2>
-                {currentSlide.subtitle && (
-                  <p className="text-xs sm:text-sm text-slate-200 line-clamp-1 font-medium drop-shadow-xs">
-                    {currentSlide.subtitle}
-                  </p>
+            {currentSlide.imageUrl ? (
+              <div className="relative z-20 mt-auto flex items-end justify-between gap-3 pointer-events-auto">
+                <div className="px-3 py-1.5 rounded-xl bg-slate-950/75 backdrop-blur-md border border-white/10 max-w-md space-y-0.5 shadow-lg">
+                  <h2 className="text-xs sm:text-sm font-extrabold text-white leading-snug truncate drop-shadow-sm">
+                    {currentSlide.title}
+                  </h2>
+                  {currentSlide.subtitle && (
+                    <p className="text-[10px] sm:text-[11px] text-slate-300 line-clamp-1 font-medium">
+                      {currentSlide.subtitle}
+                    </p>
+                  )}
+                </div>
+
+                {(currentSlide.linkUrl || currentSlide.actionTab) && (
+                  <motion.button
+                    type="button"
+                    whileTap={reduced ? undefined : { scale: 0.95 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSlideAction(currentSlide);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-[#0E7C86] hover:bg-teal-600 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md cursor-pointer shrink-0"
+                  >
+                    <span>{currentSlide.actionText || 'View Details'}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </motion.button>
                 )}
               </div>
+            ) : (
+              <div className="relative z-10 space-y-2 mt-auto">
+                <div className="space-y-0.5 max-w-xl">
+                  <h2 className="text-base sm:text-xl font-extrabold text-white leading-snug drop-shadow-sm line-clamp-2">
+                    {currentSlide.title}
+                  </h2>
+                  {currentSlide.subtitle && (
+                    <p className="text-xs sm:text-sm text-slate-200 line-clamp-1 font-medium drop-shadow-xs">
+                      {currentSlide.subtitle}
+                    </p>
+                  )}
+                </div>
 
-              {/* Action Button */}
-              <div className="pt-1 flex items-center gap-2">
-                <motion.button
-                  type="button"
-                  whileTap={reduced ? undefined : { scale: 0.95 }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSlideAction(currentSlide);
-                  }}
-                  className="px-3.5 py-1.5 rounded-[10px] bg-[#0E7C86] hover:bg-teal-600 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md cursor-pointer"
-                >
-                  <span>{currentSlide.actionText || 'View Details'}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </motion.button>
+                {/* Action Button */}
+                <div className="pt-1 flex items-center gap-2">
+                  <motion.button
+                    type="button"
+                    whileTap={reduced ? undefined : { scale: 0.95 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSlideAction(currentSlide);
+                    }}
+                    className="px-3.5 py-1.5 rounded-[10px] bg-[#0E7C86] hover:bg-teal-600 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md cursor-pointer"
+                  >
+                    <span>{currentSlide.actionText || 'View Details'}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </motion.button>
+                </div>
               </div>
-            </div>
+            )}
           </motion.div>
         </AnimatePresence>
 
-        {/* Carousel Arrow Controls (Visible on hover on desktop, always responsive on mobile) */}
+        {/* Carousel Arrow Controls */}
         {slides.length > 1 && (
           <>
             <button
@@ -244,6 +305,81 @@ export const BannerCarousel = ({
           </div>
         )}
       </div>
+
+      {/* Fullscreen Poster Lightbox Modal */}
+      <AnimatePresence>
+        {fullscreenPoster && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col items-center justify-between p-3 sm:p-6"
+            onClick={() => setFullscreenPoster(null)}
+          >
+            {/* Top Bar */}
+            <div
+              className="w-full max-w-4xl flex items-center justify-between text-white pb-3 shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="min-w-0 pr-4">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-teal-400">
+                  {fullscreenPoster.badge || 'Poster View'}
+                </span>
+                <h3 className="text-sm sm:text-base font-bold text-white truncate">
+                  {fullscreenPoster.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFullscreenPoster(null)}
+                className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+                aria-label="Close poster view"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Center Image (100% Uncropped Full Natural Aspect Ratio) */}
+            <div
+              className="relative flex-1 w-full max-w-4xl flex items-center justify-center min-h-0 overflow-hidden py-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={fullscreenPoster.imageUrl}
+                alt={fullscreenPoster.title}
+                className="max-h-full max-w-full object-contain rounded-xl shadow-2xl select-none"
+              />
+            </div>
+
+            {/* Bottom Bar */}
+            <div
+              className="w-full max-w-4xl pt-3 flex items-center justify-center gap-3 shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {(fullscreenPoster.linkUrl || fullscreenPoster.actionTab) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSlideAction(fullscreenPoster);
+                    setFullscreenPoster(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-[#0E7C86] hover:bg-teal-600 text-white text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-lg"
+                >
+                  <span>{fullscreenPoster.actionText || 'Open Action'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setFullscreenPoster(null)}
+                className="px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

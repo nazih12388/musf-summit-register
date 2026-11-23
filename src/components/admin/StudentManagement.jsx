@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Modal } from '../common/Modal';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { ClassWiseActivityReportModal } from '../reports/ClassWiseActivityReportModal';
+import { BulkClassChangeModal } from './BulkClassChangeModal';
 import {
   downloadStudentTemplate,
   parseStudentExcel,
@@ -36,7 +37,10 @@ import {
   Layers,
   Sparkles,
   Info,
-  Check
+  Check,
+  CheckSquare,
+  Square,
+  GraduationCap
 } from 'lucide-react';
 
 export const StudentManagement = () => {
@@ -84,6 +88,8 @@ export const StudentManagement = () => {
   const [generatedSheet, setGeneratedSheet] = useState([]);
   const [editingStudent, setEditingStudent] = useState(null);
   const [deletingStudentId, setDeletingStudentId] = useState(null);
+  const [isBulkClassModalOpen, setIsBulkClassModalOpen] = useState(false);
+  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
 
   // Maps for quick lookups
   const classesMap = useMemo(() => Object.fromEntries((classes || []).map(c => [c.id, c])), [classes]);
@@ -154,6 +160,26 @@ export const StudentManagement = () => {
       return matchSearch && matchSection && matchClass && matchTeam && matchField;
     });
   }, [students, archivedStudents, showArchived, search, selectedSection, selectedClass, selectedTeam, selectedField, classesMap, teamsMap, fieldsMap]);
+
+  // Bulk selection helpers
+  const isAllFilteredSelected = filteredStudents.length > 0 && filteredStudents.every(s => selectedStudentIds.includes(s.id));
+  const isSomeFilteredSelected = filteredStudents.some(s => selectedStudentIds.includes(s.id));
+
+  const toggleSelectAllFiltered = () => {
+    if (isAllFilteredSelected) {
+      const filteredSet = new Set(filteredStudents.map(s => s.id));
+      setSelectedStudentIds(prev => prev.filter(id => !filteredSet.has(id)));
+    } else {
+      const newIds = new Set([...selectedStudentIds, ...filteredStudents.map(s => s.id)]);
+      setSelectedStudentIds(Array.from(newIds));
+    }
+  };
+
+  const toggleSelectStudent = (id) => {
+    setSelectedStudentIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
 
   // Handle single student submit
   const handleAddSubmit = async (e) => {
@@ -526,6 +552,16 @@ export const StudentManagement = () => {
 
               <button
                 type="button"
+                onClick={() => setIsBulkClassModalOpen(true)}
+                className="min-h-[44px] py-2 px-3.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs active:scale-98 cursor-pointer"
+                title="Bulk change or promote student classes"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+                <span>Bulk Class Change</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={async () => {
                   setIsCredentialsModalOpen(true);
                   setCredentialsProgress({ current: 0, total: students.length, percent: 0, statusText: 'Initializing account creation...' });
@@ -713,7 +749,22 @@ export const StudentManagement = () => {
                 {/* Header: Name + Leader Badge + House Badge */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSelectStudent(student.id);
+                        }}
+                        className="text-slate-400 hover:text-purple-600 transition shrink-0 cursor-pointer p-0.5"
+                        title="Select student"
+                      >
+                        {selectedStudentIds.includes(student.id) ? (
+                          <CheckSquare className="w-4 h-4 text-purple-600" />
+                        ) : (
+                          <Square className="w-4 h-4" />
+                        )}
+                      </button>
                       <h4 className="font-bold text-sm text-slate-900 dark:text-white">
                         {student.name}
                       </h4>
@@ -795,6 +846,20 @@ export const StudentManagement = () => {
           <table className="w-full text-left text-xs min-w-[680px] sm:min-w-full">
             <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">
               <tr>
+                <th className="py-3 px-3 w-10 text-center">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAllFiltered}
+                    className="text-slate-400 hover:text-purple-600 transition cursor-pointer p-0.5"
+                    title={isAllFilteredSelected ? "Deselect all" : "Select all"}
+                  >
+                    {isAllFilteredSelected ? (
+                      <CheckSquare className="w-4 h-4 text-purple-600" />
+                    ) : (
+                      <Square className="w-4 h-4" />
+                    )}
+                  </button>
+                </th>
                 <th className="py-3 px-3 sticky left-0 bg-slate-50 dark:bg-[#0B1522] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">Student Name</th>
                 <th className="py-3 px-3">CIC Number</th>
                 <th className="py-3 px-3">Class & Section</th>
@@ -807,7 +872,7 @@ export const StudentManagement = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-10 text-slate-400">
+                  <td colSpan="8" className="text-center py-10 text-slate-400">
                     <div className="space-y-3 max-w-sm mx-auto">
                       <p className="text-xs">
                         {students.length === 0
@@ -858,6 +923,20 @@ export const StudentManagement = () => {
                           : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
                       }`}
                     >
+                      <td className="py-3 px-3 w-10 text-center">
+                        <button
+                          type="button"
+                          onClick={() => toggleSelectStudent(student.id)}
+                          className="text-slate-400 hover:text-purple-600 transition cursor-pointer p-0.5"
+                          title="Select student"
+                        >
+                          {selectedStudentIds.includes(student.id) ? (
+                            <CheckSquare className="w-4 h-4 text-purple-600" />
+                          ) : (
+                            <Square className="w-4 h-4" />
+                          )}
+                        </button>
+                      </td>
                       <td className={`py-3 px-3 font-semibold text-slate-900 dark:text-white sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)] ${
                         isRecentlyAdded
                           ? 'bg-emerald-100/80 dark:bg-emerald-950'
@@ -1560,6 +1639,49 @@ export const StudentManagement = () => {
         isOpen={isClassReportOpen}
         onClose={() => setIsClassReportOpen(false)}
         defaultClassId={selectedClass !== 'all' ? selectedClass : 'all'}
+      />
+
+      {/* Floating Multi-Select Action Bar */}
+      {selectedStudentIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 dark:bg-slate-950/95 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 backdrop-blur-md flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center">
+              {selectedStudentIds.length}
+            </span>
+            <span className="text-xs font-medium">Students Selected</span>
+          </div>
+
+          <div className="h-4 w-px bg-slate-700 mx-1" />
+
+          <button
+            type="button"
+            onClick={() => setIsBulkClassModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md cursor-pointer"
+          >
+            <ArrowRightLeft className="w-3.5 h-3.5" />
+            <span>Change Class</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelectedStudentIds([])}
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
+      {/* Bulk Class Promotion & Transfer Modal */}
+      <BulkClassChangeModal
+        isOpen={isBulkClassModalOpen}
+        onClose={() => setIsBulkClassModalOpen(false)}
+        preSelectedStudentIds={selectedStudentIds}
+        onSuccess={(count, targetClassName) => {
+          setSelectedStudentIds([]);
+          setToastMsg(`Successfully transferred ${count} student(s) to ${targetClassName}!`);
+          setTimeout(() => setToastMsg(''), 6000);
+        }}
       />
     </div>
   );

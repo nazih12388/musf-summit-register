@@ -200,20 +200,30 @@ export const HomeBannerCarousel = ({ onNavigateToWing, onNavigateToTab }) => {
                   isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                 }`}
               >
-                {/* Background Poster Image */}
+                {/* Background Ambient Blur + Uncropped Foreground Poster */}
                 {slide.imageUrl ? (
-                  <img
-                    src={slide.imageUrl}
-                    alt={slide.title}
-                    className="w-full h-full object-cover object-center"
-                    loading={idx === 0 ? 'eager' : 'lazy'}
-                  />
+                  <>
+                    <div className="absolute inset-0 overflow-hidden bg-slate-950 pointer-events-none z-0">
+                      <img
+                        src={slide.imageUrl}
+                        alt=""
+                        aria-hidden="true"
+                        className="w-full h-full object-cover blur-2xl opacity-40 scale-110"
+                      />
+                      <div className="absolute inset-0 bg-slate-950/45" />
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center p-2 sm:p-4 pointer-events-none z-10">
+                      <img
+                        src={slide.imageUrl}
+                        alt={slide.title}
+                        className="w-full h-full object-contain rounded-xl drop-shadow-2xl"
+                        loading={idx === 0 ? 'eager' : 'lazy'}
+                      />
+                    </div>
+                  </>
                 ) : (
                   <div className={`w-full h-full bg-gradient-to-r ${slide.bgGradient || 'from-[#0F2A4A] via-[#1E3A5F] to-[#0E7C86]'}`} />
                 )}
-
-                {/* Dark Vignette Overlay for High Contrast Legibility */}
-                <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-slate-950/95 via-slate-950/75 to-slate-950/30" />
 
                 {/* Slide Text & Action Details */}
                 <div className="absolute inset-0 p-5 sm:p-8 md:p-10 flex flex-col justify-between z-20 text-white">
