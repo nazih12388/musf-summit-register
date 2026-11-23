@@ -20,6 +20,7 @@ export const LogoReveal = ({
   arabicMotto = "من رام درّا للسفينة يركب",
   className = '',
   logoSrc = '/musf-official-emblem.jpg',
+  theme = 'dark', // 'dark' | 'light'
   onRevealComplete
 }) => {
   const [animStage, setAnimStage] = useState(mode === 'loop' ? 4 : 0);
@@ -220,7 +221,7 @@ export const LogoReveal = ({
             fill="none"
             stroke="currentColor"
             strokeWidth="1"
-            className="text-white/10 dark:text-white/10 transition-opacity duration-500"
+            className={`${theme === 'light' ? 'text-slate-900/15' : 'text-white/10'} transition-opacity duration-500`}
             opacity={animStage >= 1 ? 1 : 0}
           />
 
@@ -324,19 +325,19 @@ export const LogoReveal = ({
             : 'opacity-0 translate-y-3'
         }`}>
           {title && (
-            <h2 className={`${dim.titleSize} font-black tracking-[0.16em] uppercase text-white drop-shadow-md`}>
+            <h2 className={`${dim.titleSize} font-black tracking-[0.16em] uppercase ${theme === 'light' ? 'text-[#0D244D]' : 'text-white drop-shadow-md'}`}>
               {title}
             </h2>
           )}
 
           {subtitle && (
-            <p className={`${dim.subSize} text-teal-300 font-medium tracking-wider mt-0.5 drop-shadow-xs`}>
+            <p className={`${dim.subSize} ${theme === 'light' ? 'text-[#0E7C86] font-bold' : 'text-teal-300 font-medium'} tracking-wider mt-0.5`}>
               {subtitle}
             </p>
           )}
 
           {arabicMotto && (
-            <p className="text-[12px] font-serif text-amber-200/90 tracking-widest mt-1 drop-shadow-xs" dir="rtl">
+            <p className={`text-[12px] font-serif ${theme === 'light' ? 'text-[#1B4B79] font-bold' : 'text-amber-200/90'} tracking-widest mt-1`} dir="rtl">
               {arabicMotto}
             </p>
           )}

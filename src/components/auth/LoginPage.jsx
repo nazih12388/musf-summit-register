@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import {
@@ -13,39 +13,21 @@ import {
   Sun,
   Globe,
   Sparkles,
-  HelpCircle,
   MessageSquare,
   ArrowRight,
-  X,
-  CheckCircle2
+  X
 } from 'lucide-react';
 
 export const LoginPage = ({ isDark, setIsDark }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
 
   const { login, authError } = useAuth();
   const { lang, toggleLanguage, t } = useLanguage();
-
-  // Load remembered username on mount
-  useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem('musf_saved_username');
-      const savedRemember = localStorage.getItem('musf_remember_me');
-      if (savedRemember === 'true' && savedUser) {
-        setUsername(savedUser);
-        setRememberMe(true);
-      }
-    } catch (e) {
-      console.warn('Could not read rememberMe from storage:', e);
-    }
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,20 +39,6 @@ export const LoginPage = ({ isDark, setIsDark }) => {
     try {
       setLoading(true);
       setError(null);
-
-      // Handle Remember Me storage
-      try {
-        if (rememberMe) {
-          localStorage.setItem('musf_saved_username', username.trim());
-          localStorage.setItem('musf_remember_me', 'true');
-        } else {
-          localStorage.removeItem('musf_saved_username');
-          localStorage.removeItem('musf_remember_me');
-        }
-      } catch (err) {
-        console.warn('Remember me storage warning:', err);
-      }
-
       await login(username.trim(), password ? password.trim() : '');
     } catch (err) {
       console.error('[Login] Submission failed:', err);
@@ -140,23 +108,18 @@ export const LoginPage = ({ isDark, setIsDark }) => {
           viewBox="0 0 100 60"
           fill="currentColor"
         >
-          {/* Bird 1 */}
           <path d="M10,25 Q16,18 22,23 Q28,18 34,25 Q28,21 22,26 Q16,21 10,25 Z" />
-          {/* Bird 2 (higher & smaller) */}
           <path d="M50,12 Q54,6 58,10 Q62,6 66,12 Q62,9 58,13 Q54,9 50,12 Z" />
-          {/* Bird 3 (distant) */}
           <path d="M78,20 Q81,15 84,18 Q87,15 90,20 Q87,18 84,21 Q81,18 78,20 Z" />
         </svg>
 
-        {/* Bottom-Left Artistic Foliage Silhouette (Exact Reference Matching) */}
+        {/* Bottom-Left Foliage Silhouette (Matching Reference) */}
         <svg
           className="absolute -bottom-6 -left-6 w-52 sm:w-72 md:w-80 h-auto text-[#133868]/85 dark:text-[#0C2242]/70 drop-shadow-xl"
           viewBox="0 0 240 240"
           fill="currentColor"
         >
-          {/* Main Stem */}
           <path d="M-10,250 Q40,190 90,130 Q120,90 140,40" stroke="currentColor" strokeWidth="4" strokeLinecap="round" fill="none" />
-          {/* Branch Leaves */}
           <path d="M30,210 Q65,195 75,170 Q55,175 30,210 Z" />
           <path d="M20,185 Q45,155 70,150 Q55,170 20,185 Z" />
           <path d="M55,165 Q95,145 105,115 Q80,125 55,165 Z" />
@@ -164,13 +127,12 @@ export const LoginPage = ({ isDark, setIsDark }) => {
           <path d="M85,115 Q125,95 138,65 Q115,75 85,115 Z" />
           <path d="M105,90 Q145,65 155,35 Q135,48 105,90 Z" />
           <path d="M125,60 Q155,35 160,10 Q145,28 125,60 Z" />
-          {/* Second Foreground Leaf Cluster */}
           <path d="M-5,160 Q25,120 60,100 Q40,130 -5,160 Z" opacity="0.9" />
           <path d="M-10,210 Q20,165 45,145 Q25,180 -10,210 Z" opacity="0.95" />
           <path d="M45,240 Q75,190 110,175 Q85,210 45,240 Z" opacity="0.8" />
         </svg>
 
-        {/* Bottom-Right Soft Foliage Silhouette */}
+        {/* Bottom-Right Foliage Silhouette */}
         <svg
           className="absolute -bottom-8 -right-8 w-44 sm:w-60 h-auto text-[#274D80]/20 dark:text-blue-950/20"
           viewBox="0 0 200 200"
@@ -187,7 +149,6 @@ export const LoginPage = ({ isDark, setIsDark }) => {
       {/* TOP UTILITY HEADER: Auditorium Mode, Language, Theme      */}
       {/* ========================================================= */}
       <header className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 flex items-center justify-between">
-        {/* Left: Auditorium Projection Shortcut */}
         <button
           type="button"
           onClick={handleAuditoriumMode}
@@ -199,7 +160,6 @@ export const LoginPage = ({ isDark, setIsDark }) => {
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
         </button>
 
-        {/* Right: Language & Dark Mode */}
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -224,68 +184,31 @@ export const LoginPage = ({ isDark, setIsDark }) => {
       </header>
 
       {/* ========================================================= */}
-      {/* MAIN CARD: Two Column Split (Matching Reference Image)    */}
+      {/* MAIN CARD: Exact Reference Layout                         */}
       {/* ========================================================= */}
       <main className="relative z-10 w-full max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 my-auto py-4 sm:py-6 flex items-center justify-center">
         <div className="w-full rounded-[30px] sm:rounded-[36px] bg-white dark:bg-[#0D1929] shadow-2xl shadow-blue-900/12 border border-white/90 dark:border-slate-800/80 overflow-hidden flex flex-col md:flex-row transition-all duration-300">
           
           {/* ===================================================== */}
-          {/* LEFT SECTION: College Building + Watermark MUSF Logo   */}
+          {/* LEFT SECTION: Exact Reference Campus & Watermark Art  */}
           {/* ===================================================== */}
-          <div className="relative w-full md:w-[46%] lg:w-[48%] min-h-[300px] sm:min-h-[380px] md:min-h-[540px] lg:min-h-[580px] bg-gradient-to-b from-[#D4E6FC] via-[#E2F0FE] to-[#CEE2FA] dark:from-[#0B1A2F] dark:via-[#0F233E] dark:to-[#0A182B] flex flex-col justify-between overflow-hidden">
-            
-            {/* Subtle Sky Elements & Soft Clouds */}
-            <div className="absolute inset-0 pointer-events-none">
-              {/* Soft Cloud Shapes */}
-              <div className="absolute top-8 left-6 w-32 h-14 rounded-full bg-white/30 dark:bg-blue-400/5 blur-md" />
-              <div className="absolute top-16 right-10 w-40 h-16 rounded-full bg-white/35 dark:bg-blue-400/5 blur-md" />
-              
-              {/* Birds in Left Sky */}
-              <svg
-                className="absolute top-14 right-12 w-16 h-10 text-[#6B8BB4]/70 dark:text-blue-300/40"
-                viewBox="0 0 60 40"
-                fill="currentColor"
-              >
-                <path d="M6,16 Q10,11 14,15 Q18,11 22,16 Q18,13 14,17 Q10,13 6,16 Z" />
-                <path d="M32,8 Q35,4 38,7 Q41,4 44,8 Q41,6 38,9 Q35,6 32,8 Z" />
-              </svg>
-            </div>
-
-            {/* Subtle Watermark MUSF Logo in Upper Sky */}
-            <div className="relative z-10 w-full pt-8 sm:pt-10 flex flex-col items-center justify-center pointer-events-none select-none">
-              <div className="relative w-44 h-44 sm:w-52 sm:h-52 md:w-56 md:h-56 flex items-center justify-center">
-                <img
-                  src="/musf-logo-source.jpg"
-                  alt="MUSF Official Watermark Emblem"
-                  className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-screen opacity-18 dark:opacity-25 transition-opacity"
-                  style={{
-                    filter: isDark
-                      ? 'brightness(1.5) contrast(1.2)'
-                      : 'grayscale(100%) brightness(0.95) sepia(100%) hue-rotate(185deg) saturate(220%)'
-                  }}
-                  loading="eager"
-                />
-              </div>
-            </div>
-
-            {/* Majlis Umariyya Wafy College Building Illustration at Bottom */}
-            <div className="relative z-10 w-full mt-auto pointer-events-none select-none">
-              <img
-                src="/majlis-college-building.jpg"
-                alt="Majlis Umariyya Wafy College Campus"
-                className="w-full h-auto object-contain object-bottom mix-blend-multiply dark:mix-blend-screen opacity-95 dark:opacity-75 transition-all"
-                loading="eager"
-              />
-            </div>
+          <div className="relative w-full md:w-[48%] lg:w-[48%] min-h-[320px] sm:min-h-[420px] md:min-h-[520px] lg:min-h-[560px] bg-[#CFE3FB] dark:bg-[#0B1A2F] flex flex-col justify-end overflow-hidden">
+            <img
+              src="/musf-login-hero.jpg"
+              alt="Majlis Umariyya Wafy College Campus & MUSF Emblem"
+              className="w-full h-full object-cover object-bottom select-none pointer-events-none"
+              loading="eager"
+            />
           </div>
 
           {/* ===================================================== */}
           {/* RIGHT SECTION: Clean Modern Login Form                */}
+          {/* (Forgot Password & Remember Me Removed)               */}
           {/* ===================================================== */}
-          <div className="w-full md:w-[54%] lg:w-[52%] bg-white dark:bg-[#0D1929] p-6 sm:p-10 lg:p-12 flex flex-col justify-center">
+          <div className="w-full md:w-[52%] lg:w-[52%] bg-white dark:bg-[#0D1929] p-6 sm:p-10 lg:p-12 flex flex-col justify-center">
             
             {/* Heading & Subtitle */}
-            <div className="mb-6 sm:mb-8 text-center md:text-left">
+            <div className="mb-7 sm:mb-8 text-center md:text-left">
               <h1 className="text-3xl sm:text-[34px] font-extrabold text-[#0D244D] dark:text-white tracking-tight leading-tight">
                 Welcome Back
               </h1>
@@ -351,30 +274,7 @@ export const LoginPage = ({ isDark, setIsDark }) => {
                 </div>
               </div>
 
-              {/* Remember Me & Forgot Password Row */}
-              <div className="flex items-center justify-between pt-1 pb-1">
-                <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-[#CBD7E6] dark:border-slate-600 text-[#07244C] focus:ring-[#07244C] cursor-pointer"
-                  />
-                  <span className="text-xs sm:text-sm font-medium text-[#486284] dark:text-slate-300">
-                    Remember me
-                  </span>
-                </label>
-
-                <button
-                  type="button"
-                  onClick={() => setIsForgotModalOpen(true)}
-                  className="text-xs sm:text-sm font-medium text-[#1E56A0] dark:text-blue-400 hover:text-[#0C3263] dark:hover:text-blue-300 transition hover:underline cursor-pointer"
-                >
-                  Forgot Password?
-                </button>
-              </div>
-
-              {/* Login Button */}
+              {/* Direct Full-Width Navy Gradient Login Button */}
               <div className="pt-2">
                 <button
                   type="submit"
@@ -434,90 +334,6 @@ export const LoginPage = ({ isDark, setIsDark }) => {
           <Sparkles className="w-3 h-3 text-amber-500 group-hover:rotate-12 transition-transform" />
         </button>
       </footer>
-
-      {/* ========================================================= */}
-      {/* FORGOT PASSWORD ASSISTANCE MODAL                          */}
-      {/* ========================================================= */}
-      {isForgotModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in"
-          onClick={() => setIsForgotModalOpen(false)}
-        >
-          <div
-            className="relative w-full max-w-md bg-white dark:bg-[#0D1829] rounded-3xl p-6 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-2xl overflow-hidden animate-scale-up-center space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Top Accent Gradient Bar */}
-            <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#07244C] via-[#1E56A0] to-blue-400" />
-
-            <div className="flex items-center justify-between gap-3 pt-1">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950/80 text-[#1E56A0] dark:text-blue-400 flex items-center justify-center">
-                  <HelpCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-base text-[#0D244D] dark:text-white">
-                    Password Assistance
-                  </h3>
-                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    MUSF Authentication Support
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsForgotModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                title="Close"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs sm:text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed">
-              <div className="p-3.5 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/70 dark:border-blue-900/60">
-                <h4 className="font-bold text-[#0D244D] dark:text-blue-300 flex items-center gap-1.5 mb-1">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  Students / General Users:
-                </h4>
-                <p>
-                  You can sign in directly using your <strong>CIC Number</strong> without entering any password. Leave the password field blank.
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-                <h4 className="font-bold text-[#0D244D] dark:text-slate-200 mb-1">
-                  Admins / Central Union Leaders:
-                </h4>
-                <p>
-                  If you have forgotten your administrative access password, contact the MUSF Technical Cell or Swada Union IT desk to reset your credentials.
-                </p>
-              </div>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between gap-3">
-              <a
-                href="https://wa.me/916238557807?text=Assalamu%20Alaikum%2C%20I%20need%20assistance%20with%20my%20MUSF%20portal%20login%20password."
-                target="_blank"
-                rel="noopener noreferrer"
-                className="py-2.5 px-4 rounded-xl bg-[#07244C] hover:bg-[#0A2F5E] text-white font-semibold text-xs transition flex items-center gap-2 cursor-pointer no-underline"
-              >
-                <MessageSquare className="w-3.5 h-3.5 text-blue-200" />
-                <span>Contact Tech Support</span>
-              </a>
-
-              <button
-                type="button"
-                onClick={() => setIsForgotModalOpen(false)}
-                className="py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs transition cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ========================================================= */}
       {/* CREATOR DEDICATION, DUA & FEEDBACK MODAL                   */}
