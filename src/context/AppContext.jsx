@@ -1544,6 +1544,7 @@ export const AppProvider = ({ children }) => {
               allowedCount: finalAllowed
             }
           };
+          saveDoc(COLLECTIONS.PROGRAMS, p.id, { ...p, teamAllocations: updatedAllocations });
           addAuditLog(actor, 'UPDATE_SUMMIT_ALLOCATION', `Updated allocation for Program ${p.name}, Team ${teamId}: assigned=${finalAssigned}, count=${finalAllowed}`);
           return { ...p, teamAllocations: updatedAllocations };
         }
@@ -1572,6 +1573,7 @@ export const AppProvider = ({ children }) => {
           teams.forEach(t => {
             newAllocations[t.id] = { assigned: true, allowedCount: count };
           });
+          saveDoc(COLLECTIONS.PROGRAMS, p.id, { ...p, teamAllocations: newAllocations });
           addAuditLog(actor, 'ASSIGN_TO_ALL_TEAMS', `Assigned Program "${p.name}" to all teams with ${count} slots`);
           return { ...p, teamAllocations: newAllocations };
         }

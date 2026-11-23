@@ -32,7 +32,12 @@ import {
   Edit,
   Gavel,
   Search,
-  Trash2
+  Trash2,
+  CheckSquare,
+  Square,
+  Filter,
+  X,
+  Sparkles
 } from 'lucide-react';
 
 export const ProgramManagement = () => {
@@ -76,16 +81,26 @@ export const ProgramManagement = () => {
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [sourceSummitId, setSourceSummitId] = useState(summits[1]?.id || summits[0]?.id);
 
-  // Add Program Modal State (from Library or Custom)
+  // Add Program View State
   const [isAddProgramOpen, setIsAddProgramOpen] = useState(false);
   const [addMode, setAddMode] = useState('library'); // 'library' or 'custom'
-  const [selectedLibraryProgId, setSelectedLibraryProgId] = useState(programLibrary[0]?.id || '');
   const [progSearchText, setProgSearchText] = useState('');
-  const [selectedAliyaTeamIds, setSelectedAliyaTeamIds] = useState(() => teams.map(t => t.id));
-  const [aliyaSlotCount, setAliyaSlotCount] = useState(1);
   const [addVenue, setAddVenue] = useState('Auditorium Stage');
   const [addTime, setAddTime] = useState('10:00 AM');
   const [addAssignedJudges, setAddAssignedJudges] = useState([]);
+
+  // Target Team Radio Selection (one team at a time, default to first team)
+  const [assignTargetTeamId, setAssignTargetTeamId] = useState(teams[0]?.id || 'team_a');
+
+  // Skill-based list filter & multi-selection
+  const [selectedSkillFieldId, setSelectedSkillFieldId] = useState('all');
+  const [assignSectionFilter, setAssignSectionFilter] = useState('all'); // 'all', 'thamheediyya', 'aliya'
+  const [selectedSkillProgIds, setSelectedSkillProgIds] = useState([]);
+  const [assignSlotCount, setAssignSlotCount] = useState(1);
+  const [assignedSideSearch, setAssignedSideSearch] = useState('');
+  const [assignToast, setAssignToast] = useState('');
+  const [isCustomEventModalOpen, setIsCustomEventModalOpen] = useState(false);
+
   const [newCustomProg, setNewCustomProg] = useState({
     name: '',
     fieldId: fields[0]?.id || '',
@@ -130,47 +145,193 @@ export const ProgramManagement = () => {
     return currentSummitPrograms.filter(p => p.sectionId === activeSection || p.sectionId === 'both');
   }, [currentSummitPrograms, activeSection]);
 
-  // Library programs available for adding
-  const availableLibraryPrograms = useMemo(() => {
-    return programLibrary.filter(lp => lp.sectionId === activeSection || lp.sectionId === 'both');
-  }, [programLibrary, activeSection]);
+  // Active selected target team (for Radio Selection)
+  const selectedTargetTeam = useMemo(() => {
+    return teams.find(t => t.id === assignTargetTeamId) || teams[0];
+  }, [teams, assignTargetTeamId]);
 
-  // Live filtered library programs based on typing search query
-  const filteredLibraryPrograms = useMemo(() => {
-    const q = progSearchText.toLowerCase().trim();
-    if (!q) return availableLibraryPrograms;
-    return availableLibraryPrograms.filter(lp =>
-      lp.name.toLowerCase().includes(q) ||
-      (lp.description && lp.description.toLowerCase().includes(q))
-    );
-  }, [availableLibraryPrograms, progSearchText]);
-
-  // Handle Add Program Submit
-  const handleAddProgramSubmit = (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-
-    // Prepare team allocations for selected teams (both Aliya & Thamheediyya)
-    const teamAllocations = {};
+  // Total assigned count per team (for radio card live badges)
+  const teamAssignedCounts = useMemo(() => {
+    const counts = {};
     teams.forEach(t => {
-      const isAssigned = selectedAliyaTeamIds.includes(t.id);
-      teamAllocations[t.id] = {
-        assigned: isAssigned,
-        allowedCount: isAssigned ? (Number(aliyaSlotCount) || 1) : 1
-      };
+      counts[t.id] = currentSummitPrograms.filter(p => p.teamAllocations?.[t.id]?.assigned === true).length;
     });
+    return counts;
+  }, [currentSummitPrograms, teams]);
 
-    if (addMode === 'library') {
-      const libProg = programLibrary.find(lp => lp.id === selectedLibraryProgId) || filteredLibraryPrograms[0];
+  // Skill program counts for filter pills
+  const skillCounts = useMemo(() => {
+    const counts = { all: 0 };
+    fields.forEach(f => { counts[f.id] = 0; });
+    programLibrary.forEach(lp => {
+      if (assignSectionFilter !== 'all' && lp.sectionId !== assignSectionFilter && lp.sectionId !== 'both') {
+        return;
+      }
+      counts.all = (counts.all || 0) + 1;
+      if (lp.fieldId) {
+        counts[lp.fieldId] = (counts[lp.fieldId] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [programLibrary, fields, assignSectionFilter]);
+
+  // Filtered programs for skill-based list
+  const skillFilteredPrograms = useMemo(() => {
+    return programLibrary.filter(lp => {
+      if (assignSectionFilter !== 'all' && lp.sectionId !== assignSectionFilter && lp.sectionId !== 'both') {
+        return false;
+      }
+      if (selectedSkillFieldId !== 'all' && lp.fieldId !== selectedSkillFieldId) {
+        return false;
+      }
+      if (progSearchText.trim()) {
+        const q = progSearchText.toLowerCase().trim();
+        const fName = (fields.find(f => f.id === lp.fieldId)?.name || '').toLowerCase();
+        return lp.name.toLowerCase().includes(q) || fName.includes(q);
+      }
+      return true;
+    });
+  }, [programLibrary, assignSectionFilter, selectedSkillFieldId, progSearchText, fields]);
+
+  // Assigned programs to currently selected target team
+  const assignedProgramsToTargetTeam = useMemo(() => {
+    if (!selectedTargetTeam) return [];
+    return currentSummitPrograms.filter(prog => {
+      const isAssigned = prog.teamAllocations?.[selectedTargetTeam.id]?.assigned === true;
+      if (!isAssigned) return false;
+      if (assignedSideSearch.trim()) {
+        const q = assignedSideSearch.toLowerCase().trim();
+        const fName = (fields.find(f => f.id === prog.fieldId)?.name || '').toLowerCase();
+        return prog.name.toLowerCase().includes(q) || fName.includes(q);
+      }
+      return true;
+    });
+  }, [currentSummitPrograms, selectedTargetTeam, assignedSideSearch, fields]);
+
+  // Helper: check status of a library program for selectedTargetTeam
+  const getLibProgTargetStatus = (libProg) => {
+    if (!selectedTargetTeam) return { isAssigned: false, summitProg: null, allowedSlots: 1 };
+    const existing = currentSummitPrograms.find(
+      p => p.libraryProgramId === libProg.id || (p.name.toLowerCase() === libProg.name.toLowerCase() && (p.sectionId === libProg.sectionId || p.sectionId === 'both'))
+    );
+    if (!existing) return { isAssigned: false, summitProg: null, allowedSlots: 1 };
+    const alloc = existing.teamAllocations?.[selectedTargetTeam.id];
+    return {
+      isAssigned: alloc?.assigned === true,
+      summitProg: existing,
+      allowedSlots: alloc?.allowedCount || existing.defaultAllowedPerTeam || 1
+    };
+  };
+
+  // Toggle multi-select program
+  const toggleSelectSkillProg = (progId) => {
+    setSelectedSkillProgIds(prev =>
+      prev.includes(progId) ? prev.filter(id => id !== progId) : [...prev, progId]
+    );
+  };
+
+  // Select all visible skill programs
+  const selectAllVisibleSkillProgs = () => {
+    const ids = skillFilteredPrograms.map(p => p.id);
+    setSelectedSkillProgIds(ids);
+  };
+
+  // Clear selected
+  const clearSelectedSkillProgs = () => {
+    setSelectedSkillProgIds([]);
+  };
+
+  // Assign all selected to target team
+  const handleAssignSelectedToTargetTeam = () => {
+    if (selectedSkillProgIds.length === 0 || !selectedTargetTeam) return;
+    const targetTeamId = selectedTargetTeam.id;
+    let count = 0;
+
+    selectedSkillProgIds.forEach(libProgId => {
+      const libProg = programLibrary.find(lp => lp.id === libProgId);
       if (!libProg) return;
 
+      const existingProg = currentSummitPrograms.find(
+        p => p.libraryProgramId === libProg.id || (p.name.toLowerCase() === libProg.name.toLowerCase() && (p.sectionId === libProg.sectionId || p.sectionId === 'both'))
+      );
+
+      if (existingProg) {
+        updateSummitProgramAllocation(
+          existingProg.id,
+          targetTeamId,
+          { assigned: true, allowedCount: Number(assignSlotCount) || 1 },
+          currentUser?.username
+        );
+      } else {
+        const teamAllocations = {};
+        teams.forEach(t => {
+          teamAllocations[t.id] = {
+            assigned: t.id === targetTeamId,
+            allowedCount: Number(assignSlotCount) || 1
+          };
+        });
+        assignProgramToSummit(selectedSummitId, {
+          libraryProgramId: libProg.id,
+          name: libProg.name,
+          fieldId: libProg.fieldId,
+          sectionId: libProg.sectionId || (assignSectionFilter !== 'all' ? assignSectionFilter : 'thamheediyya'),
+          type: libProg.type,
+          maxMarks: libProg.maxMarks || 10,
+          defaultAllowedPerTeam: Number(assignSlotCount) || libProg.defaultAllowedPerTeam || 1,
+          stage: addVenue || 'Auditorium Stage',
+          date: activeSummit?.date,
+          time: addTime || '10:00 AM',
+          assignedJudges: addAssignedJudges,
+          teamAllocations,
+          allowLeaderMarkEntry: false
+        }, currentUser?.username);
+      }
+      count++;
+    });
+
+    setAssignToast(`Successfully assigned ${count} program(s) to ${selectedTargetTeam.name}!`);
+    setSelectedSkillProgIds([]);
+    setTimeout(() => setAssignToast(''), 3500);
+  };
+
+  // Quick single program toggle (assign or unassign)
+  const handleToggleSingleProgramAssign = (libProg) => {
+    if (!selectedTargetTeam) return;
+    const targetTeamId = selectedTargetTeam.id;
+    const status = getLibProgTargetStatus(libProg);
+
+    if (status.isAssigned && status.summitProg) {
+      updateSummitProgramAllocation(
+        status.summitProg.id,
+        targetTeamId,
+        { assigned: false, allowedCount: 0 },
+        currentUser?.username
+      );
+      setAssignToast(`Removed "${libProg.name}" from ${selectedTargetTeam.name}.`);
+    } else if (status.summitProg) {
+      updateSummitProgramAllocation(
+        status.summitProg.id,
+        targetTeamId,
+        { assigned: true, allowedCount: Number(assignSlotCount) || 1 },
+        currentUser?.username
+      );
+      setAssignToast(`Assigned "${libProg.name}" to ${selectedTargetTeam.name}!`);
+    } else {
+      const teamAllocations = {};
+      teams.forEach(t => {
+        teamAllocations[t.id] = {
+          assigned: t.id === targetTeamId,
+          allowedCount: Number(assignSlotCount) || 1
+        };
+      });
       assignProgramToSummit(selectedSummitId, {
         libraryProgramId: libProg.id,
         name: libProg.name,
         fieldId: libProg.fieldId,
-        sectionId: libProg.sectionId || activeSection,
+        sectionId: libProg.sectionId || (assignSectionFilter !== 'all' ? assignSectionFilter : 'thamheediyya'),
         type: libProg.type,
         maxMarks: libProg.maxMarks || 10,
-        defaultAllowedPerTeam: Number(aliyaSlotCount) || libProg.defaultAllowedPerTeam || 1,
+        defaultAllowedPerTeam: Number(assignSlotCount) || libProg.defaultAllowedPerTeam || 1,
         stage: addVenue || 'Auditorium Stage',
         date: activeSummit?.date,
         time: addTime || '10:00 AM',
@@ -178,23 +339,61 @@ export const ProgramManagement = () => {
         teamAllocations,
         allowLeaderMarkEntry: false
       }, currentUser?.username);
-    } else {
-      if (!newCustomProg.name.trim()) return;
-      assignProgramToSummit(selectedSummitId, {
-        ...newCustomProg,
-        stage: newCustomProg.stage || addVenue || 'Auditorium Stage',
-        time: newCustomProg.time || addTime || '10:00 AM',
-        assignedJudges: addAssignedJudges,
-        sectionId: newCustomProg.sectionId || activeSection,
-        date: activeSummit?.date,
-        defaultAllowedPerTeam: Number(aliyaSlotCount) || 1,
-        teamAllocations
-      }, currentUser?.username);
+      setAssignToast(`Assigned "${libProg.name}" to ${selectedTargetTeam.name}!`);
     }
+    setTimeout(() => setAssignToast(''), 3000);
+  };
 
-    setIsAddProgramOpen(false);
-    setAddAssignedJudges([]);
-    setProgSearchText('');
+  // Unassign from side panel
+  const handleUnassignFromTargetTeam = (summitProgId, progName) => {
+    if (!selectedTargetTeam) return;
+    updateSummitProgramAllocation(
+      summitProgId,
+      selectedTargetTeam.id,
+      { assigned: false, allowedCount: 0 },
+      currentUser?.username
+    );
+    setAssignToast(`Removed "${progName}" from ${selectedTargetTeam.name}.`);
+    setTimeout(() => setAssignToast(''), 3000);
+  };
+
+  // Add custom program and assign to selectedTargetTeam
+  const handleAddCustomProgramSubmit = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!newCustomProg.name.trim() || !selectedTargetTeam) return;
+
+    const teamAllocations = {};
+    teams.forEach(t => {
+      teamAllocations[t.id] = {
+        assigned: t.id === selectedTargetTeam.id,
+        allowedCount: Number(newCustomProg.defaultAllowedPerTeam) || 1
+      };
+    });
+
+    assignProgramToSummit(selectedSummitId, {
+      ...newCustomProg,
+      stage: newCustomProg.stage || 'Auditorium Stage',
+      time: newCustomProg.time || '10:00 AM',
+      assignedJudges: addAssignedJudges,
+      sectionId: newCustomProg.sectionId || (assignSectionFilter !== 'all' ? assignSectionFilter : 'thamheediyya'),
+      date: activeSummit?.date,
+      defaultAllowedPerTeam: Number(newCustomProg.defaultAllowedPerTeam) || 1,
+      teamAllocations
+    }, currentUser?.username);
+
+    setAssignToast(`Created and assigned "${newCustomProg.name}" to ${selectedTargetTeam.name}!`);
+    setIsCustomEventModalOpen(false);
+    setNewCustomProg({
+      name: '',
+      fieldId: fields[0]?.id || '',
+      sectionId: 'thamheediyya',
+      type: 'individual',
+      stage: 'Auditorium Stage',
+      time: '10:00 AM',
+      defaultAllowedPerTeam: 1,
+      allowLeaderMarkEntry: false
+    });
+    setTimeout(() => setAssignToast(''), 3500);
   };
 
   // Open Edit Program Modal
@@ -302,11 +501,28 @@ export const ProgramManagement = () => {
     }
   };
 
-  // NORMAL WINDOW VIEW FOR ASSIGNING PROGRAM (No modal/popup window)
+  // REDESIGNED SKILL-BASED ASSIGN VIEW WITH RADIO TEAMS & ASSIGNED SIDE PANEL
   if (isAddProgramOpen) {
     return (
-      <div className="space-y-6 animate-fadeIn">
-        {/* Normal Screen Header Card */}
+      <div className="space-y-6 animate-fadeIn pb-12">
+        {/* Toast Notification Banner */}
+        {assignToast && (
+          <div className="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-950/80 border border-teal-300 dark:border-teal-800 text-teal-900 dark:text-teal-200 flex items-center justify-between shadow-sm animate-fadeIn">
+            <div className="flex items-center gap-2.5 text-xs font-bold">
+              <CheckCircle2 className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
+              <span>{assignToast}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAssignToast('')}
+              className="p-1 hover:bg-teal-100 dark:hover:bg-teal-900 rounded-lg transition"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Top Header Card */}
         <div className="bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
@@ -314,6 +530,7 @@ export const ProgramManagement = () => {
               onClick={() => {
                 setIsAddProgramOpen(false);
                 setProgSearchText('');
+                setSelectedSkillProgIds([]);
               }}
               className="p-2 sm:p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition flex items-center gap-2 font-bold text-xs"
               title="Back to Programs List"
@@ -324,437 +541,581 @@ export const ProgramManagement = () => {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg sm:text-xl font-bold text-[#0F2A4A] dark:text-white">
-                  Assign Program to {activeSummit.name}
+                  Assign Programs to {activeSummit?.name || 'Summit'}
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 dark:bg-teal-950/60 text-[#0E7C86] border border-teal-200 dark:border-teal-900 uppercase">
-                  {activeSection === 'aliya' ? 'Aliya' : 'Thamheediyya'} Section
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 dark:bg-teal-950/60 text-[#0E7C86] border border-teal-200 dark:border-teal-900">
+                  Skill-Based Catalog
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Pick an event from the master library or create a custom event, choose participating house teams, and assign judges.
+                Select a target house team, filter events by skill, check desired events, and assign with live side panel view.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-auto">
+          <div className="flex items-center gap-2.5 self-end sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setIsCustomEventModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-bold text-xs transition flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span>+ Create Custom Event</span>
+            </button>
             <button
               type="button"
               onClick={() => {
                 setIsAddProgramOpen(false);
                 setProgSearchText('');
+                setSelectedSkillProgIds([]);
               }}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition"
+              className="px-5 py-2.5 bg-[#0F2A4A] hover:bg-[#1E3A5F] dark:bg-[#0E7C86] dark:hover:bg-teal-700 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1.5"
             >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleAddProgramSubmit}
-              className="px-6 py-2.5 bg-[#0E7C86] hover:bg-[#14919D] text-white rounded-xl font-bold text-xs shadow-md transition flex items-center gap-2"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Assign Program</span>
+              <Check className="w-4 h-4" />
+              <span>Done</span>
             </button>
           </div>
         </div>
 
-        {/* Normal Window Content Card */}
-        <div className="bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-8 shadow-xs">
-          <form onSubmit={handleAddProgramSubmit} className="space-y-6 text-xs">
-            {/* 1. Mode Switcher & Section Switcher */}
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex gap-2 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setAddMode('library')}
-                  className={`py-2 px-4 rounded-lg font-bold text-xs text-center transition flex items-center justify-center gap-2 ${
-                    addMode === 'library'
-                      ? 'bg-white dark:bg-slate-900 text-[#0F2A4A] dark:text-white shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                >
-                  <BookOpen className="w-4 h-4 text-[#0E7C86]" />
-                  <span>Pick from Master Library ({availableLibraryPrograms.length})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAddMode('custom')}
-                  className={`py-2 px-4 rounded-lg font-bold text-xs text-center transition flex items-center justify-center gap-2 ${
-                    addMode === 'custom'
-                      ? 'bg-white dark:bg-slate-900 text-[#0F2A4A] dark:text-white shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                >
-                  <Plus className="w-4 h-4 text-[#C9A227]" />
-                  <span>Create Custom Event</span>
-                </button>
-              </div>
-
-              {/* Section Filter Switch */}
-              <div className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs">
-                <span className="font-semibold text-slate-500 pl-2">Division:</span>
-                <button
-                  type="button"
-                  onClick={() => setActiveSection('thamheediyya')}
-                  className={`px-3 py-1.5 rounded-lg font-bold transition ${
-                    activeSection === 'thamheediyya'
-                      ? 'bg-[#0F2A4A] text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  Thamheediyya
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveSection('aliya')}
-                  className={`px-3 py-1.5 rounded-lg font-bold transition ${
-                    activeSection === 'aliya'
-                      ? 'bg-[#0F2A4A] text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  Aliya
-                </button>
-              </div>
+        {/* 1. TARGET TEAMS: RADIO BUTTON SELECTION (ONE AT A TIME) */}
+        <div className="bg-white dark:bg-[#0F1B2B] rounded-2xl border-2 border-teal-500/30 p-4 sm:p-5 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <label className="font-bold text-sm text-[#0F2A4A] dark:text-white flex items-center gap-2">
+                <Users className="w-4 h-4 text-[#0E7C86]" />
+                <span>{tr('Assign to House Teams (Target Teams):', 'ഹൗസ് ടീമുകൾക്ക് നൽകുക:')}</span>
+                <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500">
+                  (Select one team at a time)
+                </span>
+              </label>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Current selected team: <strong className="text-[#0E7C86] font-bold">{selectedTargetTeam?.name || 'None'}</strong>. Program list and side panel show allocations for this team.
+              </p>
             </div>
+            <div className="text-xs font-semibold text-slate-400">
+              Total {teams.length} Teams
+            </div>
+          </div>
 
-            {/* 2. Library or Custom Form */}
-            {addMode === 'library' ? (
-              <div className="space-y-4 p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block font-bold text-slate-800 dark:text-slate-200 text-sm">
-                      Type Program Name to Search &amp; Auto-Select:
-                    </label>
-                    <span className="text-xs text-slate-500">
-                      Showing <strong>{filteredLibraryPrograms.length}</strong> of {availableLibraryPrograms.length} programs
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-3" />
+          {/* Grid of Team Radio Buttons */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-1">
+            {teams.map(t => {
+              const isSelected = selectedTargetTeam?.id === t.id;
+              const count = teamAssignedCounts[t.id] || 0;
+              return (
+                <label
+                  key={t.id}
+                  onClick={() => setAssignTargetTeamId(t.id)}
+                  className={`p-3.5 rounded-2xl border-2 flex items-center justify-between gap-2.5 cursor-pointer transition select-none ${
+                    isSelected
+                      ? 'bg-teal-50/90 dark:bg-teal-950/50 border-[#0E7C86] shadow-sm ring-2 ring-[#0E7C86]/30'
+                      : 'bg-slate-50/70 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <input
-                      type="text"
-                      value={progSearchText}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setProgSearchText(val);
-                        const q = val.toLowerCase().trim();
-                        const firstMatch = availableLibraryPrograms.find(lp =>
-                          lp.name.toLowerCase().includes(q)
-                        );
-                        if (firstMatch) {
-                          setSelectedLibraryProgId(firstMatch.id);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          if (filteredLibraryPrograms.length > 0) {
-                            setSelectedLibraryProgId(filteredLibraryPrograms[0].id);
-                          }
-                        }
-                      }}
-                      placeholder="Start typing program name (press Enter or click to choose)..."
-                      className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-semibold focus:ring-2 focus:ring-[#0E7C86] focus:border-[#0E7C86]"
-                      autoFocus
+                      type="radio"
+                      name="assignTargetTeamRadio"
+                      checked={isSelected}
+                      onChange={() => setAssignTargetTeamId(t.id)}
+                      className="w-4 h-4 text-[#0E7C86] focus:ring-[#0E7C86] border-slate-300"
                     />
+                    <span
+                      className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs"
+                      style={{ backgroundColor: t.color || '#0E7C86' }}
+                    />
+                    <div className="truncate">
+                      <span className={`font-bold text-xs truncate block ${isSelected ? 'text-[#0F2A4A] dark:text-white' : 'text-slate-800 dark:text-slate-200'}`}>
+                        {t.name}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {isSelected ? 'Active Team' : 'Click to select'}
+                      </span>
+                    </div>
                   </div>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                    count > 0
+                      ? 'bg-teal-100 dark:bg-teal-900/60 text-[#0E7C86] dark:text-teal-300'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
+                  }`}>
+                    {count} Assigned
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 2. TWO-COLUMN LAYOUT: (LEFT) SKILL-BASED PROGRAM LIST & (RIGHT) ASSIGNED SIDE PANEL */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          {/* LEFT: SKILL-BASED PROGRAM CATALOG & BULK ASSIGN CONTROLS */}
+          <div className="flex-1 w-full min-w-0 space-y-4">
+            <div className="bg-white dark:bg-[#0F1B2B] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-xs space-y-5">
+              {/* Header Filters: Division & Skill Pills */}
+              <div className="space-y-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+                {/* Division Switcher */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs">
+                    <span className="font-semibold text-slate-500 pl-2 pr-1">Division:</span>
+                    <button
+                      type="button"
+                      onClick={() => setAssignSectionFilter('all')}
+                      className={`px-3 py-1.5 rounded-lg font-bold transition ${
+                        assignSectionFilter === 'all'
+                          ? 'bg-[#0F2A4A] text-white shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      All Divisions
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAssignSectionFilter('thamheediyya')}
+                      className={`px-3 py-1.5 rounded-lg font-bold transition ${
+                        assignSectionFilter === 'thamheediyya'
+                          ? 'bg-[#0F2A4A] text-white shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      Thamheediyya
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAssignSectionFilter('aliya')}
+                      className={`px-3 py-1.5 rounded-lg font-bold transition ${
+                        assignSectionFilter === 'aliya'
+                          ? 'bg-[#0F2A4A] text-white shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      Aliya
+                    </button>
+                  </div>
+
+                  <span className="text-xs text-slate-500">
+                    Showing <strong>{skillFilteredPrograms.length}</strong> programs
+                  </span>
                 </div>
 
-                {selectedLibraryProgId && (
-                  <div className="p-3.5 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900/50 flex flex-wrap items-center justify-between gap-2 text-xs text-teal-900 dark:text-teal-200">
-                    <div className="flex items-center gap-2.5 font-bold text-sm">
-                      <CheckCircle2 className="w-5 h-5 text-[#0E7C86]" />
-                      <span>Selected: {programLibrary.find(p => p.id === selectedLibraryProgId)?.name}</span>
-                    </div>
-                    <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded bg-teal-200/50 dark:bg-teal-900 text-teal-900 dark:text-teal-200">
-                      {programLibrary.find(p => p.id === selectedLibraryProgId)?.type} • {fields.find(f => f.id === programLibrary.find(p => p.id === selectedLibraryProgId)?.fieldId)?.name || 'General'}
-                    </span>
+                {/* Skill / Field Filter Pills */}
+                <div className="space-y-1.5">
+                  <div className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Filter className="w-3.5 h-3.5 text-[#0E7C86]" />
+                    <span>Filter by Skill / Field:</span>
                   </div>
-                )}
-
-                <div className="max-h-72 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl divide-y bg-white dark:bg-slate-900">
-                  {filteredLibraryPrograms.length === 0 ? (
-                    <div className="p-8 text-center text-slate-400 italic space-y-1">
-                      <p className="font-semibold text-sm">No programs match &quot;{progSearchText}&quot;</p>
-                      <p className="text-xs">Switch to &quot;Create Custom Event&quot; above to add a new event directly.</p>
-                    </div>
-                  ) : (
-                    filteredLibraryPrograms.map(lp => {
-                      const f = fields.find(x => x.id === lp.fieldId);
-                      const isSelected = selectedLibraryProgId === lp.id;
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 pt-0.5 scrollbar-none">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSkillFieldId('all')}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 ${
+                        selectedSkillFieldId === 'all'
+                          ? 'bg-[#0E7C86] text-white shadow-xs'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                      }`}
+                    >
+                      <span>All Skills</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${selectedSkillFieldId === 'all' ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                        {skillCounts.all || 0}
+                      </span>
+                    </button>
+                    {fields.map(f => {
+                      const count = skillCounts[f.id] || 0;
+                      const isSelected = selectedSkillFieldId === f.id;
                       return (
-                        <label
-                          key={lp.id}
-                          className={`flex items-center justify-between p-3.5 cursor-pointer transition ${
-                            isSelected ? 'bg-teal-50/90 dark:bg-teal-950/60 border-l-4 border-l-[#0E7C86]' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => setSelectedSkillFieldId(f.id)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 ${
+                            isSelected
+                              ? 'bg-[#0E7C86] text-white shadow-xs'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                           }`}
                         >
-                          <div className="flex items-center gap-3">
+                          <span>{f.name}</span>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${isSelected ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Search & Bulk Assign Control Toolbar */}
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <input
+                    type="text"
+                    value={progSearchText}
+                    onChange={(e) => setProgSearchText(e.target.value)}
+                    placeholder="Search program by name or keyword..."
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold focus:ring-2 focus:ring-[#0E7C86]"
+                  />
+                  {progSearchText && (
+                    <button
+                      type="button"
+                      onClick={() => setProgSearchText('')}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Batch Action Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 text-xs">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={selectAllVisibleSkillProgs}
+                      className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition flex items-center gap-1.5"
+                    >
+                      <CheckSquare className="w-3.5 h-3.5 text-[#0E7C86]" />
+                      <span>Select All Visible</span>
+                    </button>
+                    {selectedSkillProgIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearSelectedSkillProgs}
+                        className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-semibold text-slate-500 hover:text-slate-800 transition flex items-center gap-1"
+                      >
+                        <Square className="w-3.5 h-3.5" />
+                        <span>Clear ({selectedSkillProgIds.length})</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-slate-500">Slots:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={assignSlotCount}
+                        onChange={(e) => setAssignSlotCount(Math.max(1, Number(e.target.value) || 1))}
+                        className="w-14 p-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono font-bold text-center text-xs text-[#0E7C86]"
+                        title="Allowed participant quota for this team"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={selectedSkillProgIds.length === 0}
+                      onClick={handleAssignSelectedToTargetTeam}
+                      className={`px-4 py-2 rounded-xl font-bold text-xs shadow-xs transition flex items-center gap-2 ${
+                        selectedSkillProgIds.length > 0
+                          ? 'bg-[#0E7C86] hover:bg-[#14919D] text-white active:scale-95'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>
+                        Assign {selectedSkillProgIds.length > 0 ? selectedSkillProgIds.length : ''} to {selectedTargetTeam?.name || 'Selected Team'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Program Cards Grid */}
+              <div className="space-y-2.5 pt-1">
+                {skillFilteredPrograms.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400 italic space-y-2 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                    <BookOpen className="w-8 h-8 mx-auto text-slate-300" />
+                    <p className="font-semibold text-xs">No programs found for current skill and filters.</p>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomEventModalOpen(true)}
+                      className="px-3 py-1.5 rounded-lg bg-[#0E7C86] text-white font-bold text-xs"
+                    >
+                      + Create Custom Program
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[580px] overflow-y-auto pr-1">
+                    {skillFilteredPrograms.map(lp => {
+                      const status = getLibProgTargetStatus(lp);
+                      const isSelected = selectedSkillProgIds.includes(lp.id);
+                      const fieldObj = fields.find(f => f.id === lp.fieldId);
+
+                      return (
+                        <div
+                          key={lp.id}
+                          className={`p-3.5 rounded-xl border transition flex flex-col justify-between gap-3 ${
+                            status.isAssigned
+                              ? 'bg-teal-50/40 dark:bg-teal-950/20 border-teal-300/60 dark:border-teal-900/40'
+                              : isSelected
+                              ? 'bg-sky-50/60 dark:bg-sky-950/30 border-sky-300 dark:border-sky-800'
+                              : 'bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
                             <input
-                              type="radio"
-                              name="libraryProg"
+                              type="checkbox"
                               checked={isSelected}
-                              onChange={() => setSelectedLibraryProgId(lp.id)}
-                              className="text-[#0E7C86] focus:ring-[#0E7C86] w-4 h-4"
+                              onChange={() => toggleSelectSkillProg(lp.id)}
+                              className="mt-1 rounded text-[#0E7C86] focus:ring-[#0E7C86] w-4 h-4 cursor-pointer"
                             />
-                            <div>
-                              <div className="font-bold text-slate-900 dark:text-white text-sm">{lp.name}</div>
-                              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
-                                <span className="font-medium text-[#0E7C86]">{f?.name || 'General'}</span>
-                                <span>•</span>
-                                <span className="capitalize">{lp.type}</span>
-                                <span>•</span>
-                                <span>{lp.defaultAllowedPerTeam} slot(s) default</span>
+                            <div className="min-w-0 flex-1">
+                              <h4 className="font-bold text-xs text-slate-900 dark:text-white leading-tight">
+                                {lp.name}
+                              </h4>
+                              <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                  {fieldObj?.name || 'General'}
+                                </span>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-mono capitalize bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400">
+                                  {lp.type}
+                                </span>
+                                <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-slate-100 dark:bg-slate-800 text-[#0E7C86]">
+                                  {lp.sectionId === 'aliya' ? 'Aliya' : lp.sectionId === 'thamheediyya' ? 'Thamheediyya' : 'All Sections'}
+                                </span>
                               </div>
                             </div>
                           </div>
-                          <span className="text-xs font-mono font-bold px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                            Max: {lp.maxMarks || 10} pts
-                          </span>
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4 p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
-                <div>
-                  <label className="block font-bold mb-1.5 text-sm text-slate-800 dark:text-slate-200">Event / Program Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={newCustomProg.name}
-                    onChange={(e) => setNewCustomProg(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-sm"
-                    placeholder="e.g. Contemporary Research Symposium"
-                  />
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Field</label>
-                    <select
-                      value={newCustomProg.fieldId}
-                      onChange={(e) => setNewCustomProg(prev => ({ ...prev, fieldId: e.target.value }))}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-xs"
-                    >
-                      {fields.map(f => (
-                        <option key={f.id} value={f.id}>{f.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Type</label>
-                    <select
-                      value={newCustomProg.type}
-                      onChange={(e) => setNewCustomProg(prev => ({ ...prev, type: e.target.value }))}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-xs"
-                    >
-                      <option value="individual">Individual</option>
-                      <option value="group">Group</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
+                          {/* Status and Action Buttons */}
+                          <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-xs">
+                            {status.isAssigned ? (
+                              <div className="flex items-center gap-1.5 text-teal-700 dark:text-teal-400 font-bold text-[11px]">
+                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                <span>Assigned ({status.allowedSlots} slot)</span>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-slate-400 font-medium">
+                                Not assigned to {selectedTargetTeam?.name}
+                              </span>
+                            )}
 
-            {/* 3. TARGET TEAMS SELECTION */}
-            <div className="p-4 sm:p-5 rounded-2xl border-2 border-teal-500/30 bg-teal-50/40 dark:bg-teal-950/20 dark:border-teal-800/50 space-y-3.5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <label className="font-bold text-sm text-[#0F2A4A] dark:text-white flex items-center gap-2">
-                    <Users className="w-4 h-4 text-[#0E7C86]" />
-                    <span>{tr('Assign to House Teams (Target Teams):', 'ഹൗസ് ടീമുകൾക്ക് നൽകുക:')}</span>
-                  </label>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    Choose which house teams will participate in this program event.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAliyaTeamIds(teams.map(t => t.id))}
-                    className="px-3 py-1 rounded-lg bg-teal-600 text-white font-bold hover:bg-teal-700 transition"
-                  >
-                    Select All Teams
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAliyaTeamIds([])}
-                    className="px-3 py-1 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-300 transition"
-                  >
-                    Clear All
-                  </button>
-                </div>
-              </div>
-
-              {/* Grid of Teams */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                {teams.map(t => {
-                  const isChecked = selectedAliyaTeamIds.includes(t.id);
-                  return (
-                    <label
-                      key={t.id}
-                      className={`p-3 rounded-xl border-2 flex items-center gap-2.5 cursor-pointer transition select-none ${
-                        isChecked
-                          ? 'bg-white dark:bg-slate-900 border-[#0E7C86] shadow-xs'
-                          : 'bg-slate-100/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60 hover:opacity-80'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedAliyaTeamIds(prev => [...prev, t.id]);
-                          } else {
-                            setSelectedAliyaTeamIds(prev => prev.filter(id => id !== t.id));
-                          }
-                        }}
-                        className="rounded text-[#0E7C86] focus:ring-[#0E7C86] w-4 h-4"
-                      />
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="w-3 h-3 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: t.color }} />
-                        <div className="truncate">
-                          <span className="font-bold text-xs truncate text-slate-800 dark:text-slate-200 block">{t.name}</span>
-                          <span className="text-[10px] text-slate-400 block font-mono">
-                            {isChecked ? 'Participating' : 'Excluded'}
-                          </span>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSingleProgramAssign(lp)}
+                              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition ${
+                                status.isAssigned
+                                  ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-900'
+                                  : 'bg-[#0E7C86] hover:bg-[#14919D] text-white shadow-2xs'
+                              }`}
+                            >
+                              {status.isAssigned ? 'Unassign' : '+ Assign'}
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-
-              {/* Slot count per team */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-teal-200/60 dark:border-teal-900/50 text-xs">
-                <span className="font-semibold text-slate-700 dark:text-slate-300">
-                  Allowed Participant Slots per Selected Team:
-                </span>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={aliyaSlotCount}
-                    onChange={(e) => setAliyaSlotCount(Math.max(1, Number(e.target.value) || 1))}
-                    className="w-16 p-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono font-bold text-center text-sm text-[#0E7C86]"
-                  />
-                  <span className="text-slate-500 font-medium">participant(s) / team</span>
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
+          </div>
 
-            {/* 4. Common Venue and Time */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div>
-                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Venue / Stage Assignment</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    value={addMode === 'custom' ? newCustomProg.stage : addVenue}
-                    onChange={(e) => {
-                      if (addMode === 'custom') {
-                        setNewCustomProg(prev => ({ ...prev, stage: e.target.value }));
-                      } else {
-                        setAddVenue(e.target.value);
-                      }
-                    }}
-                    placeholder="e.g. Auditorium Stage A, Seminar Room 1"
-                    className="w-full p-2.5 pl-8 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-xs"
+          {/* RIGHT: DEDICATED SIDE PANEL - ASSIGNED LIST FOR CURRENTLY SELECTED TARGET TEAM */}
+          <div className="w-full lg:w-80 xl:w-96 shrink-0 sticky top-20 space-y-3">
+            <div className="bg-white dark:bg-[#0F1B2B] rounded-2xl border-2 border-teal-500/40 p-4 sm:p-5 shadow-xs space-y-3.5">
+              {/* Side Panel Header */}
+              <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs"
+                    style={{ backgroundColor: selectedTargetTeam?.color || '#0E7C86' }}
                   />
-                  <MapPin className="w-4 h-4 text-slate-400 absolute left-2.5 top-3" />
+                  <div className="truncate">
+                    <h3 className="font-bold text-xs text-[#0F2A4A] dark:text-white truncate">
+                      {selectedTargetTeam?.name} Assigned Events
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-mono">
+                      Target Team Live List
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Scheduled Time</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={addMode === 'custom' ? newCustomProg.time : addTime}
-                    onChange={(e) => {
-                      if (addMode === 'custom') {
-                        setNewCustomProg(prev => ({ ...prev, time: e.target.value }));
-                      } else {
-                        setAddTime(e.target.value);
-                      }
-                    }}
-                    placeholder="10:00 AM"
-                    className="w-full p-2.5 pl-8 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs"
-                  />
-                  <Clock className="w-4 h-4 text-slate-400 absolute left-2.5 top-3" />
-                </div>
-              </div>
-            </div>
-
-            {/* 5. Evaluator Judges Selection */}
-            <div className="space-y-2.5 p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center justify-between">
-                <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-sm">
-                  <Gavel className="w-4 h-4 text-[#0E7C86]" />
-                  <span>Assign Evaluator Judges:</span>
-                </label>
-                <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                  {addAssignedJudges.length} Selected
+                <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-teal-100 dark:bg-teal-900/60 text-[#0E7C86] dark:text-teal-300 shrink-0">
+                  {assignedProgramsToTargetTeam.length}
                 </span>
               </div>
-              <p className="text-xs text-slate-500">
-                Select one or more collegiate judges who will evaluate student performances in this event:
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 max-h-48 overflow-y-auto">
-                {judges.map(j => {
-                  const isChecked = addAssignedJudges.includes(j.id);
-                  return (
-                    <label
-                      key={j.id}
-                      className={`p-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition ${
-                        isChecked
-                          ? 'bg-teal-50 dark:bg-teal-950/40 border-teal-400 dark:border-teal-700 text-[#0F2A4A] dark:text-white shadow-xs'
-                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleJudgeSelection(j.id, false)}
-                        className="rounded text-[#0E7C86] focus:ring-[#0E7C86] w-4 h-4"
-                      />
-                      <div className="truncate">
-                        <div className="font-bold truncate text-xs">{j.name}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">@{j.username}</div>
+
+              {/* Search Inside Assigned List */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={assignedSideSearch}
+                  onChange={(e) => setAssignedSideSearch(e.target.value)}
+                  placeholder="Filter assigned events..."
+                  className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold focus:ring-2 focus:ring-[#0E7C86]"
+                />
+                {assignedSideSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setAssignedSideSearch('')}
+                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+
+              {/* Scrollable Assigned List */}
+              <div className="max-h-[calc(100vh-320px)] min-h-[220px] overflow-y-auto space-y-2 pr-1 divide-y divide-slate-100 dark:divide-slate-800">
+                {assignedProgramsToTargetTeam.length === 0 ? (
+                  <div className="p-6 text-center text-slate-400 space-y-2">
+                    <BookOpen className="w-7 h-7 mx-auto text-slate-300" />
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                      No events assigned to {selectedTargetTeam?.name} yet.
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Select programs from the skill list on the left and click &apos;Assign to {selectedTargetTeam?.name}&apos;.
+                    </p>
+                  </div>
+                ) : (
+                  assignedProgramsToTargetTeam.map(prog => {
+                    const fieldObj = fields.find(f => f.id === prog.fieldId);
+                    const slotCount = prog.teamAllocations?.[selectedTargetTeam?.id]?.allowedCount ?? (prog.defaultAllowedPerTeam || 1);
+
+                    return (
+                      <div
+                        key={prog.id}
+                        className="pt-2.5 first:pt-0 flex items-center justify-between gap-2.5 group"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <h5 className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                            {prog.name}
+                          </h5>
+                          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-500">
+                            <span className="font-medium text-[#0E7C86]">
+                              {fieldObj?.name || 'General'}
+                            </span>
+                            <span>•</span>
+                            <span className="capitalize">{prog.type}</span>
+                            <span>•</span>
+                            <span className="font-mono font-bold text-teal-700 dark:text-teal-300">
+                              {slotCount} slot(s)
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleUnassignFromTargetTeam(prog.id, prog.name)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0"
+                          title={`Unassign "${prog.name}" from ${selectedTargetTeam?.name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                    </label>
-                  );
-                })}
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Side Panel Footer Note */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Total: <strong>{assignedProgramsToTargetTeam.length}</strong> event(s)</span>
+                <span className="text-teal-600 dark:text-teal-400 font-semibold">Auto-saved to Cloud</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CUSTOM EVENT MODAL */}
+        <Modal
+          isOpen={isCustomEventModalOpen}
+          onClose={() => setIsCustomEventModalOpen(false)}
+          title={`Create Custom Event for ${selectedTargetTeam?.name || 'Team'}`}
+        >
+          <form onSubmit={handleAddCustomProgramSubmit} className="space-y-4 text-xs">
+            <div>
+              <label className="block font-bold mb-1.5 text-xs text-slate-800 dark:text-slate-200">
+                Event / Program Name
+              </label>
+              <input
+                type="text"
+                required
+                value={newCustomProg.name}
+                onChange={(e) => setNewCustomProg(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-xs focus:ring-2 focus:ring-[#0E7C86]"
+                placeholder="e.g. Arabic Debating Championship"
+                autoFocus
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Field / Skill</label>
+                <select
+                  value={newCustomProg.fieldId}
+                  onChange={(e) => setNewCustomProg(prev => ({ ...prev, fieldId: e.target.value }))}
+                  className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-xs"
+                >
+                  {fields.map(f => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Type</label>
+                <select
+                  value={newCustomProg.type}
+                  onChange={(e) => setNewCustomProg(prev => ({ ...prev, type: e.target.value }))}
+                  className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-xs"
+                >
+                  <option value="individual">Individual</option>
+                  <option value="group">Group</option>
+                </select>
               </div>
             </div>
 
-            {/* 6. Bottom Action Bar */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Division</label>
+                <select
+                  value={newCustomProg.sectionId}
+                  onChange={(e) => setNewCustomProg(prev => ({ ...prev, sectionId: e.target.value }))}
+                  className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-xs"
+                >
+                  <option value="thamheediyya">Thamheediyya</option>
+                  <option value="aliya">Aliya</option>
+                  <option value="both">Both Sections</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Allowed Quota / Slots</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={newCustomProg.defaultAllowedPerTeam}
+                  onChange={(e) => setNewCustomProg(prev => ({ ...prev, defaultAllowedPerTeam: Number(e.target.value) || 1 }))}
+                  className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono font-bold text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900 text-[11px] text-teal-800 dark:text-teal-300">
+              This event will be registered into <strong>{activeSummit?.name}</strong> and allocated to <strong className="underline">{selectedTargetTeam?.name}</strong> with {newCustomProg.defaultAllowedPerTeam} slot(s).
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
-                onClick={() => {
-                  setIsAddProgramOpen(false);
-                  setProgSearchText('');
-                }}
-                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-semibold text-xs transition"
+                onClick={() => setIsCustomEventModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-6 py-2.5 bg-[#0E7C86] hover:bg-[#14919D] text-white rounded-xl font-bold text-sm shadow-md transition flex items-center gap-2"
+                className="px-5 py-2 rounded-xl bg-[#0E7C86] hover:bg-[#14919D] text-white font-bold text-xs shadow-xs"
               >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Assign Program to Summit</span>
+                Create &amp; Assign Event
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       </div>
     );
   }
