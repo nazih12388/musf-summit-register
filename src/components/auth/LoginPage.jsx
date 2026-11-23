@@ -75,7 +75,7 @@ export const LoginPage = ({ isDark, setIsDark }) => {
   };
 
   return (
-    <div className="min-h-[100dvh] relative flex flex-col justify-between bg-gradient-to-br from-[#E2EDFD] via-[#ECF3FE] to-[#D5E6FC] dark:from-[#081220] dark:via-[#0C1B30] dark:to-[#07101C] text-slate-800 dark:text-slate-100 font-sans overflow-x-hidden selection:bg-[#07244C] selection:text-white">
+    <div className="h-[100dvh] max-h-[100dvh] w-full overflow-hidden relative flex flex-col justify-between bg-gradient-to-br from-[#E2EDFD] via-[#ECF3FE] to-[#D5E6FC] dark:from-[#081220] dark:via-[#0C1B30] dark:to-[#07101C] text-slate-800 dark:text-slate-100 font-sans select-none selection:bg-[#07244C] selection:text-white">
       
       {/* ========================================================= */}
       {/* BACKGROUND GRAPHICS: Soft Curves, Foliage & Distant Birds  */}
@@ -148,11 +148,11 @@ export const LoginPage = ({ isDark, setIsDark }) => {
       {/* ========================================================= */}
       {/* TOP UTILITY HEADER: Auditorium Mode, Language, Theme      */}
       {/* ========================================================= */}
-      <header className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 flex items-center justify-between">
+      <header className="shrink-0 relative z-10 w-full max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 pt-2 sm:pt-3 flex items-center justify-between">
         <button
           type="button"
           onClick={handleAuditoriumMode}
-          className="px-3.5 py-1.5 rounded-full border border-blue-200/90 dark:border-blue-800/80 bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 text-blue-950 dark:text-blue-200 font-semibold text-xs flex items-center gap-2 transition-all duration-200 shadow-sm hover:shadow hover:scale-102 active:scale-95 cursor-pointer backdrop-blur-md"
+          className="px-3 py-1.5 rounded-full border border-blue-200/90 dark:border-blue-800/80 bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 text-blue-950 dark:text-blue-200 font-semibold text-xs flex items-center gap-1.5 transition-all duration-200 shadow-sm hover:shadow hover:scale-102 active:scale-95 cursor-pointer backdrop-blur-md"
           title="Auditorium Projector Display Mode"
         >
           <Tv className="w-3.5 h-3.5 text-[#1E56A0] dark:text-blue-400 shrink-0" />
@@ -164,7 +164,7 @@ export const LoginPage = ({ isDark, setIsDark }) => {
           <button
             type="button"
             onClick={toggleLanguage}
-            className="px-3.5 py-1.5 rounded-full border border-blue-200/90 dark:border-blue-800/80 bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 text-blue-950 dark:text-blue-200 font-semibold text-xs flex items-center gap-1.5 transition-all duration-200 shadow-sm hover:shadow hover:scale-102 active:scale-95 cursor-pointer backdrop-blur-md"
+            className="px-3 py-1.5 rounded-full border border-blue-200/90 dark:border-blue-800/80 bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 text-blue-950 dark:text-blue-200 font-semibold text-xs flex items-center gap-1.5 transition-all duration-200 shadow-sm hover:shadow hover:scale-102 active:scale-95 cursor-pointer backdrop-blur-md"
             title={lang === 'ml' ? 'Switch to English' : 'മലയാളത്തിലേക്ക് മാറ്റുക'}
           >
             <Globe className="w-3.5 h-3.5 text-[#1E56A0] dark:text-blue-400" />
@@ -184,15 +184,15 @@ export const LoginPage = ({ isDark, setIsDark }) => {
       </header>
 
       {/* ========================================================= */}
-      {/* MAIN CARD: Exact Reference Layout                         */}
+      {/* MAIN CARD: Exact Reference Layout (Fitted / No Scroll)    */}
       {/* ========================================================= */}
-      <main className="relative z-10 w-full max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 my-auto py-4 sm:py-6 flex items-center justify-center">
-        <div className="w-full rounded-[30px] sm:rounded-[36px] bg-white dark:bg-[#0D1929] shadow-2xl shadow-blue-900/12 border border-white/90 dark:border-slate-800/80 overflow-hidden flex flex-col md:flex-row transition-all duration-300">
+      <main className="relative z-10 w-full max-w-4xl lg:max-w-5xl mx-auto px-3.5 sm:px-6 flex-1 min-h-0 flex items-center justify-center py-1 sm:py-2">
+        <div className="w-full max-h-full rounded-2xl sm:rounded-3xl md:rounded-[32px] bg-white dark:bg-[#0D1929] shadow-2xl shadow-blue-900/12 border border-white/90 dark:border-slate-800/80 overflow-hidden flex flex-col md:flex-row transition-all duration-300">
           
           {/* ===================================================== */}
-          {/* LEFT SECTION: Exact Reference Campus & Watermark Art  */}
+          {/* LEFT SECTION: Campus & Watermark Art                  */}
           {/* ===================================================== */}
-          <div className="relative w-full md:w-[48%] lg:w-[48%] min-h-[320px] sm:min-h-[420px] md:min-h-[520px] lg:min-h-[560px] bg-[#CFE3FB] dark:bg-[#0B1A2F] flex flex-col justify-end overflow-hidden">
+          <div className="relative w-full h-24 sm:h-32 md:h-auto md:w-[46%] lg:w-[48%] shrink-0 bg-[#CFE3FB] dark:bg-[#0B1A2F] flex flex-col justify-end overflow-hidden">
             <img
               src="/musf-login-hero.jpg"
               alt="Majlis Umariyya Wafy College Campus & MUSF Emblem"
@@ -203,42 +203,41 @@ export const LoginPage = ({ isDark, setIsDark }) => {
 
           {/* ===================================================== */}
           {/* RIGHT SECTION: Clean Modern Login Form                */}
-          {/* (Forgot Password & Remember Me Removed)               */}
           {/* ===================================================== */}
-          <div className="w-full md:w-[52%] lg:w-[52%] bg-white dark:bg-[#0D1929] p-6 sm:p-10 lg:p-12 flex flex-col justify-center">
+          <div className="w-full md:w-[54%] lg:w-[52%] bg-white dark:bg-[#0D1929] p-4 sm:p-6 md:p-8 lg:p-10 flex flex-col justify-center">
             
             {/* Heading & Subtitle */}
-            <div className="mb-7 sm:mb-8 text-center md:text-left">
-              <h1 className="text-3xl sm:text-[34px] font-extrabold text-[#0D244D] dark:text-white tracking-tight leading-tight">
+            <div className="mb-3.5 sm:mb-5 text-center md:text-left">
+              <h1 className="text-2xl sm:text-[28px] md:text-[32px] font-extrabold text-[#0D244D] dark:text-white tracking-tight leading-tight">
                 Welcome Back
               </h1>
-              <p className="text-xs sm:text-sm font-medium text-[#5F7597] dark:text-slate-400 mt-1.5">
+              <p className="text-[11px] sm:text-xs md:text-sm font-medium text-[#5F7597] dark:text-slate-400 mt-1">
                 Sign in to continue to MUSF
               </p>
             </div>
 
             {/* Error Notification */}
             {authError && (
-              <div className="mb-4 p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-2xl text-amber-900 dark:text-amber-200 text-xs sm:text-sm flex items-start gap-2.5 animate-shake">
+              <div className="mb-3 p-2.5 sm:p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-xl sm:rounded-2xl text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2 animate-shake">
                 <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
                 <span>{authError}</span>
               </div>
             )}
 
             {error && (
-              <div className="mb-4 p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800/80 rounded-2xl text-rose-700 dark:text-rose-300 text-xs sm:text-sm flex items-start gap-2.5 animate-shake">
+              <div className="mb-3 p-2.5 sm:p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800/80 rounded-xl sm:rounded-2xl text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2 animate-shake">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
             )}
 
             {/* Login Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3.5">
               
               {/* Username / CIC Field */}
               <div className="space-y-1">
-                <div className="relative rounded-2xl border border-[#D5E1F0] dark:border-slate-700 bg-[#F7FAFD] dark:bg-slate-800/60 focus-within:border-[#1E56A0] focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
-                  <User className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[#5F789D] dark:text-slate-400 pointer-events-none transition-colors" />
+                <div className="relative rounded-xl sm:rounded-2xl border border-[#D5E1F0] dark:border-slate-700 bg-[#F7FAFD] dark:bg-slate-800/60 focus-within:border-[#1E56A0] focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
+                  <User className="w-4.5 h-4.5 absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 text-[#5F789D] dark:text-slate-400 pointer-events-none transition-colors" />
                   <input
                     type="text"
                     required
@@ -247,65 +246,65 @@ export const LoginPage = ({ isDark, setIsDark }) => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Username"
-                    className="w-full py-3.5 sm:py-4 pl-12 pr-4 text-sm sm:text-base text-slate-800 dark:text-white placeholder-[#8FA3C0] dark:placeholder-slate-500 bg-transparent outline-none font-medium rounded-2xl"
+                    className="w-full py-2.5 sm:py-3.5 pl-10 sm:pl-12 pr-4 text-xs sm:text-sm md:text-base text-slate-800 dark:text-white placeholder-[#8FA3C0] dark:placeholder-slate-500 bg-transparent outline-none font-medium rounded-xl sm:rounded-2xl"
                   />
                 </div>
               </div>
 
               {/* Password Field */}
               <div className="space-y-1">
-                <div className="relative rounded-2xl border border-[#D5E1F0] dark:border-slate-700 bg-[#F7FAFD] dark:bg-slate-800/60 focus-within:border-[#1E56A0] focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
-                  <Lock className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[#5F789D] dark:text-slate-400 pointer-events-none transition-colors" />
+                <div className="relative rounded-xl sm:rounded-2xl border border-[#D5E1F0] dark:border-slate-700 bg-[#F7FAFD] dark:bg-slate-800/60 focus-within:border-[#1E56A0] focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
+                  <Lock className="w-4.5 h-4.5 absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 text-[#5F789D] dark:text-slate-400 pointer-events-none transition-colors" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Password"
-                    className="w-full py-3.5 sm:py-4 pl-12 pr-12 text-sm sm:text-base text-slate-800 dark:text-white placeholder-[#8FA3C0] dark:placeholder-slate-500 bg-transparent outline-none font-medium rounded-2xl"
+                    className="w-full py-2.5 sm:py-3.5 pl-10 sm:pl-12 pr-11 sm:pr-12 text-xs sm:text-sm md:text-base text-slate-800 dark:text-white placeholder-[#8FA3C0] dark:placeholder-slate-500 bg-transparent outline-none font-medium rounded-xl sm:rounded-2xl"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(prev => !prev)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 text-[#8FA3C0] hover:text-[#5F789D] dark:hover:text-slate-300 transition cursor-pointer"
+                    className="absolute right-3 sm:right-3.5 top-1/2 -translate-y-1/2 p-1 text-[#8FA3C0] hover:text-[#5F789D] dark:hover:text-slate-300 transition cursor-pointer"
                     title={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                   </button>
                 </div>
               </div>
 
               {/* Direct Full-Width Navy Gradient Login Button */}
-              <div className="pt-2">
+              <div className="pt-1 sm:pt-1.5">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 sm:py-4 px-6 rounded-2xl bg-gradient-to-r from-[#07244C] via-[#0A2F5E] to-[#0D3870] hover:from-[#0A2F5E] hover:to-[#104484] active:scale-[0.99] text-white font-medium text-sm sm:text-base shadow-lg shadow-blue-950/25 flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer disabled:opacity-60"
+                  className="w-full py-2.5 sm:py-3.5 px-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-[#07244C] via-[#0A2F5E] to-[#0D3870] hover:from-[#0A2F5E] hover:to-[#104484] active:scale-[0.99] text-white font-semibold text-xs sm:text-sm md:text-base shadow-lg shadow-blue-950/20 flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer disabled:opacity-60"
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin text-blue-200" />
+                      <Loader2 className="w-4.5 h-4.5 animate-spin text-blue-200" />
                       <span>Signing in...</span>
                     </>
                   ) : (
                     <>
                       <span>Login</span>
-                      <span className="text-lg leading-none font-light">→</span>
+                      <span className="text-base sm:text-lg leading-none font-light">→</span>
                     </>
                   )}
                 </button>
               </div>
 
               {/* Divider */}
-              <div className="relative my-5 flex items-center justify-center">
+              <div className="relative my-2.5 sm:my-3.5 flex items-center justify-center">
                 <div className="border-t border-[#E2EAF4] dark:border-slate-700/80 w-full" />
-                <span className="bg-white dark:bg-[#0D1929] px-3.5 text-xs text-[#8FA3C0] dark:text-slate-500 font-medium select-none">
+                <span className="bg-white dark:bg-[#0D1929] px-3 text-[11px] sm:text-xs text-[#8FA3C0] dark:text-slate-500 font-medium select-none">
                   or
                 </span>
               </div>
 
               {/* Footer text */}
               <div className="text-center">
-                <p className="text-xs text-[#7186A4] dark:text-slate-400 font-medium tracking-wide">
+                <p className="text-[11px] sm:text-xs text-[#7186A4] dark:text-slate-400 font-medium tracking-wide">
                   Powered by MUSF
                 </p>
               </div>
@@ -317,8 +316,8 @@ export const LoginPage = ({ isDark, setIsDark }) => {
       {/* ========================================================= */}
       {/* INSTITUTIONAL BOTTOM FOOTER & BATCH 7 DEDICATION          */}
       {/* ========================================================= */}
-      <footer className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pb-3 sm:pb-4 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-[#6B82A6] dark:text-slate-400">
-        <div className="flex items-center gap-1.5">
+      <footer className="shrink-0 relative z-10 w-full max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 pb-2 sm:pb-3 flex flex-row items-center justify-between gap-2 text-[10px] sm:text-xs text-[#6B82A6] dark:text-slate-400">
+        <div className="flex items-center gap-1.5 truncate">
           <span>&copy; {new Date().getFullYear()} Majlis Umariyya Wafy College &bull; Puramannur</span>
         </div>
 
@@ -326,7 +325,7 @@ export const LoginPage = ({ isDark, setIsDark }) => {
         <button
           type="button"
           onClick={() => setIsBatchModalOpen(true)}
-          className="group inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 border border-blue-200/90 dark:border-blue-800/80 shadow-2xs backdrop-blur-md text-[11px] font-semibold text-[#486284] dark:text-slate-300 hover:text-[#1E56A0] dark:hover:text-blue-400 transition-all duration-200 active:scale-95 cursor-pointer"
+          className="shrink-0 group inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 border border-blue-200/90 dark:border-blue-800/80 shadow-2xs backdrop-blur-md text-[10px] sm:text-[11px] font-semibold text-[#486284] dark:text-slate-300 hover:text-[#1E56A0] dark:hover:text-blue-400 transition-all duration-200 active:scale-95 cursor-pointer"
           title="Click to view Batch 7 dedication, Dua & feedback"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500 group-hover:scale-125 animate-pulse transition-transform" />
