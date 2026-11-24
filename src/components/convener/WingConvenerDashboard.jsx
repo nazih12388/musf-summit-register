@@ -12,6 +12,8 @@ import { BannerSlideManagerModal } from '../common/BannerSlideManagerModal';
 import { PostNotificationModal } from '../common/PostNotificationModal';
 import { Modal } from '../common/Modal';
 import { resolveConvenerWing } from '../../utils/wingHelper';
+import { OverlapCard } from '../student/ui/OverlapCard';
+import { IconTile } from '../student/ui/IconTile';
 import {
   Palette,
   BookOpen,
@@ -36,6 +38,7 @@ import {
   ShieldCheck,
   FileText,
   Lock,
+  Unlock,
   Printer,
   Check,
   XCircle,
@@ -46,7 +49,9 @@ import {
   LayoutDashboard,
   ArrowRight,
   ArrowLeft,
-  LogOut
+  LogOut,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -75,6 +80,7 @@ export const WingConvenerDashboard = ({ activeTab, setActiveTab }) => {
     students = [],
     unionOfficials = [],
     settings = {},
+    updateSettings,
     certificates = [],
     addCertificate,
     deleteCertificate,
@@ -103,6 +109,37 @@ export const WingConvenerDashboard = ({ activeTab, setActiveTab }) => {
   const isGeneralWing = !isSportsWing && !isFineArts;
 
   const Icon = ICON_MAP[myWing.icon] || (isSportsWing ? Trophy : isFineArts ? Palette : Folder);
+
+  // Fair Judging & Summit rules settings state helpers
+  const fairJudgingModeActive = Boolean(settings?.fairJudgingMode);
+  const judgeRestrictionsEnforced = settings?.enforceJudgeRestrictions !== false;
+  const maxProgramsLimit = settings?.maxProgramsPerStudent || 0;
+
+  const handleToggleFairJudging = () => {
+    const nextVal = !fairJudgingModeActive;
+    if (updateSettings) {
+      updateSettings({
+        fairJudgingMode: nextVal,
+        hideTeamFromJudges: nextVal
+      }, currentUser?.name || 'Fine Arts Convener');
+    }
+  };
+
+  const handleToggleJudgeRestrictions = () => {
+    const nextVal = !judgeRestrictionsEnforced;
+    if (updateSettings) {
+      updateSettings({
+        enforceJudgeRestrictions: nextVal
+      }, currentUser?.name || 'Fine Arts Convener');
+    }
+  };
+
+  const handleMaxProgramsChange = (val) => {
+    const num = Math.max(0, Math.min(10, Number(val) || 0));
+    if (updateSettings) {
+      updateSettings({ maxProgramsPerStudent: num }, currentUser?.name || 'Fine Arts Convener');
+    }
+  };
 
   // Local navigation state: default to 'dashboard' (Bento layout)
   const [activeSubTab, setActiveSubTab] = useState('dashboard');
@@ -378,169 +415,158 @@ export const WingConvenerDashboard = ({ activeTab, setActiveTab }) => {
   ];
 
   return (
-    <div className="relative min-h-[calc(100dvh-4rem)] bg-[#F6F8FB] dark:bg-[#080E18] text-slate-800 dark:text-slate-100">
-      
-      {/* =========================================================================
-          MAX-WIDTH CENTERED CONTAINER (max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6)
-         ========================================================================= */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 pb-28 sm:pb-32">
-        
-        {/* =========================================================================
-            BENTO HOME DASHBOARD (When activeSubTab === 'dashboard')
-           ========================================================================= */}
-        {activeSubTab === 'dashboard' ? (
-          <div className="space-y-6 animate-fade-in">
-            
-            {/* 1. APEX WING HERO BANNER */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0F2A4A] via-[#12365C] to-[#0E7C86] text-white p-6 sm:p-8 shadow-xl shadow-blue-950/15 border border-white/10">
-              <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-white/5 pointer-events-none blur-2xl" />
-              <div className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full bg-teal-400/10 pointer-events-none blur-2xl" />
-
-              <div className="relative z-10 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-bold text-teal-200 uppercase tracking-wider">
-                      <Icon className="w-3.5 h-3.5 text-teal-300" />
-                      <span>{myWing.name} Portfolio</span>
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[11px] font-semibold">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span>Convener Console</span>
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-200/90 bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
-                      Academic Year {settings.academicYear || '2026–2027'}
-                    </span>
-                    {currentUser?.availableRoles?.includes('student') && (
-                      <button
-                        type="button"
-                        onClick={() => switchRole('student')}
-                        className="text-xs font-semibold text-teal-200 bg-white/15 hover:bg-white/25 px-3 py-1 rounded-full backdrop-blur-sm border border-white/20 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
-                        title="Switch to your personal Student portal"
-                      >
-                        <GraduationCap className="w-3.5 h-3.5 text-amber-300" />
-                        <span>Student View</span>
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (window.confirm('Are you sure you want to sign out?')) {
-                          logout();
-                        }
-                      }}
-                      className="text-xs font-semibold text-rose-200 bg-rose-500/20 hover:bg-rose-500/35 px-3 py-1 rounded-full backdrop-blur-sm border border-rose-400/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
-                      title="Sign out of Convener session"
-                    >
-                      <LogOut className="w-3.5 h-3.5 text-rose-300" />
-                      <span>Sign Out</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-1 pt-1">
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
-                    <span>{myWing.name}</span>
-                  </h1>
-                  <p className="text-xs sm:text-sm text-slate-200 font-medium max-w-2xl leading-relaxed">
-                    Convener: <strong className="text-white font-bold">{currentUser?.name || 'Wing Convener'}</strong> &bull; Majlis Umariyya Students' Federation (MUSF). Dedicated to student leadership and co-curricular distinction.
-                  </p>
-                </div>
-              </div>
+    <div className="space-y-6 pb-28 sm:pb-32 select-none">
+      {/* 1. SOLID ACCENT WING HERO (Student Design System) */}
+      <div className="bg-[#0E7C86] dark:bg-[#071F2C] text-white pt-5 pb-12 sm:pb-14 px-4 sm:px-6 rounded-b-[24px] shadow-sm select-none">
+        <div className="max-w-5xl mx-auto space-y-3">
+          {/* Top Meta Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-bold text-teal-100 uppercase tracking-wider">
+                <Icon className="w-3.5 h-3.5 text-teal-200" />
+                <span>{myWing.name}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-300/30 text-[11px] font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Convener Console</span>
+              </span>
             </div>
 
-            {/* 2. PRIMARY QUICK ACTIONS BAR (5 Direct Triggers) */}
-            <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#0D1929] border border-slate-200/90 dark:border-slate-800 shadow-sm">
-              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#0E7C86] dark:text-teal-400" />
-                  <span>Wing Quick Actions</span>
-                </span>
-                <span className="text-[11px] text-slate-400">Direct Portfolio Triggers</span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 sm:gap-3">
-                {/* 1. Add Activity */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-200/90 bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
+                Academic Year {settings.academicYear || '2026–2027'}
+              </span>
+              {currentUser?.availableRoles?.includes('student') && (
                 <button
                   type="button"
-                  onClick={() => handleOpenAddProg('activity')}
-                  className="group p-3 sm:p-3.5 rounded-2xl border border-teal-100 dark:border-teal-950/60 hover:border-teal-300 dark:hover:border-teal-700 bg-gradient-to-br from-teal-50/50 via-white to-teal-50/30 dark:from-[#111C2E] dark:to-teal-950/30 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer flex flex-col justify-between min-h-[82px]"
+                  onClick={() => switchRole('student')}
+                  className="text-xs font-semibold text-teal-200 bg-white/15 hover:bg-white/25 px-3 py-1 rounded-full backdrop-blur-sm border border-white/20 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
+                  title="Switch to Student Dashboard"
                 >
-                  <div className="w-7 h-7 rounded-xl bg-[#0E7C86] text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                    <Plus className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">+ Add Activity</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">Schedule workshop</span>
-                  </div>
+                  <GraduationCap className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Student View</span>
                 </button>
-
-                {/* 2. Add Competition */}
-                <button
-                  type="button"
-                  onClick={() => handleOpenAddProg('competition')}
-                  className="group p-3 sm:p-3.5 rounded-2xl border border-amber-100 dark:border-amber-950/60 hover:border-amber-300 dark:hover:border-amber-700 bg-gradient-to-br from-amber-50/50 via-white to-amber-50/30 dark:from-[#111C2E] dark:to-amber-950/30 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer flex flex-col justify-between min-h-[82px]"
-                >
-                  <div className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                    <Trophy className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">+ Competition</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">Add contest &amp; prizes</span>
-                  </div>
-                </button>
-
-                {/* 3. Issue Certificate */}
-                <button
-                  type="button"
-                  onClick={() => handleOpenAllocateCert(null, null, 'WING_MERIT', '')}
-                  className="group p-3 sm:p-3.5 rounded-2xl border border-indigo-100 dark:border-indigo-950/60 hover:border-indigo-300 dark:hover:border-indigo-700 bg-gradient-to-br from-indigo-50/50 via-white to-indigo-50/30 dark:from-[#111C2E] dark:to-indigo-950/30 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer flex flex-col justify-between min-h-[82px]"
-                >
-                  <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                    <Award className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">Certificate</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">Issue merit honor</span>
-                  </div>
-                </button>
-
-                {/* 4. Post Notice */}
-                <button
-                  type="button"
-                  onClick={() => setIsPostNotifOpen(true)}
-                  className="group p-3 sm:p-3.5 rounded-2xl border border-rose-100 dark:border-rose-950/60 hover:border-rose-300 dark:hover:border-rose-700 bg-gradient-to-br from-rose-50/50 via-white to-rose-50/30 dark:from-[#111C2E] dark:to-rose-950/30 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer flex flex-col justify-between min-h-[82px]"
-                >
-                  <div className="w-7 h-7 rounded-xl bg-rose-500 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                    <Megaphone className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">Post Notice</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">Wing bulletin</span>
-                  </div>
-                </button>
-
-                {/* 5. Posters / Report */}
-                <button
-                  type="button"
-                  onClick={() => setIsReportModalOpen(true)}
-                  className="group p-3 sm:p-3.5 rounded-2xl border border-purple-100 dark:border-purple-950/60 hover:border-purple-300 dark:hover:border-purple-700 bg-gradient-to-br from-purple-50/50 via-white to-purple-50/30 dark:from-[#111C2E] dark:to-purple-950/30 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer flex flex-col justify-between min-h-[82px] col-span-2 sm:col-span-1"
-                >
-                  <div className="w-7 h-7 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                    <Printer className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">Monthly Report</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">Official Malayalam PDF</span>
-                  </div>
-                </button>
-              </div>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to sign out?')) {
+                    logout();
+                  }
+                }}
+                className="text-xs font-semibold text-rose-200 bg-rose-500/20 hover:bg-rose-500/35 px-3 py-1 rounded-full backdrop-blur-sm border border-rose-400/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
+                title="Sign out of Convener session"
+              >
+                <LogOut className="w-3.5 h-3.5 text-rose-300" />
+                <span>Sign Out</span>
+              </button>
             </div>
+          </div>
 
-            {/* 3. FEATURED BANNER POSTERS CAROUSEL */}
-            <div className="rounded-3xl overflow-hidden border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0D1929] shadow-sm p-3 sm:p-4">
+          {/* Hero Main Heading & Convener Info */}
+          <div className="space-y-1 pt-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
+              {myWing.name}
+            </h1>
+            <p className="text-xs sm:text-sm text-teal-100/90 font-medium max-w-2xl leading-relaxed">
+              Convener: <strong className="text-white font-bold">{currentUser?.name || 'Wing Convener'}</strong> &bull; Majlis Umariyya Students' Federation (MUSF). Dedicated to student leadership and co-curricular distinction.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {activeSubTab === 'dashboard' ? (
+        <div className="space-y-6 animate-fade-in">
+          {/* 2. OVERLAPPING QUICK ACTIONS GRID (IconTiles matching Student Interface) */}
+          <OverlapCard>
+            <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 sm:gap-3">
+              <IconTile
+                icon={Plus}
+                label={tr('Activity', 'പ്രവർത്തനം')}
+                iconColor="#0E7C86"
+                bgColor="#0E7C8615"
+                animationType="bounce"
+                badge={generalPrograms.length}
+                onClick={() => handleOpenAddProg('activity')}
+                index={0}
+              />
+              <IconTile
+                icon={Trophy}
+                label={tr('Contest', 'മത്സരം')}
+                iconColor="#F59E0B"
+                bgColor="#F59E0B15"
+                animationType="pulse"
+                badge={competitions.length}
+                onClick={() => handleOpenAddProg('competition')}
+                index={1}
+              />
+              <IconTile
+                icon={Award}
+                label={tr('Certs', 'സർട്ടിഫിക്കറ്റ്')}
+                iconColor="#6366F1"
+                bgColor="#6366F115"
+                animationType="bounce"
+                badge={myWingCertificates.length}
+                onClick={() => handleOpenAllocateCert(null, null, 'WING_MERIT', '')}
+                index={2}
+              />
+              <IconTile
+                icon={Megaphone}
+                label={tr('Notice', 'അറിയിപ്പ്')}
+                iconColor="#EC4899"
+                bgColor="#EC489915"
+                animationType="pulse"
+                onClick={() => setIsPostNotifOpen(true)}
+                index={3}
+              />
+              <IconTile
+                icon={Printer}
+                label={tr('Report', 'റിപ്പോർട്ട്')}
+                iconColor="#8B5CF6"
+                bgColor="#8B5CF615"
+                animationType="bounce"
+                onClick={() => setIsReportModalOpen(true)}
+                index={4}
+              />
+              <IconTile
+                icon={Sparkles}
+                label={tr('Posters', 'പോസ്റ്റർ')}
+                iconColor="#06B6D4"
+                bgColor="#06B6D415"
+                animationType="pulse"
+                badge={banners.length}
+                onClick={() => setIsBannerModalOpen(true)}
+                index={5}
+              />
+              {isFineArts && !isSportsWing && (
+                <IconTile
+                  icon={Palette}
+                  label={tr('Summit', 'സമ്മിറ്റ്')}
+                  iconColor="#10B981"
+                  bgColor="#10B98115"
+                  animationType="pulse"
+                  onClick={() => setActiveSubTab('summit_register')}
+                  index={6}
+                />
+              )}
+              {isSportsWing && !isFineArts && (
+                <IconTile
+                  icon={Trophy}
+                  label={tr('Sports', 'സ്പോർട്സ്')}
+                  iconColor="#EA580C"
+                  bgColor="#EA580C15"
+                  animationType="pulse"
+                  onClick={() => setActiveSubTab('college_sports')}
+                  index={6}
+                />
+              )}
+            </div>
+          </OverlapCard>
+
+          {/* 3. CENTERED CONTENT CONTAINER */}
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-5">
+            {/* FEATURED BANNER POSTERS CAROUSEL */}
+            <div className="rounded-2xl overflow-hidden border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0D1929] shadow-sm p-3">
               <BannerCarousel
                 banners={banners}
                 wings={wings}
@@ -550,277 +576,332 @@ export const WingConvenerDashboard = ({ activeTab, setActiveTab }) => {
               />
             </div>
 
-            {/* 4. PRIMARY TEAL / CREAM BENTO GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-              
-              {/* BENTO CARD 1: WING ACTIVITIES & WORKSHOPS (TEAL THEME) */}
-              <div className="rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-[#0E7C86]/8 via-[#FFFDF9] to-[#0E7C86]/4 dark:from-teal-950/40 dark:via-[#0D1929] dark:to-teal-950/20 border border-teal-200/90 dark:border-teal-800/70 shadow-sm flex flex-col justify-between space-y-5">
-                <div>
-                  <div className="flex items-center justify-between pb-3 border-b border-teal-100 dark:border-teal-900/60">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-2xl bg-[#0E7C86] text-white flex items-center justify-center shadow-sm">
-                        <Calendar className="w-4.5 h-4.5" />
+            {/* BENTO GRID (2 columns) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+              {/* CARD 1: ACTIVITIES & WORKSHOPS */}
+              <div className="rounded-2xl p-5 bg-white dark:bg-[#0D1929] border border-teal-200/80 dark:border-teal-900/60 shadow-xs flex flex-col justify-between space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-[#0E7C86] text-white flex items-center justify-center shadow-xs">
+                        <Calendar className="w-4 h-4" />
                       </div>
                       <div>
-                        <h2 className="text-base font-extrabold text-[#0F2A4A] dark:text-white leading-tight">
-                          Wing Activities &amp; Workshops
-                        </h2>
-                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                          Programs, workshops, training &amp; attendance
-                        </p>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                          Activities &amp; Workshops
+                        </h3>
+                        <p className="text-[10px] text-slate-400">Programs, attendance &amp; sessions</p>
                       </div>
                     </div>
-
-                    <span className="px-2.5 py-1 rounded-full bg-teal-50 dark:bg-teal-950/70 text-[#0E7C86] dark:text-teal-300 text-xs font-extrabold border border-teal-200 dark:border-teal-800">
-                      {generalPrograms.length} Activities
+                    <span className="px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950/70 text-[#0E7C86] dark:text-teal-300 text-xs font-bold border border-teal-200 dark:border-teal-800">
+                      {generalPrograms.length}
                     </span>
                   </div>
 
-                  {/* Program Spotlight */}
-                  <div className="pt-4 space-y-2.5">
-                    {generalPrograms.length > 0 ? (
-                      <div className="p-3.5 rounded-2xl bg-white/90 dark:bg-slate-900/80 border border-teal-100/90 dark:border-slate-800 space-y-1.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-slate-900 dark:text-white truncate">
-                            {generalPrograms[0].title}
-                          </span>
-                          <span className="text-[11px] font-mono text-teal-700 dark:text-teal-300 font-semibold shrink-0">
-                            {generalPrograms[0].date}
-                          </span>
-                        </div>
-                        {generalPrograms[0].venue && (
-                          <p className="text-[11px] text-slate-500 flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-slate-400" />
-                            <span>{generalPrograms[0].venue}</span>
-                          </p>
-                        )}
-                        <div className="pt-1 flex items-center gap-2 text-[11px]">
-                          <span className="px-2 py-0.5 rounded-md bg-teal-50 dark:bg-teal-950/60 text-[#0E7C86] dark:text-teal-300 font-bold">
-                            {generalPrograms[0].registeredStudents?.length || 0} Registered
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-md font-bold ${generalPrograms[0].isRegistrationOpen ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-                            {generalPrograms[0].isRegistrationOpen ? 'Registration Open' : 'Registration Closed'}
-                          </span>
-                        </div>
+                  {generalPrograms.length > 0 ? (
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-bold">
+                        <span className="text-slate-900 dark:text-white truncate">{generalPrograms[0].title}</span>
+                        <span className="font-mono text-teal-600 dark:text-teal-400 text-[11px] shrink-0">{generalPrograms[0].date}</span>
                       </div>
-                    ) : (
-                      <p className="text-xs text-slate-400 py-3 italic">
-                        No general programs recorded yet. Click "+ Add Activity" above to schedule one.
-                      </p>
-                    )}
-                  </div>
+                      <div className="flex items-center gap-2 text-[10px] font-bold">
+                        <span className="px-2 py-0.5 rounded-md bg-teal-100/60 dark:bg-teal-950/60 text-[#0E7C86] dark:text-teal-300">
+                          {generalPrograms[0].registeredStudents?.length || 0} Registered
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-md ${generalPrograms[0].isRegistrationOpen ? 'bg-emerald-100/70 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
+                          {generalPrograms[0].isRegistrationOpen ? 'Registration Open' : 'Closed'}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 py-2 italic">No activities scheduled yet.</p>
+                  )}
                 </div>
 
-                <div className="pt-3 border-t border-teal-100/80 dark:border-teal-900/40 flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setActiveSubTab('programs')}
-                    className="flex-1 py-2.5 px-3 rounded-2xl bg-[#0E7C86] hover:bg-[#0c6b73] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-98 cursor-pointer"
-                  >
-                    <span>Manage Activities &amp; Attendance</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab('programs')}
+                  className="w-full py-2 px-3 rounded-xl bg-[#0E7C86] hover:bg-[#0c6b73] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs active:scale-98 cursor-pointer"
+                >
+                  <span>Manage Activities &amp; Attendance</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
               </div>
 
-              {/* BENTO CARD 2: COMPETITIONS & WINNERS (AMBER THEME) */}
-              <div className="rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-amber-50/40 via-white to-amber-50/20 dark:from-[#0D1929] dark:via-amber-950/15 dark:to-slate-900 border border-amber-200/80 dark:border-amber-900/50 shadow-sm flex flex-col justify-between space-y-5">
-                <div>
-                  <div className="flex items-center justify-between pb-3 border-b border-amber-100 dark:border-amber-950/60">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-sm">
-                        <Trophy className="w-4.5 h-4.5" />
+              {/* CARD 2: COMPETITIONS & WINNERS */}
+              <div className="rounded-2xl p-5 bg-white dark:bg-[#0D1929] border border-amber-200/80 dark:border-amber-900/60 shadow-xs flex flex-col justify-between space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs">
+                        <Trophy className="w-4 h-4" />
                       </div>
                       <div>
-                        <h2 className="text-base font-extrabold text-[#0F2A4A] dark:text-white leading-tight">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
                           Competitions &amp; Winners
-                        </h2>
-                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                          Contests, podium points &amp; evaluations
-                        </p>
+                        </h3>
+                        <p className="text-[10px] text-slate-400">Podium results &amp; evaluations</p>
                       </div>
                     </div>
-
-                    <span className="px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 text-xs font-extrabold border border-amber-200 dark:border-amber-800">
-                      {competitions.length} Contests
+                    <span className="px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
+                      {competitions.length}
                     </span>
                   </div>
 
-                  {/* Competition Spotlight */}
-                  <div className="pt-4 space-y-2.5">
-                    {competitions.length > 0 ? (
-                      <div className="p-3.5 rounded-2xl bg-white/90 dark:bg-slate-900/80 border border-amber-200/60 dark:border-slate-800 space-y-1.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-slate-900 dark:text-white truncate">
-                            {competitions[0].title}
-                          </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${competitions[0].winners?.firstPlace ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                            {competitions[0].winners?.firstPlace ? 'Winners Decided' : 'Pending Evaluation'}
-                          </span>
-                        </div>
-                        {competitions[0].winners?.firstPlace && (
-                          <p className="text-[11px] text-slate-600 dark:text-slate-300 font-semibold pt-0.5">
-                            🥇 1st: {competitions[0].winners.firstPlace.name} (CIC: {competitions[0].winners.firstPlace.cicNo})
-                          </p>
-                        )}
+                  {competitions.length > 0 ? (
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-bold">
+                        <span className="text-slate-900 dark:text-white truncate">{competitions[0].title}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${competitions[0].winners?.firstPlace ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                          {competitions[0].winners?.firstPlace ? 'Winners Decided' : 'Pending Evaluation'}
+                        </span>
                       </div>
-                    ) : (
-                      <p className="text-xs text-slate-400 py-3 italic">
-                        No competitions created yet. Click "+ Add Competition" above.
-                      </p>
-                    )}
-                  </div>
+                      {competitions[0].winners?.firstPlace && (
+                        <p className="text-[11px] text-slate-700 dark:text-slate-300 font-semibold truncate">
+                          🥇 1st: {competitions[0].winners.firstPlace.name} (CIC: {competitions[0].winners.firstPlace.cicNo})
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 py-2 italic">No competitions scheduled yet.</p>
+                  )}
                 </div>
 
-                <div className="pt-3 border-t border-amber-100/80 dark:border-amber-950/40 flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setActiveSubTab('competitions')}
-                    className="flex-1 py-2.5 px-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-98 cursor-pointer"
-                  >
-                    <span>Record Results &amp; Winners</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab('competitions')}
+                  className="w-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs active:scale-98 cursor-pointer"
+                >
+                  <span>Record Results &amp; Winners</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
               </div>
 
-              {/* BENTO CARD 3: CERTIFICATES ALLOCATION (INDIGO THEME) */}
-              <div className="rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-[#FFFDF9] via-indigo-50/25 to-white dark:from-[#0D1929] dark:via-indigo-950/20 dark:to-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-5">
-                <div>
-                  <div className="flex items-center justify-between pb-3 border-b border-indigo-100 dark:border-indigo-950/60">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
-                        <Award className="w-4.5 h-4.5" />
+              {/* CARD 3: CERTIFICATES & HONORS */}
+              <div className="rounded-2xl p-5 bg-white dark:bg-[#0D1929] border border-indigo-200/80 dark:border-indigo-900/60 shadow-xs flex flex-col justify-between space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                        <Award className="w-4 h-4" />
                       </div>
                       <div>
-                        <h2 className="text-base font-extrabold text-[#0F2A4A] dark:text-white leading-tight">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
                           Certificates &amp; Honors
-                        </h2>
-                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                          Merit, participation &amp; PDF generation
-                        </p>
+                        </h3>
+                        <p className="text-[10px] text-slate-400">Merit citations &amp; PDF honor</p>
                       </div>
                     </div>
-
-                    <span className="px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 text-xs font-extrabold border border-indigo-200 dark:border-indigo-800">
-                      {myWingCertificates.length} Issued
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-800">
+                      {myWingCertificates.length}
                     </span>
                   </div>
 
-                  {/* Certificates Preview */}
-                  <div className="pt-4 space-y-2">
-                    {myWingCertificates.length > 0 ? (
-                      <div className="p-3.5 rounded-2xl bg-white/90 dark:bg-slate-900/80 border border-indigo-100/90 dark:border-slate-800 space-y-1">
-                        <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
-                          {myWingCertificates[0].studentName} &bull; {myWingCertificates[0].awardTitle}
-                        </span>
-                        <span className="text-[11px] text-slate-400 block">
-                          CIC {myWingCertificates[0].cicNo} &bull; Issued on {myWingCertificates[0].issueDate}
-                        </span>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-slate-400 py-3 italic">
-                        No certificates issued under this wing yet.
-                      </p>
-                    )}
-                  </div>
+                  {myWingCertificates.length > 0 ? (
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 space-y-1">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
+                        {myWingCertificates[0].studentName} &bull; {myWingCertificates[0].awardTitle}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block">
+                        CIC: {myWingCertificates[0].cicNo} &bull; {myWingCertificates[0].issueDate}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 py-2 italic">No certificates issued yet.</p>
+                  )}
                 </div>
 
-                <div className="pt-3 border-t border-indigo-100/80 dark:border-indigo-950/40 flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setActiveSubTab('certificates')}
-                    className="flex-1 py-2.5 px-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-98 cursor-pointer"
-                  >
-                    <span>Manage All Certificates</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab('certificates')}
+                  className="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs active:scale-98 cursor-pointer"
+                >
+                  <span>Manage All Certificates</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
               </div>
 
-              {/* BENTO CARD 4: SPECIALIZED WING CONSOLES & REPORTS */}
-              <div className="rounded-3xl p-5 sm:p-6 bg-white dark:bg-[#0D1929] border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-5">
-                <div>
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-2xl bg-[#0F2A4A] text-white flex items-center justify-center shadow-sm">
-                        <FileText className="w-4.5 h-4.5 text-teal-400" />
+              {/* CARD 4: SPECIALIZED WING CONSOLE / FAIR JUDGING (FINE ARTS) */}
+              {isFineArts && !isSportsWing && (
+                <div className="rounded-2xl p-5 bg-gradient-to-br from-teal-50/50 via-white to-amber-50/30 dark:from-[#0D1929] dark:to-teal-950/30 border border-teal-300/80 dark:border-teal-800/70 shadow-xs flex flex-col justify-between space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-[#0E7C86] text-white flex items-center justify-center shadow-xs">
+                          <Palette className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                            Fair Judging &amp; Summit Rules
+                          </h3>
+                          <p className="text-[10px] text-slate-500">Fine Arts Summit festival policies</p>
+                        </div>
                       </div>
-                      <div>
-                        <h2 className="text-base font-extrabold text-[#0F2A4A] dark:text-white leading-tight">
-                          Reports &amp; Dedicated Consoles
-                        </h2>
-                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                          Official documentation &amp; specialized tools
-                        </p>
+                      <span className="px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950/80 text-teal-800 dark:text-teal-200 text-[10px] font-bold">
+                        Fine Arts Exclusive
+                      </span>
+                    </div>
+
+                    <div className="space-y-2.5 text-xs">
+                      {/* Fair Judging Toggle */}
+                      <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white text-xs">
+                            <ShieldCheck className="w-3.5 h-3.5 text-[#0E7C86]" />
+                            <span>Fair Judging (Mask Teams)</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                            {fairJudgingModeActive ? 'Active: Judges see only Chest numbers' : 'Disabled: Team names visible'}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleToggleFairJudging}
+                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            fairJudgingModeActive ? 'bg-[#0E7C86]' : 'bg-slate-300 dark:bg-slate-700'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                              fairJudgingModeActive ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Judge Restriction Toggle */}
+                      <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white text-xs">
+                            {judgeRestrictionsEnforced ? <Lock className="w-3.5 h-3.5 text-amber-600" /> : <Unlock className="w-3.5 h-3.5 text-emerald-600" />}
+                            <span>Judge Event Restriction</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                            {judgeRestrictionsEnforced ? 'Restricted: Assigned programs only' : 'Unrestricted: All programs open'}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleToggleJudgeRestrictions}
+                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            judgeRestrictionsEnforced ? 'bg-amber-600' : 'bg-emerald-600'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                              judgeRestrictionsEnforced ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Max Programs Per Student */}
+                      <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                        <span className="font-bold text-slate-900 dark:text-white text-xs">Max Events / Student:</span>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            min="0"
+                            max="10"
+                            value={maxProgramsLimit}
+                            onChange={(e) => handleMaxProgramsChange(e.target.value)}
+                            className="w-12 p-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-center font-bold text-xs"
+                          />
+                          <span className="text-[10px] text-slate-400 font-semibold">{maxProgramsLimit === 0 ? '(Unlimited)' : 'Events'}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3">
-                    {/* Monthly Report */}
-                    <button
-                      type="button"
-                      onClick={() => setIsReportModalOpen(true)}
-                      className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-left transition cursor-pointer flex flex-col justify-between"
-                    >
-                      <Printer className="w-4 h-4 text-[#0E7C86] mb-1" />
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Malayalam Report</span>
-                      <span className="text-[10px] text-slate-400 block truncate">Official narrative PDF</span>
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSubTab('summit_register')}
+                    className="w-full py-2 px-3 rounded-xl bg-[#0E7C86] hover:bg-[#0c6b73] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs active:scale-98 cursor-pointer"
+                  >
+                    <span>Open Full Summit Register &amp; Scoring</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
 
-                    {/* Fine Arts Summit Shortcut if Fine Arts */}
-                    {isFineArts && !isSportsWing && (
-                      <button
-                        type="button"
-                        onClick={() => setActiveSubTab('summit_register')}
-                        className="p-3 rounded-2xl bg-amber-50/70 hover:bg-amber-100/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-left transition cursor-pointer flex flex-col justify-between"
-                      >
-                        <Palette className="w-4 h-4 text-amber-600 mb-1" />
-                        <span className="text-xs font-bold text-amber-950 dark:text-amber-200 block">Summit Register</span>
-                        <span className="text-[10px] text-amber-700 dark:text-amber-300 block truncate">Fine arts candidate list</span>
-                      </button>
-                    )}
+              {/* CARD 4 ALTERNATIVE: SPORTS WING */}
+              {isSportsWing && !isFineArts && (
+                <div className="rounded-2xl p-5 bg-gradient-to-br from-amber-50/50 via-white to-orange-50/30 dark:from-[#0D1929] dark:to-orange-950/30 border border-amber-300/80 dark:border-amber-800/70 shadow-xs flex flex-col justify-between space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-amber-600 text-white flex items-center justify-center shadow-xs">
+                          <Trophy className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                            College Sports Championship
+                          </h3>
+                          <p className="text-[10px] text-slate-500">Fixtures, teams &amp; house standings</p>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200 text-[10px] font-bold">
+                        Sports Console
+                      </span>
+                    </div>
 
-                    {/* Sports Wing Shortcut if Sports Wing */}
-                    {isSportsWing && !isFineArts && (
-                      <button
-                        type="button"
-                        onClick={() => setActiveSubTab('college_sports')}
-                        className="p-3 rounded-2xl bg-amber-50/70 hover:bg-amber-100/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-left transition cursor-pointer flex flex-col justify-between"
-                      >
-                        <Trophy className="w-4 h-4 text-amber-600 mb-1" />
-                        <span className="text-xs font-bold text-amber-950 dark:text-amber-200 block">College Sports</span>
-                        <span className="text-[10px] text-amber-700 dark:text-amber-300 block truncate">Teams, points &amp; rosters</span>
-                      </button>
-                    )}
-
-                    {/* Posters Slide Manager */}
-                    <button
-                      type="button"
-                      onClick={() => setIsBannerModalOpen(true)}
-                      className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-left transition cursor-pointer flex flex-col justify-between"
-                    >
-                      <Sparkles className="w-4 h-4 text-purple-600 mb-1" />
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Posters &amp; Slides</span>
-                      <span className="text-[10px] text-slate-400 block truncate">Campus event slides</span>
-                    </button>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                      Manage college sports house tournaments, team allocations, point systems, match fixtures, and championship trophy records.
+                    </p>
                   </div>
-                </div>
 
-                <div className="pt-2">
-                  <span className="text-[11px] text-slate-400 block">
-                    Affiliated to Coordination of Islamic Colleges (CIC)
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSubTab('college_sports')}
+                    className="w-full py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs active:scale-98 cursor-pointer"
+                  >
+                    <span>Open College Sports Console</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-              </div>
+              )}
+
+              {/* CARD 4 ALTERNATIVE: GENERAL WING NOTICES */}
+              {isGeneralWing && (
+                <div className="rounded-2xl p-5 bg-white dark:bg-[#0D1929] border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center shadow-xs">
+                          <Megaphone className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                            Campus Bulletin &amp; Notices
+                          </h3>
+                          <p className="text-[10px] text-slate-500">Official circulars &amp; announcements</p>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 text-[10px] font-bold">
+                        Live Feed
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                      Publish official wing circulars, event agendas, and important notifications instantly to student feeds and noticeboards.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsPostNotifOpen(true)}
+                    className="w-full py-2 px-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs active:scale-98 cursor-pointer"
+                  >
+                    <span>+ Post Campus Notice</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-        ) : (
-          /* =========================================================================
-              ACTIVE SUB-MODULE VIEW WITH TOP BREADCRUMB
-             ========================================================================= */
-          <div className="space-y-5 animate-fade-in">
+        </div>
+      ) : (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-2 space-y-5 animate-fade-in">
             {/* Top Back Navigation Bar */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800">
               <button
@@ -1230,7 +1311,6 @@ export const WingConvenerDashboard = ({ activeTab, setActiveTab }) => {
             )}
           </div>
         )}
-      </div>
 
       {/* =========================================================================
           FLOATING BOTTOM PILL DOCK (Institutional Glassmorphism Navigation)

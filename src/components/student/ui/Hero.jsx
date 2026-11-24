@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, Bell, ArrowLeft } from 'lucide-react';
+import { Menu, Bell, ArrowLeft, Crown } from 'lucide-react';
 import { EASING, SPRING_POP, isReducedMotion } from '../motion';
 
 const getTimeGreeting = () => {
@@ -32,7 +32,9 @@ export const Hero = ({
   student,
   className = '',
   sectionName = '',
-  wings = []
+  wings = [],
+  dualRoleInfo = null,
+  onSwitchRole
 }) => {
   const reduced = isReducedMotion();
   const greeting = getTimeGreeting();
@@ -108,9 +110,23 @@ export const Hero = ({
           <Menu className="w-5 h-5" />
         </motion.button>
 
-        <span className="text-sm font-black tracking-wide uppercase text-white/95">
-          MUSF Union
-        </span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm font-black tracking-wide uppercase text-white/95">
+            MUSF Union
+          </span>
+          {dualRoleInfo && onSwitchRole && (
+            <motion.button
+              type="button"
+              onClick={onSwitchRole}
+              whileTap={reduced ? undefined : { scale: 0.94 }}
+              className="px-2.5 py-1 rounded-full bg-amber-400/25 hover:bg-amber-400/35 border border-amber-300/40 text-amber-200 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shadow-xs"
+              title={`Switch to ${dualRoleInfo.roleTitle || 'Wing Console'}`}
+            >
+              <Crown className="w-3 h-3 text-amber-300 shrink-0" />
+              <span>{dualRoleInfo.shortLabel || 'Wing Console'}</span>
+            </motion.button>
+          )}
+        </div>
 
         {/* Bell with Wiggle and Spring Count Badge */}
         <motion.button

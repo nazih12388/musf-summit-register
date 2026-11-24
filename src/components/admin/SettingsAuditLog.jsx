@@ -176,7 +176,7 @@ export const SettingsAuditLog = () => {
           }`}
         >
           <Settings className="w-4 h-4 text-[#0E7C86]" />
-          <span>Summit & Fair Judging</span>
+          <span>System Identity & General</span>
         </button>
 
         <button
@@ -297,90 +297,18 @@ export const SettingsAuditLog = () => {
             </div>
           </div>
 
-          {/* Fair Judging Mode Toggle */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between gap-4">
+          {/* Relocation Notice: Fair Judging moved to Fine Arts Wing */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-teal-50/70 dark:bg-teal-950/20 border border-teal-200/80 dark:border-teal-800/40 flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-teal-100 dark:bg-teal-900/50 text-[#0E7C86] dark:text-teal-300 shrink-0">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-[#0E7C86]" />
-                <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
-                  Fair Judging Mode (Mask Team Names)
-                </h4>
-              </div>
-              <p className="text-xs text-slate-500 leading-relaxed max-w-xl">
-                When enabled, judges only see participant <strong>Chest Numbers</strong> on their scoring consoles. Team names and team colors are completely hidden from all judges to guarantee 100% objective academic evaluation.
+              <h5 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                Summit Evaluation &amp; Fair Judging Settings Relocated
+              </h5>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Fair Judging Mode (Mask Team Names), Judge Program Restrictions, and Student Nomination Limits have been moved directly to the <strong>Fine Arts Wing Console &bull; Summit Register</strong>. Fine Arts conveners and festival administrators can manage judging policies natively from their dashboard.
               </p>
-            </div>
-
-            <button
-              onClick={() => handleToggle('fairJudgingMode')}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                formData.fairJudgingMode ? 'bg-[#0E7C86]' : 'bg-slate-300 dark:bg-slate-700'
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                  formData.fairJudgingMode ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* Enforce Judge Program Restrictions Toggle */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                {formData.enforceJudgeRestrictions ? (
-                  <Lock className="w-5 h-5 text-amber-600" />
-                ) : (
-                  <Unlock className="w-5 h-5 text-emerald-600" />
-                )}
-                <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
-                  {tr('Enforce Judge Program Restrictions', 'ജഡ്ജ് നിയന്ത്രണങ്ങൾ നിർബന്ധമാക്കുക')}
-                </h4>
-              </div>
-              <p className="text-xs text-slate-500 leading-relaxed max-w-xl">
-                When <strong>Enabled</strong>, judges can only view and evaluate events explicitly assigned to them.
-                When <strong>Disabled (Lift Restrictions)</strong>, any judge can evaluate all programs across summits without individual assignment.
-              </p>
-            </div>
-
-            <button
-              onClick={() => handleToggle('enforceJudgeRestrictions')}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                formData.enforceJudgeRestrictions ? 'bg-amber-600' : 'bg-emerald-600'
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                  formData.enforceJudgeRestrictions ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* Maximum Programs Allowed per Student */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1 max-w-xl">
-              <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
-                Maximum Programs per Student (per Summit)
-              </h4>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Limits how many events a single student can take part in within a summit. The system will block extra nominations beyond this limit. Set to <strong>0</strong> for unlimited participation.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="0"
-                max="10"
-                value={formData.maxProgramsPerStudent}
-                onChange={(e) => handleNumberChange('maxProgramsPerStudent', e.target.value)}
-                className="w-16 p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-center font-bold font-mono text-sm"
-              />
-              <span className="text-xs text-slate-400 font-semibold">
-                {formData.maxProgramsPerStudent === 0 ? '(Unlimited)' : 'Events Max'}
-              </span>
             </div>
           </div>
         </div>

@@ -21,7 +21,9 @@ import {
   AlertCircle,
   FileText,
   Clock,
-  Check
+  Check,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 export const JudgeManagement = () => {
@@ -64,6 +66,8 @@ export const JudgeManagement = () => {
 
   const globalRestrictionsEnforced = settings?.enforceJudgeRestrictions !== false;
   const globalMarkEditingAllowed = settings?.allowJudgeMarkEditing !== false;
+  const fairJudgingModeActive = Boolean(settings?.fairJudgingMode);
+  const maxProgramsLimit = settings?.maxProgramsPerStudent || 0;
 
   const handleToggleGlobalRestrictions = () => {
     const nextVal = !globalRestrictionsEnforced;
@@ -73,6 +77,19 @@ export const JudgeManagement = () => {
   const handleToggleGlobalMarkEditing = () => {
     const nextVal = !globalMarkEditingAllowed;
     updateSettings({ allowJudgeMarkEditing: nextVal }, currentUser?.username || 'admin');
+  };
+
+  const handleToggleFairJudging = () => {
+    const nextVal = !fairJudgingModeActive;
+    updateSettings({
+      fairJudgingMode: nextVal,
+      hideTeamFromJudges: nextVal
+    }, currentUser?.username || 'fine_arts');
+  };
+
+  const handleMaxProgramsChange = (val) => {
+    const num = Math.max(0, Math.min(10, Number(val) || 0));
+    updateSettings({ maxProgramsPerStudent: num }, currentUser?.username || 'fine_arts');
   };
 
   const handleAddSubmit = async (e) => {
@@ -290,6 +307,99 @@ export const JudgeManagement = () => {
               </>
             )}
           </button>
+        </div>
+
+        {/* Policy 3: Fair Judging Mode (Blind Evaluation - Mask Team Names) */}
+        <div className={`p-4 rounded-2xl border transition flex flex-col justify-between gap-3 ${
+          fairJudgingModeActive
+            ? 'bg-teal-50/70 dark:bg-teal-950/20 border-teal-200 dark:border-teal-800/50'
+            : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800'
+        }`}>
+          <div className="flex items-start gap-3">
+            <div className={`p-2 rounded-xl shrink-0 ${
+              fairJudgingModeActive
+                ? 'bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-300'
+                : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+            }`}>
+              {fairJudgingModeActive ? <EyeOff className="w-5 h-5 text-[#0E7C86]" /> : <Eye className="w-5 h-5" />}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                  Fair Judging Mode (Mask Team Names)
+                </h4>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                  fairJudgingModeActive
+                    ? 'bg-teal-200 dark:bg-teal-900/60 text-teal-900 dark:text-teal-200'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                }`}>
+                  {fairJudgingModeActive ? 'Active (Blind)' : 'Disabled'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                {fairJudgingModeActive
+                  ? 'Judges ONLY see chest numbers on their scoring console. House team names and colors are fully hidden.'
+                  : 'Judges see student team names and colors during event evaluation.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleToggleFairJudging}
+            className={`self-end px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs ${
+              fairJudgingModeActive
+                ? 'bg-slate-700 hover:bg-slate-800 text-white'
+                : 'bg-[#0E7C86] hover:bg-[#0c6b73] text-white'
+            }`}
+          >
+            {fairJudgingModeActive ? (
+              <>
+                <Eye className="w-4 h-4" />
+                <span>Disable Blind Judging</span>
+              </>
+            ) : (
+              <>
+                <EyeOff className="w-4 h-4" />
+                <span>Enable Fair Judging (Mask Teams)</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Policy 4: Maximum Programs per Student Nomination Cap */}
+        <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/30 flex flex-col justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 shrink-0">
+              <FileText className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                  Max Events Limit per Student
+                </h4>
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-200">
+                  {maxProgramsLimit === 0 ? 'Unlimited' : `${maxProgramsLimit} Events Max`}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                Limits how many summit programs a single student can be nominated for. Set to 0 for unlimited entries.
+              </p>
+            </div>
+          </div>
+
+          <div className="self-end flex items-center gap-2">
+            <input
+              type="number"
+              min="0"
+              max="10"
+              value={maxProgramsLimit}
+              onChange={(e) => handleMaxProgramsChange(e.target.value)}
+              className="w-16 p-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-center font-bold font-mono text-xs"
+            />
+            <span className="text-[11px] text-slate-400 font-semibold">
+              {maxProgramsLimit === 0 ? '(No Limit)' : 'Per Student'}
+            </span>
+          </div>
         </div>
       </div>
 
