@@ -307,20 +307,28 @@ export const AuthProvider = ({ children }) => {
       let unionRole = null;
 
       if (officialMatch) {
+        // Security Rule: If student has been appointed to a Union position by Admin,
+        // they MUST authenticate with the password assigned by Admin.
+        // Logging in with just their CIC number without the admin password is strictly prohibited.
+        if (!candidatePass) {
+          throw new Error("This account holds a Union Official position. Please enter your portal password assigned by Admin.");
+        }
+
+        const isUnionPass = (
+          (officialMatch.password && candidatePass === officialMatch.password) ||
+          (officialMatch.initialPassword && candidatePass === officialMatch.initialPassword) ||
+          (officialMatch.passwordHash && (await verifyPassword(candidatePass, officialMatch.passwordHash)))
+        );
+
+        if (!isUnionPass) {
+          throw new Error("Invalid password for this Union Official account. Please enter the password assigned by Admin.");
+        }
+
         const isOfficialExec = officialMatch.category === 'executive' || officialMatch.role === 'executive' || officialMatch.assignedWingId === 'all';
         unionRole = isOfficialExec ? 'executive' : (officialMatch.role || 'convener');
         availableRoles = ['student', unionRole];
         unionOfficial = officialMatch;
-
-        // If candidate entered their union password, log directly into union role
-        const isUnionPass = candidatePass && (
-          candidatePass === officialMatch.password ||
-          candidatePass === officialMatch.initialPassword ||
-          (officialMatch.passwordHash && (await verifyPassword(candidatePass, officialMatch.passwordHash)))
-        );
-        if (isUnionPass) {
-          initialRole = unionRole;
-        }
+        initialRole = unionRole;
       }
 
       const userObj = {
@@ -381,10 +389,7 @@ export const AuthProvider = ({ children }) => {
         let unionRole = null;
 
         if (officialMatch) {
-          const isOfficialExec = officialMatch.category === 'executive' || officialMatch.role === 'executive' || officialMatch.assignedWingId === 'all';
-          unionRole = isOfficialExec ? 'executive' : (officialMatch.role || 'convener');
-          availableRoles = ['student', unionRole];
-          unionOfficial = officialMatch;
+          throw new Error("This account holds a Union Official position. Please log in using your credentials and Admin-assigned password.");
         }
 
         const userObj = {
@@ -426,14 +431,13 @@ export const AuthProvider = ({ children }) => {
       (o.name && o.name.toLowerCase() === trimmedUser)
     );
     if (official) {
-      const isDefaultMatch = (official.initialPassword && candidatePass === official.initialPassword) ||
-                             (official.password && candidatePass === official.password) ||
-                             candidatePass === 'union123' ||
-                             candidatePass === 'MUSF' ||
-                             candidatePass.toUpperCase() === 'MUSF' ||
-                             candidatePass === '1234';
-      const isHashMatch = await verifyPassword(candidatePass, official.passwordHash);
-      if (isDefaultMatch || isHashMatch) {
+      const isPassMatch = (official.password && candidatePass === official.password) ||
+                          (official.initialPassword && candidatePass === official.initialPassword) ||
+                          (official.passwordHash && (await verifyPassword(candidatePass, official.passwordHash)));
+      if (!isPassMatch) {
+        throw new Error("Invalid password for Union Official account. Please enter the password assigned by Admin.");
+      }
+      {
         const isOfficialExec = official.category === 'executive' || official.role === 'executive' || official.assignedWingId === 'all';
         const unionRole = isOfficialExec ? 'executive' : (official.role || 'convener');
 

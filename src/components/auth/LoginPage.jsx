@@ -8,7 +8,6 @@ import {
   EyeOff,
   AlertCircle,
   Loader2,
-  Tv,
   Moon,
   Sun,
   Globe,
@@ -56,21 +55,6 @@ export const LoginPage = ({ isDark, setIsDark }) => {
       setError(msg);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleAuditoriumMode = () => {
-    try {
-      const publicViewer = {
-        id: 'auditorium_guest',
-        username: 'guest_display',
-        name: 'Auditorium Projector Display',
-        role: 'student'
-      };
-      localStorage.setItem('musf_current_user_v1', JSON.stringify(publicViewer));
-      window.location.reload();
-    } catch (e) {
-      console.warn('Auditorium mode notice:', e);
     }
   };
 
@@ -146,19 +130,14 @@ export const LoginPage = ({ isDark, setIsDark }) => {
       </div>
 
       {/* ========================================================= */}
-      {/* TOP UTILITY HEADER: Auditorium Mode, Language, Theme      */}
+      {/* TOP UTILITY HEADER: Language, Theme                       */}
       {/* ========================================================= */}
       <header className="shrink-0 relative z-10 w-full max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 pt-2 sm:pt-3 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={handleAuditoriumMode}
-          className="px-3 py-1.5 rounded-full border border-blue-200/90 dark:border-blue-800/80 bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 text-blue-950 dark:text-blue-200 font-semibold text-xs flex items-center gap-1.5 transition-all duration-200 shadow-sm hover:shadow hover:scale-102 active:scale-95 cursor-pointer backdrop-blur-md"
-          title="Auditorium Projector Display Mode"
-        >
-          <Tv className="w-3.5 h-3.5 text-[#1E56A0] dark:text-blue-400 shrink-0" />
-          <span className="hidden sm:inline">Auditorium Mode</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-black uppercase tracking-wider text-[#1E56A0] dark:text-blue-300 bg-white/70 dark:bg-slate-900/70 px-3 py-1 rounded-full border border-blue-200/90 dark:border-blue-800/80 shadow-2xs backdrop-blur-md">
+            MUSF Portal
+          </span>
+        </div>
 
         <div className="flex items-center gap-2">
           <button
@@ -192,11 +171,11 @@ export const LoginPage = ({ isDark, setIsDark }) => {
           {/* ===================================================== */}
           {/* LEFT SECTION: Campus & Watermark Art                  */}
           {/* ===================================================== */}
-          <div className="relative w-full h-44 sm:h-56 md:h-auto md:w-[46%] lg:w-[48%] shrink-0 bg-[#CFE3FB] dark:bg-[#0B1A2F] flex items-center justify-center overflow-hidden">
+          <div className="relative w-full h-44 sm:h-52 md:h-auto md:w-[46%] lg:w-[48%] shrink-0 bg-[#CFE3FB] dark:bg-[#0B1A2F] flex items-center justify-center overflow-hidden">
             <img
               src="/musf-login-hero.jpg"
               alt="Majlis Umariyya Wafy College Campus & MUSF Emblem"
-              className="w-full h-full object-cover object-center select-none pointer-events-none"
+              className="w-full h-full object-contain md:object-cover object-center select-none pointer-events-none"
               loading="eager"
             />
           </div>

@@ -138,8 +138,8 @@ export function AppContent() {
         )
       ) : (
         <div className="min-h-[100dvh] flex flex-col bg-[#F6F8FB] dark:bg-[#080E18] text-slate-800 dark:text-slate-100 font-sans transition-colors duration-200">
-          {/* Top Navbar: hidden on mobile for student role to let the colored Hero touch the top edge */}
-          {currentUser?.role === 'student' ? (
+          {/* Top Navbar: hidden on mobile for student & convener roles so native colored hero and docked bottom bar govern mobile without side drawer */}
+          {currentUser?.role === 'student' || currentUser?.role === 'convener' ? (
             <div className="hidden md:block">
               <Navbar
                 isDark={isDark}

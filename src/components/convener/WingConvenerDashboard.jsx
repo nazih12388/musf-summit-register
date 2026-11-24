@@ -51,7 +51,8 @@ import {
   ArrowLeft,
   LogOut,
   Eye,
-  EyeOff
+  EyeOff,
+  Sliders
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -811,6 +812,26 @@ export const WingConvenerDashboard = ({ activeTab, setActiveTab }) => {
                         </div>
                       </div>
                     </div>
+
+                    {/* Attendance Rules & OPS Formula Quick Pill */}
+                    <div className="p-2.5 rounded-xl bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/40 flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 font-bold text-[#0E7C86] dark:text-teal-300 text-xs">
+                          <Sliders className="w-3.5 h-3.5" />
+                          <span>Attendance Rules &amp; OPS Formula</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                          Late/Excused credit, {settings?.overallMarksWeight || 80}% marks + {settings?.overallAttendanceWeight || 20}% attendance
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveSubTab('summit_register')}
+                        className="px-2.5 py-1 rounded-lg bg-[#0E7C86] text-white text-[10px] font-bold shrink-0 hover:bg-[#0c6b73] transition cursor-pointer"
+                      >
+                        Configure
+                      </button>
+                    </div>
                   </div>
 
                   <button
@@ -1313,13 +1334,13 @@ export const WingConvenerDashboard = ({ activeTab, setActiveTab }) => {
         )}
 
       {/* =========================================================================
-          FLOATING BOTTOM PILL DOCK (Institutional Glassmorphism Navigation)
+          NATIVE APP BOTTOM NAVIGATION BAR (Full Width Docked Bar, No Side Menus)
          ========================================================================= */}
       <nav
-        aria-label="Convener Navigation Dock"
-        className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 select-none pointer-events-auto"
+        aria-label="Wing Convener Bottom Navigation"
+        className="fixed bottom-0 left-0 right-0 z-50 select-none bg-white/95 dark:bg-[#091320]/95 backdrop-blur-xl border-t border-slate-200/90 dark:border-slate-800/90 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] pb-safe"
       >
-        <div className="relative flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-white/92 dark:bg-[#0B1522]/92 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-700/80 shadow-[0_12px_36px_rgba(15,42,74,0.18)] dark:shadow-[0_14px_40px_rgba(0,0,0,0.6)]">
+        <div className="max-w-md md:max-w-xl mx-auto h-16 px-1 flex items-center justify-around">
           {dockTabs.map(tab => {
             const TabIcon = tab.icon;
             const isActive = activeSubTab === tab.id;
@@ -1329,70 +1350,63 @@ export const WingConvenerDashboard = ({ activeTab, setActiveTab }) => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveSubTab(tab.id)}
-                className={`relative flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer ${
+                className={`relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-all duration-200 cursor-pointer ${
                   isActive
-                    ? 'text-white'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
+                    ? 'text-[#0E7C86] dark:text-teal-400 font-bold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
                 title={tab.label}
               >
                 {isActive && (
                   <motion.div
-                    layoutId="convenerActiveDockPill"
-                    className="absolute inset-0 rounded-full bg-gradient-to-r from-[#0F2A4A] to-[#0E7C86] shadow-md shadow-blue-950/25"
-                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                    layoutId="wingBottomBarActive"
+                    className="absolute top-0 w-8 h-1 rounded-full bg-[#0E7C86] dark:bg-teal-400"
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                   />
                 )}
-                <TabIcon className={`relative z-10 w-4 h-4 shrink-0 ${isActive ? 'text-teal-300' : 'text-slate-500 dark:text-slate-400'}`} strokeWidth={isActive ? 2.5 : 2} />
-                <span className={`relative z-10 hidden md:inline leading-none ${isActive ? 'text-white' : ''}`}>
+                <div className="relative">
+                  <TabIcon className={`w-5 h-5 transition-transform duration-200 ${isActive ? 'scale-110' : ''}`} strokeWidth={isActive ? 2.4 : 1.8} />
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center shadow-xs">
+                      {tab.badge > 99 ? '99+' : tab.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] sm:text-[11px] mt-1 leading-none tracking-tight truncate max-w-[64px]">
                   {tab.label}
                 </span>
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`relative z-10 text-[10px] px-1.5 py-0.2 rounded-full font-black leading-tight ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                  }`}>
-                    {tab.badge}
-                  </span>
-                )}
               </button>
             );
           })}
 
-          {/* Direct Report Modal Trigger */}
+          {/* Quick Malayalam Monthly Report Trigger */}
           <button
             type="button"
             onClick={() => setIsReportModalOpen(true)}
-            className="relative flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition cursor-pointer"
-            title="Monthly Report (PDF)"
+            className="relative flex flex-col items-center justify-center flex-1 h-full py-1 text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-200 cursor-pointer"
+            title="Monthly Malayalam Report (PDF)"
           >
-            <Printer className="w-4 h-4 text-purple-600" />
-            <span className="hidden md:inline">Report</span>
+            <div className="relative">
+              <Printer className="w-5 h-5" strokeWidth={1.8} />
+            </div>
+            <span className="text-[10px] sm:text-[11px] mt-1 leading-none tracking-tight">
+              Report
+            </span>
           </button>
 
-          {/* Direct Post Notice Trigger */}
+          {/* Quick Post Notice Trigger */}
           <button
             type="button"
             onClick={() => setIsPostNotifOpen(true)}
-            className="relative flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition cursor-pointer"
+            className="relative flex flex-col items-center justify-center flex-1 h-full py-1 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-all duration-200 cursor-pointer"
             title="Post Notice"
           >
-            <Megaphone className="w-4 h-4 text-rose-500" />
-            <span className="hidden md:inline">Notice</span>
-          </button>
-
-          {/* Direct Sign Out Trigger */}
-          <button
-            type="button"
-            onClick={() => {
-              if (window.confirm('Are you sure you want to sign out?')) {
-                logout();
-              }
-            }}
-            className="relative flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
-            title="Sign Out"
-          >
-            <LogOut className="w-4 h-4 text-rose-500 shrink-0" />
-            <span className="hidden md:inline">Sign Out</span>
+            <div className="relative">
+              <Megaphone className="w-5 h-5" strokeWidth={1.8} />
+            </div>
+            <span className="text-[10px] sm:text-[11px] mt-1 leading-none tracking-tight">
+              Notice
+            </span>
           </button>
         </div>
       </nav>

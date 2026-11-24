@@ -14,6 +14,7 @@ import { JudgeManagement } from './JudgeManagement';
 import { ReportsAnalytics } from './ReportsAnalytics';
 import { CertificatesManager } from './CertificatesManager';
 import { LiveScoreboard } from '../scoreboard/LiveScoreboard';
+import { SummitFestivalRules } from './SummitFestivalRules';
 import {
   Calendar,
   BookOpen,
@@ -28,7 +29,8 @@ import {
   ShieldAlert,
   ArrowRightLeft,
   Lock,
-  ShieldCheck
+  ShieldCheck,
+  Sliders
 } from 'lucide-react';
 
 export const SummitRegisterModule = ({ onBack }) => {
@@ -71,6 +73,7 @@ export const SummitRegisterModule = ({ onBack }) => {
     { id: 'leaders', label: 'Team Leaders', icon: Users, isEdit: true },
     { id: 'judges', label: 'Judges & Blind Mode', icon: Scale, isEdit: true },
     { id: 'scoreboard', label: 'Live Leaderboard', icon: Trophy, isEdit: false },
+    { id: 'rules', label: 'Festival Rules & OPS', icon: Sliders, isEdit: true },
     { id: 'certificates', label: 'Certificates', icon: FileCheck, isEdit: true },
     { id: 'reports', label: 'Reports', icon: FileCheck, isEdit: false }
   ];
@@ -216,6 +219,7 @@ export const SummitRegisterModule = ({ onBack }) => {
             {subTab === 'leaders' && <LeaderManagement />}
             {subTab === 'judges' && <JudgeManagement />}
             {subTab === 'scoreboard' && <LiveScoreboard />}
+            {subTab === 'rules' && <SummitFestivalRules />}
             {subTab === 'certificates' && <CertificatesManager />}
             {subTab === 'teams' && <TeamAndClassManagement />}
             {subTab === 'reports' && <ReportsAnalytics />}

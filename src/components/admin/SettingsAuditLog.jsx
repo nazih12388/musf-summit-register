@@ -181,32 +181,6 @@ export const SettingsAuditLog = () => {
 
         <button
           type="button"
-          onClick={() => setActiveTab('attendance')}
-          className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-98 ${
-            activeTab === 'attendance'
-              ? 'bg-[#0F2A4A] text-white shadow-xs font-bold'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-          }`}
-        >
-          <CalendarCheck2 className="w-4 h-4 text-emerald-500" />
-          <span>Attendance Rules</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('ops')}
-          className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-98 ${
-            activeTab === 'ops'
-              ? 'bg-[#0F2A4A] text-white shadow-xs font-bold'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-          }`}
-        >
-          <TrendingUp className="w-4 h-4 text-[#C9A227]" />
-          <span>Overall Performance Score (OPS)</span>
-        </button>
-
-        <button
-          type="button"
           onClick={() => setActiveTab('audit')}
           className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-98 ${
             activeTab === 'audit'
@@ -297,239 +271,24 @@ export const SettingsAuditLog = () => {
             </div>
           </div>
 
-          {/* Relocation Notice: Fair Judging moved to Fine Arts Wing */}
+          {/* Relocation Notice: Fair Judging, Attendance Rules & OPS moved to Fine Arts Wing */}
           <div className="p-4 sm:p-5 rounded-2xl bg-teal-50/70 dark:bg-teal-950/20 border border-teal-200/80 dark:border-teal-800/40 flex items-start gap-3">
             <div className="p-2 rounded-xl bg-teal-100 dark:bg-teal-900/50 text-[#0E7C86] dark:text-teal-300 shrink-0">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div className="space-y-1">
               <h5 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
-                Summit Evaluation &amp; Fair Judging Settings Relocated
+                Summit Evaluation, Attendance Rules &amp; OPS Relocated
               </h5>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Fair Judging Mode (Mask Team Names), Judge Program Restrictions, and Student Nomination Limits have been moved directly to the <strong>Fine Arts Wing Console &bull; Summit Register</strong>. Fine Arts conveners and festival administrators can manage judging policies natively from their dashboard.
+                Fair Judging Mode (Mask Team Names), Attendance Rules (Late / Excused credit), Overall Performance Score (OPS) engine, and Student Program Limits have been relocated to the <strong>Fine Arts Wing Console &bull; Summit Register</strong>. Fine Arts conveners and festival administrators manage these festival controls directly from their console.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* TAB 2: Attendance Rules */}
-      {activeTab === 'attendance' && (
-        <div className="space-y-5 max-w-3xl">
-          {/* Late rule */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between gap-4">
-            <div className="space-y-1">
-              <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
-                Count &quot;Late&quot; as Present
-              </h4>
-              <p className="text-xs text-slate-500 leading-relaxed max-w-xl">
-                When active, students marked &quot;Late&quot; in START, MID, or END sessions are credited as present towards their attendance percentage.
-              </p>
-            </div>
-            <button
-              onClick={() => handleToggle('lateCountsAsPresent')}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                formData.lateCountsAsPresent ? 'bg-[#0E7C86]' : 'bg-slate-300 dark:bg-slate-700'
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                  formData.lateCountsAsPresent ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* Excused rule */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between gap-4">
-            <div className="space-y-1">
-              <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
-                Count &quot;Excused&quot; as Present
-              </h4>
-              <p className="text-xs text-slate-500 leading-relaxed max-w-xl">
-                When active, official college exemptions and excused medical leaves are not penalized in the aggregate attendance calculation.
-              </p>
-            </div>
-            <button
-              onClick={() => handleToggle('excusedCountsAsPresent')}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                formData.excusedCountsAsPresent ? 'bg-[#0E7C86]' : 'bg-slate-300 dark:bg-slate-700'
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                  formData.excusedCountsAsPresent ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* Low Attendance Threshold */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white flex items-center gap-2">
-                  <span>Low Attendance Warning Threshold</span>
-                  <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300">
-                    {formData.lowAttendanceThreshold}%
-                  </span>
-                </h4>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Students with attendance below this percentage are highlighted in red and flagged for administrative follow-up.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {[65, 75, 80, 85].map(pct => (
-                  <button
-                    key={pct}
-                    onClick={() => handleNumberChange('lowAttendanceThreshold', pct)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                      formData.lowAttendanceThreshold === pct
-                        ? 'bg-[#0F2A4A] text-white dark:bg-teal-600'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-                    }`}
-                  >
-                    {pct}%
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <input
-                type="range"
-                min="50"
-                max="95"
-                step="5"
-                value={formData.lowAttendanceThreshold}
-                onChange={(e) => handleNumberChange('lowAttendanceThreshold', e.target.value)}
-                className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#0E7C86]"
-              />
-              <div className="flex justify-between text-[11px] text-slate-400 font-mono">
-                <span>50% Minimum</span>
-                <span className="font-bold text-amber-600">Current: {formData.lowAttendanceThreshold}%</span>
-                <span>95% Strict</span>
-              </div>
-            </div>
-
-            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
-              <span>Currently flagged below threshold:</span>
-              <strong className="font-bold font-mono text-sm">{lowAttendanceCount} student(s)</strong>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 3: Overall Performance Score (OPS) */}
-      {activeTab === 'ops' && (
-        <div className="space-y-5 max-w-3xl">
-          {/* OPS Toggle */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-[#C9A227]" />
-                <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white">
-                  Enable Overall Performance Score (OPS)
-                </h4>
-              </div>
-              <p className="text-xs text-slate-500 leading-relaxed max-w-xl">
-                When enabled, the summit ranking formula blends academic event marks and session attendance into a single composite score out of 100%.
-              </p>
-            </div>
-
-            <button
-              onClick={() => handleToggle('enableOverallPerformanceScore')}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                formData.enableOverallPerformanceScore ? 'bg-[#0E7C86]' : 'bg-slate-300 dark:bg-slate-700'
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                  formData.enableOverallPerformanceScore ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* Formula weights configuration */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0F1B2B] border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
-            <h4 className="font-bold text-sm text-[#0F2A4A] dark:text-white flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-[#0E7C86]" />
-              <span>Score Weight Distribution (Total = 100%)</span>
-            </h4>
-
-            {/* Visual Bar */}
-            <div className="space-y-1.5">
-              <div className="w-full h-4 rounded-full overflow-hidden flex bg-slate-200 dark:bg-slate-700">
-                <div
-                  className="h-full bg-[#0F2A4A] dark:bg-teal-600 transition-all duration-300 flex items-center justify-center text-[10px] text-white font-bold"
-                  style={{ width: `${formData.overallMarksWeight}%` }}
-                >
-                  {formData.overallMarksWeight}% Marks
-                </div>
-                <div
-                  className="h-full bg-[#C9A227] transition-all duration-300 flex items-center justify-center text-[10px] text-slate-950 font-bold"
-                  style={{ width: `${formData.overallAttendanceWeight}%` }}
-                >
-                  {formData.overallAttendanceWeight}% Att
-                </div>
-              </div>
-              <div className="flex justify-between text-[11px] text-slate-500">
-                <span>Academic Marks Weight: <strong>{formData.overallMarksWeight}%</strong></span>
-                <span>Session Attendance Weight: <strong>{formData.overallAttendanceWeight}%</strong></span>
-              </div>
-            </div>
-
-            {/* Sliders */}
-            <div className="space-y-4 pt-2">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Marks Weight Percentage ({formData.overallMarksWeight}%)
-                </label>
-                <input
-                  type="range"
-                  min="50"
-                  max="95"
-                  step="5"
-                  value={formData.overallMarksWeight}
-                  onChange={(e) => handleNumberChange('overallMarksWeight', e.target.value)}
-                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#0F2A4A]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Attendance Weight Percentage ({formData.overallAttendanceWeight}%)
-                </label>
-                <input
-                  type="range"
-                  min="5"
-                  max="50"
-                  step="5"
-                  value={formData.overallAttendanceWeight}
-                  onChange={(e) => handleNumberChange('overallAttendanceWeight', e.target.value)}
-                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#C9A227]"
-                />
-              </div>
-            </div>
-
-            {/* Mathematical Equation Box */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-xs font-mono space-y-1 text-slate-700 dark:text-slate-300">
-              <div className="font-bold text-[#0E7C86]">Mathematical Formula Applied:</div>
-              <div>
-                OPS = (Marks% &times; {formData.overallMarksWeight / 100}) + (Attendance% &times; {formData.overallAttendanceWeight / 100})
-              </div>
-              <p className="text-[11px] text-slate-400 font-sans pt-1">
-                Where Marks% = (Marks Obtained / Max Marks Possible) &times; 100. Ties are resolved by maintaining identical ranks.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: Audit Logs */}
+      {/* TAB 2: Audit Logs */}
       {activeTab === 'audit' && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
