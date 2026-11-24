@@ -33,19 +33,13 @@ import {
   Award,
   Layers,
   Calendar,
-  CheckCircle2,
   Moon,
-  Sun,
-  Shield,
-  ArrowRight,
-  TrendingUp,
-  RotateCcw
+  Sun
 } from 'lucide-react';
 
 export const DesignSystemPage = ({ isDark, setIsDark }) => {
   const { reduceMotion, toggleReduceMotion } = useReducedMotionPreference();
   const [activeSection, setActiveSection] = useState('all'); // 'all', 'badges', 'cards', 'tokens', 'motion'
-  const [toastDemo, setToastDemo] = useState(false);
 
   return (
     <div className="space-y-8 pb-16">

@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React from 'react';
 import {
   Crown,
   PenTool,
@@ -9,11 +9,7 @@ import {
   UserCheck,
   TrendingUp,
   TrendingDown,
-  Minus,
-  CheckCircle,
-  AlertCircle,
-  Clock,
-  Info
+  Minus
 } from 'lucide-react';
 
 /**

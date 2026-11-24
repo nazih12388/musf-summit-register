@@ -748,16 +748,16 @@ export const AppProvider = ({ children }) => {
     };
 
     // Grade Calculator
-    const calculateGrade = (finalMark) => {
+    const calculateGrade = useCallback((finalMark) => {
       if (finalMark == null || isNaN(finalMark)) return '-';
-      const ranges = settings.gradeRanges || INITIAL_SETTINGS.gradeRanges;
+      const ranges = settings?.gradeRanges || INITIAL_SETTINGS.gradeRanges;
       for (const r of ranges) {
         if (finalMark >= r.min && finalMark <= r.max) {
           return r.grade;
         }
       }
       return '-';
-    };
+    }, [settings?.gradeRanges]);
 
     // Attendance rule evaluator
     const isConsideredPresent = (status) => {
@@ -925,7 +925,7 @@ export const AppProvider = ({ children }) => {
       });
 
       return map;
-    }, [programs, entries, marks, students, teams, settings.gradeRanges]);
+    }, [programs, entries, marks, students, teams, calculateGrade]);
 
     // STUDENT STANDINGS & RANKINGS (WITH SECTION-WISE RANKS)
     const studentStandings = useMemo(() => {

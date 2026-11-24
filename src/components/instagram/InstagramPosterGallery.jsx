@@ -43,7 +43,7 @@ import { Modal } from '../common/Modal';
 export const InstagramPosterGallery = ({ isModal = false, onClose }) => {
   const { currentUser } = useAuth();
   const { lang, tr } = useLanguage();
-  const { instagramPosts = [], setInstagramPosts, unionOfficials = [] } = useApp ? useApp() : { instagramPosts: [] };
+  const { instagramPosts = [], setInstagramPosts, unionOfficials = [] } = useApp();
 
   const [posts, setPosts] = useState(instagramPosts || []);
   const [activeTab, setActiveTab] = useState('embeds'); // 'embeds' | 'profile_stream'

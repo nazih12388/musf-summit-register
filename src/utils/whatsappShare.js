@@ -41,7 +41,7 @@ export async function generateResultCardCanvas(resultData) {
 
   ctx.fillStyle = '#0E7C86';
   ctx.font = '600 24px sans-serif';
-  ctx.fillText("DIRECTORATE OF SUMMITS & ACADEMIC EVALUATIONS", canvas.width / 2, 155);
+  ctx.fillText(festName, canvas.width / 2, 155);
 
   // Program Result Badge
   ctx.fillStyle = '#0E7C86';

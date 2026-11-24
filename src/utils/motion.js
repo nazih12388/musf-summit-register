@@ -65,8 +65,16 @@ export const CountUp = ({
   decimals = 0,
   className = ''
 }) => {
-  const [current, setCurrent] = useState(0);
   const target = Number(to) || 0;
+  const [current, setCurrent] = useState(() => {
+    if (typeof window !== 'undefined' && (
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      localStorage.getItem('musf_reduce_motion') === 'true'
+    )) {
+      return target;
+    }
+    return 0;
+  });
   const startedRef = useRef(false);
 
   useEffect(() => {
@@ -80,7 +88,9 @@ export const CountUp = ({
     );
 
     if (isReduced) {
-      setCurrent(target);
+      if (current !== target) {
+        requestAnimationFrame(() => setCurrent(target));
+      }
       return;
     }
 

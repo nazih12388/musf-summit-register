@@ -17,7 +17,7 @@ import {
  * Preserves high resolution up to 1200x1200 with 0.8 quality without cropping.
  * Typical output is 60KB - 160KB (well within Firestore 1MB document limit).
  */
-export const compressPosterImage = (file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) => {
+const compressPosterImage = (file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) => {
   return new Promise((resolve, reject) => {
     if (!file || !file.type.startsWith('image/')) {
       return reject(new Error('Please select a valid image file (JPG, PNG, WebP)'));

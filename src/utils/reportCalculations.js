@@ -29,6 +29,11 @@ export function formatMonthLabel(monthKey) {
  */
 export function getGradeFromScore(score, maxScore = 10, gradeRanges = null) {
   const pct = maxScore > 0 ? (score / maxScore) * 100 : 0;
+  if (Array.isArray(gradeRanges) && gradeRanges.length > 0) {
+    for (const r of gradeRanges) {
+      if (pct >= (r.min || 0)) return r.grade;
+    }
+  }
   if (pct >= 90) return 'A';
   if (pct >= 70) return 'B';
   if (pct >= 50) return 'C';
@@ -136,9 +141,6 @@ export function computeComprehensiveReport({
     // Summit-by-summit detailed performance
     const summitPerformances = activePeriodSummits.map(sm => {
       const runInfo = summitRunningMap[sm.id];
-
-      // Find all programs assigned to this summit
-      const smPrograms = programs.filter(p => p.summitId === sm.id);
 
       // Find entries where this student participated
       const studentEntries = entries.filter(e => {

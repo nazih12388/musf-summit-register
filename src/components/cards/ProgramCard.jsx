@@ -1,7 +1,7 @@
 import React from 'react';
 import { StatusBadge, CategoryTag } from '../common/Badge';
 import { CardSkeleton } from './CardSkeleton';
-import { MapPin, Clock, Users, ArrowRight } from 'lucide-react';
+import { MapPin, Clock, ArrowRight } from 'lucide-react';
 
 export const ProgramCard = ({
   title = 'Program Title',

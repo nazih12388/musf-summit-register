@@ -2,7 +2,7 @@ import React from 'react';
 import { MedalBadge, CategoryTag } from '../common/Badge';
 import { CardSkeleton } from './CardSkeleton';
 import { triggerPrizeConfetti } from '../../utils/motion';
-import { Share2, User, Trophy } from 'lucide-react';
+import { Share2 } from 'lucide-react';
 
 export const ResultCard = ({
   rank = 1,

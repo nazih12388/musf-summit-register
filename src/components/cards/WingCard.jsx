@@ -1,6 +1,6 @@
 import React from 'react';
 import { CardSkeleton } from './CardSkeleton';
-import { Layers, Users, Calendar, ArrowRight } from 'lucide-react';
+import { Users, Calendar, ArrowRight } from 'lucide-react';
 
 export const WingCard = ({
   name = 'Wing Name',

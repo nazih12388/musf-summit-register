@@ -228,6 +228,17 @@ export const detectCategoryFromText = (text = '') => {
   return { category: 'program', label: '📌 യൂണിയൻ പരിപാടി' };
 };
 
+const safeIsoDate = (dStr) => {
+  if (!dStr) return new Date().toISOString().split('T')[0];
+  try {
+    const d = new Date(dStr);
+    if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+  } catch (e) {
+    // fallback
+  }
+  return new Date().toISOString().split('T')[0];
+};
+
 /**
  * Main Fetcher & Auto-Sync Engine
  * Parses Behold.so JSON endpoints, RSSHub bridges, or falls back gracefully to cached/stored posts.
@@ -290,7 +301,7 @@ export const syncInstagramFeed = async ({ force = false } = {}) => {
             aspectRatio: '4:5',
             category,
             categoryLabel: label,
-            date: item.timestamp ? new Date(item.timestamp).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            date: safeIsoDate(item.timestamp),
             permalink: item.permalink || `https://www.instagram.com/${handle}/`,
             likesCount: item.likeCount || item.likes || Math.floor(Math.random() * 200) + 250,
             commentsCount: item.commentsCount || item.comments || Math.floor(Math.random() * 30) + 15,
@@ -324,7 +335,7 @@ export const syncInstagramFeed = async ({ force = false } = {}) => {
             aspectRatio: '4:5',
             category,
             categoryLabel: label,
-            date: item.pubDate ? new Date(item.pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            date: safeIsoDate(item.pubDate),
             permalink: item.link || `https://www.instagram.com/${handle}/`,
             likesCount: Math.floor(Math.random() * 200) + 300,
             commentsCount: Math.floor(Math.random() * 40) + 20,
